@@ -233,12 +233,21 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
                 break;
             case JMP:
                 Assert.test(operands.length == 1);
-                ret = new JumpInst(addr, opcode, operands[0], isIndirect);
+                if (operands[0].isMemory())
+                    ret = new JumpInst(addr, opcode, operands[0].asMemory(), isIndirect);
+                else if (operands[0].isRegister())
+                    ret = new JumpInst(addr, opcode, operands[0].asRegister(), isIndirect);
+                else
+                    Assert.test(false);
                 break;
             case JCC:
                 Assert.test(operands.length == 1);
-                Assert.test(operands[0] instanceof Memory);
-                ret = new CondJumpInst(addr, opcode, operands[0], isIndirect);
+                if (operands[0].isMemory())
+                    ret = new CondJumpInst(addr, opcode, operands[0].asMemory(), isIndirect);
+                else if (operands[0].isRegister())
+                    ret = new CondJumpInst(addr, opcode, operands[0].asRegister(), isIndirect);
+                else
+                    Assert.test(false);
                 break;
             case NOP:
                 Assert.test(operands.length == 0);
@@ -246,7 +255,12 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
                 break;
             case CALL:
                 Assert.test(operands.length == 1);
-                ret = new CallInst(addr, opcode, operands[0], isIndirect);
+                if (operands[0].isMemory())
+                    ret = new CallInst(addr, opcode, operands[0].asMemory(), isIndirect);
+                else if (operands[0].isRegister())
+                    ret = new CallInst(addr, opcode, operands[0].asRegister(), isIndirect);
+                else
+                    Assert.test(false);
                 break;
             case RET:
                 Assert.test(operands.length <= 1);

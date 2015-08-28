@@ -19,8 +19,13 @@ public class CallInst extends BranchInst {
     
     
     private Function mCalled;
-    protected CallInst(long addr, Opcode op, Operand operand, boolean isIndirect) {
-        super(addr, op, operand, isIndirect);
+    protected CallInst(long addr, Opcode op, Memory target, boolean isIndirect) {
+        super(addr, op, target, isIndirect);
+        mCalled = null;
+    }
+    
+    protected CallInst(long addr, Opcode op, Register target, boolean isIndirect) {
+        super(addr, op, target, isIndirect);
         mCalled = null;
     }
 

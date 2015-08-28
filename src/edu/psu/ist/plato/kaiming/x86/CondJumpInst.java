@@ -7,7 +7,12 @@ public class CondJumpInst extends JumpInst {
     // FIXME: Use bitset to represent EFLAGS
     private final Set<Flag> mCond;
     
-    protected CondJumpInst(long addr, Opcode op, Operand target, boolean isIndirect) {
+    protected CondJumpInst(long addr, Opcode op, Memory target, boolean isIndirect) {
+        super(addr, op, target, isIndirect);
+        mCond = Flag.getDependentFlagsByCondition(op.getRawOpcode().substring(1));
+    }
+    
+    protected CondJumpInst(long addr, Opcode op, Register target, boolean isIndirect) {
         super(addr, op, target, isIndirect);
         mCond = Flag.getDependentFlagsByCondition(op.getRawOpcode().substring(1));
     }
