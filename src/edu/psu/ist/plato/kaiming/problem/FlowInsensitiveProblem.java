@@ -21,6 +21,7 @@ public abstract class FlowInsensitiveProblem<T> extends Problem<T> {
 
     protected abstract T process(Entry e, T in) throws UnsolvableException;
 
+    @Override
     public final void solve() throws UnsolvableException {
         if (mSolved) {
             throw new UnsolvableException("Problem already solved.", 

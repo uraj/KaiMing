@@ -69,6 +69,7 @@ public abstract class PathInsensitiveProblem<T> extends Problem<Map<BasicBlock, 
         return ret;
     }
 
+    @Override
     final public void solve() throws UnsolvableException {
         if (mSolved) {
             throw new UnsolvableException("Problem already solved.", 
