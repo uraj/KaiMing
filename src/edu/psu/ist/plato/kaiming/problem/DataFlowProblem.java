@@ -1,16 +1,20 @@
-package edu.psu.ist.plato.kaiming;
+package edu.psu.ist.plato.kaiming.problem;
 
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 
+import edu.psu.ist.plato.kaiming.BasicBlock;
+import edu.psu.ist.plato.kaiming.CFG;
+import edu.psu.ist.plato.kaiming.Procedure;
+
 // Static Data Flow Problems refer to those whose kill and gen sets do not
 // depend on in sets.
-public abstract class DFProblem extends PathInsensitiveProblem<BitSet> {
+public abstract class DataFlowProblem extends PathInsensitiveProblem<BitSet> {
 
     private Map<BasicBlock, BitSet> mGenMap, mKillMap;
     
-    public DFProblem(Procedure p, CFG cfg, Direction direction) {
+    public DataFlowProblem(Procedure p, CFG cfg, Direction direction) {
         super(p, cfg, direction);
         int size = cfg.getSize();
         mGenMap = new HashMap<BasicBlock, BitSet>(size);

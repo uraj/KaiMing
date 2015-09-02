@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming;
+package edu.psu.ist.plato.kaiming.problem;
 
 public class UnsolvableException extends Exception {
 

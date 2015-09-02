@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming;
+package edu.psu.ist.plato.kaiming.problem;
 
 import java.util.BitSet;
 import java.util.HashMap;
@@ -7,9 +7,12 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import edu.psu.ist.plato.kaiming.BasicBlock;
+import edu.psu.ist.plato.kaiming.CFG;
+import edu.psu.ist.plato.kaiming.Procedure;
 import edu.psu.ist.plato.kaiming.util.Assert;
 
-public abstract class PathInsensitiveProblem<T> {
+public abstract class PathInsensitiveProblem<T> extends Problem<Map<BasicBlock, T>> {
     public enum Direction {
         FORWARD, BACKWARD
     };
@@ -18,13 +21,12 @@ public abstract class PathInsensitiveProblem<T> {
     protected final CFG mCfg;
     private boolean mSolved;
     private Direction mDirection;
-    private Map<BasicBlock, T> mSolution;
     private static final int sMaxIterMultiplier = 10;
     private int mMaxIter;
 
     public PathInsensitiveProblem(Procedure p, CFG cfg, Direction direction) {
+        super(null);
         mSolved = false;
-        mSolution = null;
         mP = p;
         mCfg = cfg;
         mDirection = direction;
@@ -65,10 +67,6 @@ public abstract class PathInsensitiveProblem<T> {
             ret.and(i.next());
         }
         return ret;
-    }
-
-    public Map<BasicBlock, T> getSolution() {
-        return mSolution;
     }
 
     final public void solve() throws UnsolvableException {
@@ -132,7 +130,7 @@ public abstract class PathInsensitiveProblem<T> {
                     "Solution failed to converge within %d steps.", mMaxIter),
                     UnsolvableException.Reason.REACH_MAX_ITERATION);
         }
-        mSolution = exitMap;
+        setSolution(exitMap);
         mSolved = true;
     }
 }
