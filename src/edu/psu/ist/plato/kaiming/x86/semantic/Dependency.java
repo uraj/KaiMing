@@ -24,8 +24,8 @@ import edu.psu.ist.plato.kaiming.x86.Register;
 
 public class Dependency {
     public static final int NGenRegs = 8;
-    public static final int sNFlags = Flag.values().length;
-    public static final int sNBits = NGenRegs + sNFlags;
+    public static final int NFlags = Flag.values().length;
+    public static final int NBits = NGenRegs + NFlags;
     
     private static final Set<Register.Id> sGeneralRegs;
     private static final Set<Flag> sFlags;
@@ -53,7 +53,7 @@ public class Dependency {
         sFlags.add(Flag.IF);
     }
 
-    private static int getIndex(Register.Id reg) {
+    public static int getIndex(Register.Id reg) {
         if (reg == null)
             return -1;
         int ret;
@@ -72,7 +72,7 @@ public class Dependency {
         return ret;
     }
 
-    private static int getIndex(Flag f) {
+    public static int getIndex(Flag f) {
         if (f == null)
             return -1;
         int ret;
