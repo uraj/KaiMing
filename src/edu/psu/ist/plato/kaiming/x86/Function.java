@@ -57,7 +57,7 @@ public class Function extends Procedure {
     }
 
     @Override
-    public CFG buildCFGInternal(List<? extends Entry> entries) {
+    protected CFG buildCFGInternal(List<? extends Entry> entries) {
         Instruction[] inst = entries.toArray(new Instruction[0]);
         Arrays.sort(inst, Instruction.comparator);
         if (inst.length == 0) {

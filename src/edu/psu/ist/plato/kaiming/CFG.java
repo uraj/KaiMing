@@ -27,6 +27,11 @@ public class CFG implements Iterable<BasicBlock> {
         mBBs = new TreeSet<BasicBlock>(bbs);
         mEntry = entry;
     }
+    
+    @Override 
+    public CFG clone() {
+        return new CFG(mBBs, mEntry);
+    }
 
     @Override
     public Iterator<BasicBlock> iterator() {
@@ -55,6 +60,18 @@ public class CFG implements Iterable<BasicBlock> {
         mBBs.addAll(bbs);
     }
     
+    public void removeBasicBlock(BasicBlock bb) {
+        mBBs.remove(bb);
+    }
+    
+    public void removeBasicBlockAll(Collection<? extends BasicBlock> bbs) {
+        for (BasicBlock bb : bbs) {
+            if (bb == null)
+                throw new IllegalArgumentException();
+        }
+        mBBs.removeAll(bbs);
+    }
+    
     public void setEntryBlock(BasicBlock entry) {
         mEntry = entry;
     }
@@ -63,6 +80,14 @@ public class CFG implements Iterable<BasicBlock> {
         List<Entry> ret = new ArrayList<Entry>();
         for (BasicBlock bb : this) {
             ret.addAll(bb.mEntries);
+        }
+        return ret;
+    }
+    
+    public int getNumEntries() {
+        int ret = 0;
+        for (BasicBlock bb : this) {
+            ret += bb.size();
         }
         return ret;
     }

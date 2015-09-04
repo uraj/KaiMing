@@ -23,7 +23,7 @@ public abstract class Procedure {
         return mCfg.getEntries();
     }
 
-    public abstract CFG buildCFGInternal(List<? extends Entry> entries);
+    protected abstract CFG buildCFGInternal(List<? extends Entry> entries);
 
     public CFG getCFG() {
         return mCfg;
@@ -36,5 +36,9 @@ public abstract class Procedure {
     protected CFG createCFGObject(Collection<BasicBlock> bbs,
             BasicBlock entry) {
         return new CFG(bbs, entry);
+    }
+    
+    public int getSize() {
+        return mCfg.getNumEntries();
     }
 }
