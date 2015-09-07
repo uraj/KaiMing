@@ -9,4 +9,8 @@ public class ExchangeInst extends Instruction {
     public Operand[] getExchangedOperands() {
         return new Operand[] {getOperand(0), getOperand(1)};
     }
+    
+    public boolean isExchangeAdd() {
+        return getOpcode().getRawOpcode().equals("xadd");
+    }
 }
