@@ -179,8 +179,15 @@ public class Dependency {
     }
     
     public static void transferJumpInst(JumpInst inst, BitSet in) {
-        if (!inst.isConditional())
+        if (inst.isIndirect()) {
+            // TODO: this should be fixed once we can analyze indirect jumps
+            in.clear();
             return;
+        }
+        
+        if (!inst.isConditional()) {
+            return;
+        }
         CondJumpInst cji = (CondJumpInst)inst;
         String rawop = cji.getOpcode().getRawOpcode();
         if (rawop.equals("jcxz") || rawop.equals("jecxz"))

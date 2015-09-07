@@ -72,7 +72,10 @@ public class Opcode {
         
         sMap.put("test", Class.TEST);
         sMap.put("testb", Class.TEST);
+        
+        // Exchange
         sMap.put("xchg", Class.XCHG);
+        sMap.put("xadd", Class.XCHG);
 
         sMap.put("lea", Class.LEA);
         
@@ -213,8 +216,16 @@ public class Opcode {
     // produce raw
     // opcode strings via a factory way.
     private String mCode;
+    private boolean mIsLocked;
 
     public Opcode(String rawcode) {
+        
+        if (rawcode.startsWith("lock ")) {
+            mIsLocked = true;
+            rawcode = rawcode.substring(5);
+        } else {
+            mIsLocked = false;
+        }
         mCode = rawcode;
         mClass = sMap.get(rawcode);
         if (mClass == null)
@@ -223,6 +234,14 @@ public class Opcode {
 
     public String getRawOpcode() {
         return mCode;
+    }
+    
+    public void setLocked(boolean isLocked) {
+        mIsLocked = isLocked;
+    }
+    
+    public boolean isLocked() {
+        return mIsLocked;
     }
     
     public void setRawOpcode(String newRawOpcode) {
