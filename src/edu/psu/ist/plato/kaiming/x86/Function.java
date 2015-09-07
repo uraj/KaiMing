@@ -18,8 +18,9 @@ import edu.psu.ist.plato.kaiming.util.Assert;
 public class Function extends Procedure {
 
     private int mSubLabelCount;
+    private boolean mHasIndirectJump;
     private static final String sSubLabelSuffix = "_sub";
-
+    
     public Function(AsmLabel label, List<Instruction> insts) {
         super(label, insts);
         mSubLabelCount = 0;
@@ -54,6 +55,10 @@ public class Function extends Procedure {
             }
         }
         return -1;
+    }
+    
+    public boolean hasIndirectJump() {
+        return mHasIndirectJump;
     }
 
     @Override
@@ -94,11 +99,11 @@ public class Function extends Procedure {
             bbs[i].setLable(deriveSubLabel(bbs[i]));
         }
         
-        boolean hasIndirectJump = false;
+        mHasIndirectJump = false;
         for (int i = 0; i < bbs.length; ++i) {
             Instruction in = (Instruction)bbs[i].getLastEntry();
-            if (in.isBranchInst() && !in.isCallInst()) {
-                BranchInst bin = (BranchInst)in;
+            if (in.isJumpInst()) {
+                JumpInst bin = (JumpInst)in;
                 if (!bin.isIndirect() && bin.isTargetConcrete()) {
                     long targetAddr = bin.getTarget().getDisplacement();
                     int idx = Function.searchContainingBlock(bbs, targetAddr);
@@ -112,7 +117,7 @@ public class Function extends Procedure {
                         continue;
                     }
                 } else {
-                    hasIndirectJump = true;
+                    mHasIndirectJump = true;
                 }
             }
             if (!in.isReturnInst() && i + 1 < bbs.length) {
@@ -122,7 +127,7 @@ public class Function extends Procedure {
         }
         
         List<BasicBlock> cfg = new ArrayList<BasicBlock>();
-        if (!hasIndirectJump) {
+        if (!mHasIndirectJump) {
             cfg.add(bbs[0]);
             for (int i = 1; i < bbs.length; ++i) {
                 if (bbs[i].hasPredecessor())
