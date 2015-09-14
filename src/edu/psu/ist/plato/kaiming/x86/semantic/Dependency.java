@@ -4,25 +4,19 @@ import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
 
-import edu.psu.ist.plato.kaiming.x86.BinaryArithInst;
-import edu.psu.ist.plato.kaiming.x86.BitTestInst;
-import edu.psu.ist.plato.kaiming.x86.CompareInst;
-import edu.psu.ist.plato.kaiming.x86.CondJumpInst;
-import edu.psu.ist.plato.kaiming.x86.CondMoveInst;
-import edu.psu.ist.plato.kaiming.x86.CondSetInst;
-import edu.psu.ist.plato.kaiming.x86.DivideInst;
-import edu.psu.ist.plato.kaiming.x86.ExchangeInst;
-import edu.psu.ist.plato.kaiming.x86.Flag;
-import edu.psu.ist.plato.kaiming.x86.JumpInst;
-import edu.psu.ist.plato.kaiming.x86.LeaInst;
-import edu.psu.ist.plato.kaiming.x86.Memory;
-import edu.psu.ist.plato.kaiming.x86.MoveInst;
-import edu.psu.ist.plato.kaiming.x86.MultiplyInst;
-import edu.psu.ist.plato.kaiming.x86.Operand;
-import edu.psu.ist.plato.kaiming.x86.PopInst;
-import edu.psu.ist.plato.kaiming.x86.Register;
+import edu.psu.ist.plato.kaiming.x86.*;
 
 public class Dependency {
+    public boolean conservative = false;
+
+    public Dependency() {
+        conservative = false;
+    }
+    
+    public Dependency(boolean cons) {
+        conservative = cons;
+    }
+    
     public static final int NGenRegs = 8;
     public static final int NFlags = Flag.values().length;
     public static final int NBits = NGenRegs + NFlags;
@@ -92,7 +86,7 @@ public class Dependency {
         return ret + NGenRegs;
     }
 
-    public static void transferMultiplyInst(MultiplyInst inst, BitSet in) {
+    public final void transferMultiplyInst(MultiplyInst inst, BitSet in) {
         boolean affected = false;
         Operand[] dest = inst.getDest();
         for (int i = 0; i < dest.length; ++i) {
@@ -110,7 +104,7 @@ public class Dependency {
         }
     }
     
-    public static void transferDivideInst(DivideInst inst, BitSet in) {
+    public final void transferDivideInst(DivideInst inst, BitSet in) {
         boolean affected = false;
         Operand[] dest = inst.getDest();
         for (int i = 0; i < dest.length; ++i) {
@@ -128,7 +122,7 @@ public class Dependency {
         }
     }
     
-    public static void transferBitTestInst(BitTestInst inst, BitSet in) {
+    public final void transferBitTestInst(BitTestInst inst, BitSet in) {
         int idx = getIndex(Flag.CF);
         if (in.get(idx)) {
             in.clear(idx);
@@ -139,7 +133,7 @@ public class Dependency {
         }
     }
     
-    public static void transferBinaryArithInst(BinaryArithInst inst, BitSet in) {
+    public final void transferBinaryArithInst(BinaryArithInst inst, BitSet in) {
         Operand dest = inst.getDest();
         boolean affected = false;
         int idx;
@@ -164,7 +158,7 @@ public class Dependency {
         }
     }
 
-    public static void transferCondSetInst(CondSetInst inst, BitSet in) {
+    public final void transferCondSetInst(CondSetInst inst, BitSet in) {
         Operand op = inst.getDest();
         if (!op.isRegister())
             return;
@@ -178,7 +172,7 @@ public class Dependency {
         }
     }
     
-    public static void transferJumpInst(JumpInst inst, BitSet in) {
+    public final void transferJumpInst(JumpInst inst, BitSet in) {
         if (inst.isIndirect()) {
             // TODO: this should be fixed once we can analyze indirect jumps
             in.clear();
@@ -197,7 +191,7 @@ public class Dependency {
         }
     }
     
-    public static void transferCompareInst(CompareInst inst, BitSet in) {
+    public final void transferCompareInst(CompareInst inst, BitSet in) {
         Set<Flag> modifiedFlags = inst.getModifiedFlags();
         boolean affectted = false;
         for (Flag f : modifiedFlags) {
@@ -218,7 +212,7 @@ public class Dependency {
         }
     }
     
-    public static void transferExchangeInst(ExchangeInst inst, BitSet in) {
+    public final void transferExchangeInst(ExchangeInst inst, BitSet in) {
         boolean affected1 = false, affected2 = false;
         Operand op1 = inst.getOperand(0), op2 = inst.getOperand(1), op;
         int idx1  = -1, idx2 = -1;
@@ -245,13 +239,15 @@ public class Dependency {
         setBitForOperand(op, in);
     }
     
-    public static void transferPopInst(PopInst inst, BitSet in) {
-        Register dest = inst.getTarget();
-        in.clear(getIndex(dest.getContainingRegister().id));
-        in.set(getIndex(Register.Id.ESP));
+    public final void transferPopInst(PopInst inst, BitSet in) {
+        Register dest = inst.getTarget().getContainingRegister();
+        if (in.get(getIndex(dest.id))) {
+            in.clear(getIndex(dest.id));
+            in.set(getIndex(Register.Id.ESP));
+        }
     }
     
-    public static void transferMoveInst(MoveInst inst, BitSet in) {
+    public final void transferMoveInst(MoveInst inst, BitSet in) {
         Operand dest = inst.getTo();
         int index;
         if (dest.isRegister()) {
@@ -267,17 +263,42 @@ public class Dependency {
                     }
                 }
             }
+        } else if (conservative && couldMemoryBeTainted(dest.asMemory(), in)) {
+            Operand src = inst.getFrom();
+            setBitForOperand(src, in);
+            if (inst.isConditional()) {
+                CondMoveInst ci = (CondMoveInst)inst;
+                for (Flag f : ci.getDependentFlags()) {
+                    in.set(getIndex(f));
+                }
+            }
         }
     }
     
-    public static void transferLeaInst(LeaInst inst, BitSet in) {
-        Register result = inst.getResult().asRegister().getContainingRegister();
+    public final void transferLeaInst(LeaInst inst, BitSet in) {
+        Register result = inst.getResult().getContainingRegister();
         int index = getIndex(result.id);
         if (in.get(index)) {
             in.clear(index);
             Memory exp = inst.getExpression();
             setBitForOperand(exp, in);
         }
+    }
+    
+    private static boolean couldMemoryBeTainted(Memory mem, BitSet in) {
+        Register base = mem.getBaseRegister();
+        if (base != null) {
+            base = base.getContainingRegister();
+            if (in.get(getIndex(base.id)))
+                return true;
+        }
+        Register off = mem.getOffsetRegister();
+        if (off != null) {
+            off = off.getContainingRegister();
+            if (in.get(getIndex(off.id)))
+                return true;
+        }
+        return false;
     }
     
     public static void setBitForOperand(Operand op, BitSet in) {
