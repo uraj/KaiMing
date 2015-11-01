@@ -85,7 +85,7 @@ public class Printer extends PrintWriter {
 
     public void printOperand(Operand op) {
         switch (op.getType()) {
-            case Immeidate:
+            case Immediate:
                 printOpImmediate((Immediate) op);
                 break;
             case Memory:

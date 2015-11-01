@@ -5,7 +5,7 @@ public class Immediate extends Operand {
 	private final long mValue;
 	
 	private Immediate(long value) {
-		super(Type.Immeidate);
+		super(Type.Immediate);
 		mValue = value;
 	}
 	
@@ -14,18 +14,30 @@ public class Immediate extends Operand {
 	private static final Immediate sPosOne = new Immediate(1);
 	private static final Immediate sPosTwo = new Immediate(2);
 	private static final Immediate sPosFour = new Immediate(4);
+	private static final Immediate sPosEight = new Immediate(8);
+	private static final Immediate sNegOne = new Immediate(-1);
+    private static final Immediate sNegTwo = new Immediate(-2);
+    private static final Immediate sNegFour = new Immediate(-4);
+    private static final Immediate sNegEight = new Immediate(-8);
+    
 	
 	public static Immediate getImmediate(long value) {
-		if (value == 0)
-			return sZero;
-		else if (value == 1)
-			return sPosOne;
-		else if (value == 2)
-			return sPosTwo;
-		else if (value == 4)
-			return sPosFour;
-		else
-			return new Immediate(value);
+	    int nv = (int)value;
+	    if (nv != value)
+	        return new Immediate(value);
+	    switch (nv) {
+	        case 0: return sZero;
+	        case 1: return sPosOne;
+	        case 2: return sPosTwo;
+	        case 4: return sPosFour;
+	        case 8: return sPosEight;
+            case -1: return sNegOne;
+            case -2: return sNegTwo;
+            case -4: return sNegFour;
+            case -8: return sNegEight;
+	        default:
+	            return new Immediate(value);
+	    }
 	};
 
 	public long getValue() {

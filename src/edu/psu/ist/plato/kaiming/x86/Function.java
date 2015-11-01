@@ -46,17 +46,6 @@ public class Function extends Procedure {
         return null;
     }
     
-    public static int searchContainingBlock(BasicBlock[] bbs,
-            long addr) {
-        for (int i = 0; i < bbs.length; ++i) {
-            if (bbs[i].getLastEntry().compareTo(addr) >= 0
-                    && bbs[i].getFirstEntry().compareTo(addr) <= 0) {
-                return i;
-            }
-        }
-        return -1;
-    }
-    
     public boolean hasIndirectJump() {
         return mHasIndirectJump;
     }
@@ -78,7 +67,7 @@ public class Function extends Procedure {
                 BranchInst bin = (BranchInst)inst[i];
                 if (!bin.isIndirect() && bin.isTargetConcrete()) {
                     long target = bin.getTarget().getDisplacement();
-                    int idx = Entry.binSearch(inst, target);
+                    int idx = Entry.searchIndex(inst, target);
                     if (idx != -1)
                         pivots.add(idx);
                 }
@@ -106,13 +95,12 @@ public class Function extends Procedure {
                 JumpInst bin = (JumpInst)in;
                 if (!bin.isIndirect() && bin.isTargetConcrete()) {
                     long targetAddr = bin.getTarget().getDisplacement();
-                    int idx = Function.searchContainingBlock(bbs, targetAddr);
-                    if (idx == -1)
+                    BasicBlock targetBB = BasicBlock.searchContainingBlock(bbs, targetAddr);
+                    if (targetBB == null)
                         continue;
-                    BasicBlock targetBb = bbs[idx];
-                    Assert.test(targetBb.getFirstEntry().getIndex() == targetAddr, mLabel.getName());
-                    bbs[i].addSuccessor(targetBb);
-                    targetBb.addPredecessor(bbs[i]);
+                    Assert.test(targetBB.getFirstEntry().getIndex() == targetAddr, mLabel.getName());
+                    bbs[i].addSuccessor(targetBB);
+                    targetBB.addPredecessor(bbs[i]);
                     if (!bin.isCondJumpInst()) {
                         continue;
                     }

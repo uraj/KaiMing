@@ -21,7 +21,7 @@ public abstract class Entry implements Comparable<Long> {
         }
     };
     
-    public final static int binSearch(final Entry[] entries, long index) {
+    public static int searchIndex(final Entry[] entries, long index) {
         int left = 0, right = entries.length - 1;
         while (left <= right) {
             int pivot = (right + left) / 2;
@@ -35,5 +35,13 @@ public abstract class Entry implements Comparable<Long> {
             }
         }
         return -1;
+    }
+    
+    public static Entry search(Iterable<Entry> entries, long index) {
+        for (Entry e : entries) {
+            if (e.getIndex() == index)
+                return e;
+        }
+        return null;
     }
 }

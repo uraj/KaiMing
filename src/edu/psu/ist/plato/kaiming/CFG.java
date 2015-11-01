@@ -91,4 +91,8 @@ public class CFG implements Iterable<BasicBlock> {
         }
         return ret;
     }
+    
+    public BasicBlock searchContainingBlock(long index) {
+        return BasicBlock.searchContainingBlock(mBBs, index);
+    }
 }

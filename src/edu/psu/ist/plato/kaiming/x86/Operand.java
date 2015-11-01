@@ -5,7 +5,7 @@ public class Operand {
 	public enum Type {
 		Register,
 		Memory,
-		Immeidate,
+		Immediate,
 	}
 	
 	private final Type mType;
@@ -23,7 +23,7 @@ public class Operand {
 	}
 
 	public final boolean isImmeidate() { 
-	    return mType == Type.Immeidate; 
+	    return mType == Type.Immediate; 
 	}
 	
 	public final Type getType() { 

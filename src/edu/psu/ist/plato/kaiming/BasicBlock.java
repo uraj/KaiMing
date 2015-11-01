@@ -80,6 +80,10 @@ public class BasicBlock implements Iterable<Entry>, Comparable<BasicBlock> {
         return mEntries.size();
     }
     
+    public Entry[] getEntries() {
+        return mEntries.toArray(new Entry[0]);
+    }
+    
     public ReverseIterator<Entry> reverseIterator() {
         return new ReverseEntryIterator(mEntries);
     }
@@ -162,6 +166,14 @@ public class BasicBlock implements Iterable<Entry>, Comparable<BasicBlock> {
 
     public Iterator<BasicBlock> iterSuccessor() {
         return mSucc.iterator();
+    }
+    
+    public int getNumPredecessor() {
+        return mPred.size();
+    }
+    
+    public int getNumSuccessor() {
+        return mSucc.size();
     }
     
     public Label getLabel() {
@@ -255,7 +267,7 @@ public class BasicBlock implements Iterable<Entry>, Comparable<BasicBlock> {
     }
     
     public BasicBlock[] split(Long index) {
-        int pivot = Entry.binSearch(mEntries.toArray(new Entry[0]), index);
+        int pivot = Entry.searchIndex(mEntries.toArray(new Entry[0]), index);
         return split(new Integer[] {pivot+1});
     }
 
@@ -265,4 +277,19 @@ public class BasicBlock implements Iterable<Entry>, Comparable<BasicBlock> {
         return Long.signum(getIndex() - bb.getIndex());
     }
     
+    public static BasicBlock searchContainingBlock(final BasicBlock[] bbs,
+            long addr) {
+        return searchContainingBlock(Arrays.asList(bbs), addr);
+    }
+    
+    public static BasicBlock searchContainingBlock(final Iterable<BasicBlock> bbs,
+            long addr) {
+        for (BasicBlock bb : bbs) {
+            if (bb.getLastEntry().compareTo(addr) >= 0
+                    && bb.getFirstEntry().compareTo(addr) <= 0) {
+                return bb;
+            }
+        }
+        return null;
+    }
 }
