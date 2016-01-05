@@ -148,10 +148,6 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
         return this instanceof BranchInst;
     }
     
-    public final boolean isRepeatInst() {
-        return this instanceof RepeatInst;
-    }
-    
     public final boolean isOtherInst() {
         return this instanceof OtherInst;
     }
@@ -288,9 +284,6 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
                 Assert.test(operands.length == 1);
                 Assert.test(operands[0] instanceof Register);
                 ret = new PopInst(addr, opcode, (Register) operands[0]);
-                break;
-            case REP:
-                ret = new RepeatInst(addr, opcode, operands);
                 break;
             default:
                 ret = new OtherInst(addr, opcode, operands);
