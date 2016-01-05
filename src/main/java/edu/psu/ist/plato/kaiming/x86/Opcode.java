@@ -21,6 +21,8 @@ public class Opcode {
         MOV,
         // conditional move
         CMOV,
+        // string oprations
+        MOVS, LODS, STOS, CMPS, SCAS,
         // 
         PUSH, POP,
         // invocation
@@ -33,14 +35,18 @@ public class Opcode {
         RET,
         // nop
         NOP,
-        // rep
-        REP,
         // others we don't really care right now
         LEAVE, EXT, CPUID, INT, HALT, UD,
     };
+    
+    public enum RepCond {
+    	UNCOND, E, Z, NE, NZ
+    }
 
     private static Map<String, Class> sMap = new HashMap<String, Class>();
 
+    // FIXME: Currently this part is a mess. I need some formal references about
+    // x86 mnemonics in the AT&T syntax
     static {
         // Binary Arithmetics
         sMap.put("add", Class.ADD);
@@ -111,12 +117,10 @@ public class Opcode {
         sMap.put("movzbl", Class.MOV);
         sMap.put("movzwl", Class.MOV);
         sMap.put("movzbw", Class.MOV);
-        sMap.put("movs", Class.MOV);
         sMap.put("movsbl", Class.MOV);
         sMap.put("movswl", Class.MOV);
         sMap.put("movsbw", Class.MOV);
-        sMap.put("stos", Class.MOV);
-        sMap.put("lods", Class.MOV);
+        
 
         // Conditional move
         sMap.put("cmova", Class.CMOV);
@@ -165,20 +169,12 @@ public class Opcode {
         sMap.put("jpo", Class.JCC);
         sMap.put("js", Class.JCC);
         
-        sMap.put("rep movs", Class.REP);
-        sMap.put("rep movsl", Class.REP);
-        sMap.put("rep lods", Class.REP);
-        sMap.put("rep stos", Class.REP);
-        sMap.put("rep cmps", Class.REP);
-        sMap.put("rep scas", Class.REP);
-        sMap.put("repz cmps", Class.REP);
-        sMap.put("repz scas", Class.REP);
-        sMap.put("repe cmps", Class.REP);
-        sMap.put("repe scas", Class.REP);
-        sMap.put("repnz cmps", Class.REP);
-        sMap.put("repnz scas", Class.REP);
-        sMap.put("repne cmps", Class.REP);
-        sMap.put("repne scas", Class.REP);
+        sMap.put("movs", Class.MOVS);
+        sMap.put("movsl", Class.MOVS);
+        sMap.put("stos", Class.STOS);
+        sMap.put("lods", Class.LODS);
+        sMap.put("cmps", Class.CMPS);
+        sMap.put("scas", Class.SCAS);
 
         // Call
         sMap.put("call", Class.CALL);
@@ -213,21 +209,45 @@ public class Opcode {
 
     private Class mClass;
     // FIXME: This field may cause memory consumption issue. Maybe we should
-    // produce raw
-    // opcode strings via a factory way.
+    // produce raw opcode strings via a factory.
     private String mCode;
     private boolean mIsLocked;
+    private boolean mIsRep;
+    private RepCond mRepCond;
 
     public Opcode(String rawcode) {
-        
-        if (rawcode.startsWith("lock ")) {
-            mIsLocked = true;
-            rawcode = rawcode.substring(5);
-        } else {
-            mIsLocked = false;
-        }
+        mIsRep = false;
+        mRepCond = null;
+        mIsLocked = false;
         mCode = rawcode;
-        mClass = sMap.get(rawcode);
+        mClass = sMap.get(rawcode.toLowerCase());
+        if (mClass == null)
+            mClass = Class.UD;
+        
+    }
+  
+    public Opcode(String prefix, String rawcode) {
+        if (prefix.equals("lock")) {
+        	mIsLocked = true;
+        } else {
+        	mIsLocked = false;
+        }
+        	
+        if (prefix.startsWith("rep")) {
+        	mIsRep = true;
+        	String cond = prefix.substring(3);
+        	if (cond.isEmpty())
+        		mRepCond = RepCond.UNCOND;
+        	else
+        		mRepCond = RepCond.valueOf(cond.toUpperCase());
+        		
+        } else {
+        	mIsRep = false;
+        	mRepCond = null;
+        }
+        
+        mCode = rawcode;
+        mClass = sMap.get(rawcode.toLowerCase());
         if (mClass == null)
             mClass = Class.UD;
     }
@@ -242,6 +262,14 @@ public class Opcode {
     
     public boolean isLocked() {
         return mIsLocked;
+    }
+    
+    public boolean isRepeated() {
+    	return mIsRep;
+    }
+    
+    public RepCond getRepCond() {
+    	return mRepCond;
     }
     
     public void setRawOpcode(String newRawOpcode) {
