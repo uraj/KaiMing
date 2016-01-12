@@ -14,7 +14,18 @@
 		<dependency>
 			<groupId>org.scala-lang</groupId>
 			<artifactId>scala-library</artifactId>
-			<version>2.10.4</version>
+			<version>2.10.6</version>
+		</dependency>
+		<dependency>
+			<groupId>org.scalatest</groupId>
+			<artifactId>scalatest_2.10</artifactId>
+			<version>2.2.6</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.11</version>
 		</dependency>
 	</dependencies>
 	<build>
@@ -24,17 +35,20 @@
 					<groupId>net.alchim31.maven</groupId>
 					<artifactId>scala-maven-plugin</artifactId>
 					<version>3.2.1</version>
+					<configuration>
+						<recompileMode>incremental</recompileMode>
+					</configuration>
 				</plugin>
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
 					<version>2.0.2</version>
 					<configuration>
-				                <verbose>true</verbose>
-			        	        <fork>true</fork>
-			                	<source>1.8</source>
-				                <target>1.8</target>
-			            </configuration>
+				        <verbose>true</verbose>
+			        	<fork>true</fork>
+			            <source>1.7</source>
+				        <target>1.7</target>
+			        </configuration>
 				</plugin>
 				<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
 				<plugin>
