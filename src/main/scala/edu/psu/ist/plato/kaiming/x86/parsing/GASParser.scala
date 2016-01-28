@@ -83,12 +83,13 @@ object GASParser extends RegexParsers() {
 
   // segment:displacement(base register, offset register, scalar multiplier)
   def membase : Parser[(Option[Register], Option[Register], Int)] = 
-    "(" ~> reg ~ (("," ~> reg ~ (("," ~> positive)?))?) <~ ")" ^^ {
-      case base ~ offAndMulti => offAndMulti match {
-        case None => (Some(base), None, 1)
+    "(" ~> (reg?) ~ (("," ~> reg ~ (("," ~> positive)?))?) <~ ")" ^^ {
+      case base ~ offAndMulti =>
+        offAndMulti match {
+        case None => (base, None, 1)
         case Some(off ~ y) => y match {
-          case None => (Some(base), Some(off), 1)
-          case Some(multi) => (Some(base), Some(off), multi)
+          case None => (base, Some(off), 1)
+          case Some(multi) => (base, Some(off), multi)
         }
       }
     }
@@ -162,7 +163,10 @@ object GASParser extends RegexParsers() {
    
    def parseBinaryUnit(input : String) : List[Function] = parseAll(binaryunit, input) match {
      case Success(value, _) => value
-     case failure : NoSuccess => println(failure.next.first); println(failure.next.offset); scala.sys.error(failure.msg)
+     case failure : NoSuccess => throw new ParsingException(failure.msg + "\n" + failure.next.offset + " " + failure.next.pos)
    }
+   
+   @throws(classOf[ParsingException])
+   def parseBinaryUnitJava(input : String) : java.util.List[Function] = ListBuffer(parseBinaryUnit(input):_*)
 
 }

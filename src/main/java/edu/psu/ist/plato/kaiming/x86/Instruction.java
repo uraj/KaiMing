@@ -317,4 +317,12 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
     public final boolean modifyFlags() {
         return getModifiedFlags().size() != 0;
     }
+    
+    public final boolean isRepeated() {
+        return mOpcode.isRepeated();
+    }
+    
+    public final boolean isLocked() {
+        return mOpcode.isLocked();
+    }
 }
