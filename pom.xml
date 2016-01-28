@@ -10,15 +10,24 @@
 	<name>The Kaiming x86 Binary Analysis Framework</name>
 	<description>The Kaiming x86 Binary Analysis Framework</description>
 	<packaging>jar</packaging>
+	<properties>
+        <scalaVersion>2.11.7</scalaVersion>
+		<scalaBinaryVersion>2.11</scalaBinaryVersion>
+	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>org.scala-lang</groupId>
 			<artifactId>scala-library</artifactId>
-			<version>2.10.6</version>
+			<version>${scalaVersion}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.scala-lang.modules</groupId>
+			<artifactId>scala-parser-combinators_${scalaBinaryVersion}</artifactId>
+			<version>1.0.4</version>
 		</dependency>
 		<dependency>
 			<groupId>org.scalatest</groupId>
-			<artifactId>scalatest_2.10</artifactId>
+			<artifactId>scalatest_2.11</artifactId>
 			<version>2.2.6</version>
 			<scope>test</scope>
 		</dependency>
