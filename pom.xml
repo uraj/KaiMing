@@ -36,6 +36,16 @@
 			<artifactId>junit</artifactId>
 			<version>4.11</version>
 		</dependency>
+		<dependency>
+			<groupId>org.scodec</groupId>
+			<artifactId>scodec-core_${scalaBinaryVersion}</artifactId>
+			<version>1.8.3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.scodec</groupId>
+			<artifactId>scodec-bits_${scalaBinaryVersion}</artifactId>
+			<version>1.0.12</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<pluginManagement>
