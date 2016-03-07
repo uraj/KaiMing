@@ -152,7 +152,7 @@ object GASParser extends RegexParsers() {
               case Some(_) => indirect = true 
             }
         }
-        Instruction.createInstruction(addr, op, operands, indirect)          
+        Instruction.createInstruction(addr, op, operands, indirect)
     }
   
   def function : Parser[Function] = funlabel ~ rep(inst) ^^ {
