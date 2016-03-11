@@ -294,7 +294,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
         return ret;
     }
     
-    abstract List<Stmt> toIR();
+    //abstract List<Stmt> toIR();
 
     @Override
     public int fillLabelInformation(Label l) {
