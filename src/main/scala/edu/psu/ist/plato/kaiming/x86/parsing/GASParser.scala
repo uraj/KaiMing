@@ -82,7 +82,7 @@ object GASParser extends RegexParsers() {
     }
 
   // segment:displacement(base register, offset register, scalar multiplier)
-  def membase : Parser[(Option[Register], Option[Register], Int)] = 
+  def membase1 : Parser[(Option[Register], Option[Register], Int)] = 
     "(" ~> (reg?) ~ (("," ~> reg ~ (("," ~> positive)?))?) <~ ")" ^^ {
       case base ~ offAndMulti =>
         offAndMulti match {
@@ -93,6 +93,13 @@ object GASParser extends RegexParsers() {
         }
       }
     }
+    
+  def membase2 : Parser[(Option[Register], Option[Register], Int)] =
+    "(" ~> reg ~ ("," ~> positive) <~ ")" ^^ {
+      case reg ~ positive => (None, Some(reg), positive)
+    }
+    
+  def membase = membase1 | membase2
   
   def memdist : Parser[(Option[Register], Int)] =
     ((sreg <~ ":" ~ integer) | (sreg <~ ":") | integer) ^^ {
