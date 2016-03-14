@@ -3,6 +3,7 @@ package edu.psu.ist.plato.kaiming.x86.ir;
 public class UnaryExpr extends Expr {
     public enum Op {
         Neg,
+        Load,
     }
     
     private Op mOperator;

@@ -6,14 +6,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
 import edu.psu.ist.plato.kaiming.Entry;
 import edu.psu.ist.plato.kaiming.Label;
 import edu.psu.ist.plato.kaiming.util.ArrayIterator;
 import edu.psu.ist.plato.kaiming.util.Assert;
-import edu.psu.ist.plato.kaiming.x86.ir.Stmt;
 
 public abstract class Instruction extends Entry implements Iterable<Operand> {
 
@@ -294,8 +292,6 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
         return ret;
     }
     
-    //abstract List<Stmt> toIR();
-
     @Override
     public int fillLabelInformation(Label l) {
         Assert.test(l instanceof AsmLabel);

@@ -11,5 +11,10 @@ public abstract class Lval extends Expr {
     public int getNumSubExpr() {
         return 0;
     }
+    
+    @Override
+    public Expr getSubExpr(int index) {
+    	return null;
+    }
 
 }
