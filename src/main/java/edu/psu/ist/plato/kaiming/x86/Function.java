@@ -17,17 +17,30 @@ import edu.psu.ist.plato.kaiming.util.Assert;
 
 public class Function extends Procedure {
 
+    private AsmLabel mLabel;
+    private CFG mCFG;
     private int mSubLabelCount;
     private boolean mHasIndirectJump;
     private static final String sSubLabelSuffix = "_sub";
     
     public Function(AsmLabel label, List<Instruction> insts) {
-        super(label, insts);
+        mLabel = label;
+        mCFG = buildCFG(insts);
         mSubLabelCount = 0;
     }
 
     public AsmLabel getLabel() {
         return (AsmLabel)mLabel;
+    }
+    
+    @Override
+    public CFG getCFG() {
+        return mCFG;
+    }
+    
+    @Override
+    public void setEntries(List<? extends Entry> entries) {
+        mCFG = buildCFG(entries);
     }
 
     @SuppressWarnings("unchecked")
@@ -50,8 +63,7 @@ public class Function extends Procedure {
         return mHasIndirectJump;
     }
 
-    @Override
-    protected CFG buildCFGInternal(List<? extends Entry> entries) {
+    private CFG buildCFG(List<? extends Entry> entries) {
         Instruction[] inst = entries.toArray(new Instruction[0]);
         Arrays.sort(inst, Instruction.comparator);
         if (inst.length == 0) {
@@ -135,7 +147,6 @@ public class Function extends Procedure {
         return mLabel.getName();
     }
 
-    @Override
     public Label deriveSubLabel(BasicBlock bb) {
         Assert.test(mLabel != null);
         Assert.test(mLabel.getName() != null);
