@@ -16,4 +16,8 @@ public class Assert {
         if (!condition)
             throw new AssertionFailException(Long.toHexString(info));
     }
+    
+    public static void unreachable() {
+        test(false, "Uncreachable code");
+    }
 }

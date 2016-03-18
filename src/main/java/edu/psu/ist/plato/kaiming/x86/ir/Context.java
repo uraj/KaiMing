@@ -11,9 +11,12 @@ import edu.psu.ist.plato.kaiming.CFG;
 import edu.psu.ist.plato.kaiming.Entry;
 import edu.psu.ist.plato.kaiming.Procedure;
 import edu.psu.ist.plato.kaiming.util.Assert;
+import edu.psu.ist.plato.kaiming.util.Tuple;
 import edu.psu.ist.plato.kaiming.x86.CompareInst;
 import edu.psu.ist.plato.kaiming.x86.Function;
 import edu.psu.ist.plato.kaiming.x86.Instruction;
+import edu.psu.ist.plato.kaiming.x86.JumpInst;
+import edu.psu.ist.plato.kaiming.x86.Memory;
 import edu.psu.ist.plato.kaiming.x86.Operand;
 
 public class Context extends Procedure {
@@ -81,6 +84,9 @@ public class Context extends Procedure {
         LinkedList<Stmt> ret = new LinkedList<Stmt>();
         if (inst.isCompareInst())
             toIR((CompareInst)inst, ret);
+        else if (inst.isJumpInst()) {
+            toIR((JumpInst)inst, ret);
+        }
         else {
             Assert.test(false, "Unreachable code");
         }
@@ -93,6 +99,18 @@ public class Context extends Procedure {
         ret.add(new CmpStmt(inst, e0, e1));
     }
     
+    private void toIR(JumpInst inst, List<Stmt> ret) {
+        Expr target = null; 
+        if (inst.isIndirect()) {
+            Tuple<Expr, LdStmt> tuple = loadMemory(inst, inst.getTarget());
+            target = tuple.first;
+            ret.add(tuple.second);
+        } else {
+            target = Expr.toExpr(inst.getTarget());
+        }
+        ret.add(new JmpStmt(inst, target));
+    }
+    
     private Expr readOperand(Instruction inst, int operandIndex, List<Stmt> stmt) {
         Operand o = inst.getOperand(operandIndex);
         Expr e = null;
@@ -100,13 +118,20 @@ public class Context extends Procedure {
             e = Expr.toExpr(o.asImmediate());
         } else if (o.isRegister()) {
             e = Expr.toExpr(o.asRegister());
-        } else { // must be a memory-type operand
-            Var temp = getNewTempVariable();
-            LdStmt load = new LdStmt(inst, Expr.toExpr(o.asMemory()), temp);
-            stmt.add(load);
-            e = temp;
+        } else if (o.isMemory()){
+            Tuple<Expr, LdStmt> tuple = loadMemory(inst, o.asMemory());
+            stmt.add(tuple.second);
+            e = tuple.first;
+        } else {
+            Assert.unreachable();
         }
         return e;
+    }
+    
+    private Tuple<Expr, LdStmt> loadMemory(Instruction inst, Memory mem) {
+        Var temp = getNewTempVariable();
+        LdStmt load = new LdStmt(inst, Expr.toExpr(mem), temp);
+        return new Tuple<Expr, LdStmt>(temp, load);
     }
 
 }

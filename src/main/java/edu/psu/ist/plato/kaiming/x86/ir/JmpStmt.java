@@ -1,12 +1,17 @@
 package edu.psu.ist.plato.kaiming.x86.ir;
 
-import edu.psu.ist.plato.kaiming.x86.Instruction;
+import edu.psu.ist.plato.kaiming.x86.JumpInst;
 
 public class JmpStmt extends Stmt {
 
-    protected JmpStmt(Instruction inst) {
+    private Expr mTarget;
+        
+    protected JmpStmt(JumpInst inst, Expr target) {
         super(inst);
-        // TODO Auto-generated constructor stub
+        mTarget = target;
     }
-
+    
+    public Expr getTarget() {
+        return mTarget;
+    }
 }

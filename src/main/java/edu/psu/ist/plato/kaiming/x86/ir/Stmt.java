@@ -6,7 +6,7 @@ import edu.psu.ist.plato.kaiming.x86.Instruction;
 
 abstract public class Stmt extends Entry {
     
-    protected Instruction mInst;
+    protected final Instruction mInst;
     protected long mIndex;
     
     protected Stmt(Instruction inst) {
@@ -14,7 +14,7 @@ abstract public class Stmt extends Entry {
         mIndex = -1;
     }
     
-    public Instruction getStatement() {
+    public Instruction getHostingInstruction() {
         return mInst;
     }
     
