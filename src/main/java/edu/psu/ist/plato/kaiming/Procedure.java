@@ -9,8 +9,6 @@ public abstract class Procedure {
      * A procedure is required to have a CFG, even if it is only a trivial one.
      */
     public abstract CFG getCFG();
-
-    public abstract void setEntries(List<? extends Entry> entries);
     
     public List<? extends Entry> getEntries() {
         return getCFG().getEntries();

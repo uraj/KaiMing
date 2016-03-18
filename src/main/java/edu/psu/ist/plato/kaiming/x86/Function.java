@@ -38,7 +38,6 @@ public class Function extends Procedure {
         return mCFG;
     }
     
-    @Override
     public void setEntries(List<? extends Entry> entries) {
         mCFG = buildCFG(entries);
     }
@@ -153,7 +152,7 @@ public class Function extends Procedure {
         String name = mLabel.getName() + sSubLabelSuffix
                 + String.valueOf(mSubLabelCount++);
         AsmLabel ret = new AsmLabel(name, 0);
-        bb.getFirstEntry().fillLabelInformation(ret);
+        ((Instruction)bb.getFirstEntry()).fillLabelInformation(ret);
         return ret;
     }
 }

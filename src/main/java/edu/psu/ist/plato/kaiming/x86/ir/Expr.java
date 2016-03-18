@@ -14,18 +14,18 @@ public abstract class Expr {
     
     public abstract int getNumSubExpr();
     
-    public Const toExpr(Immediate imm) {
+    public static Const toExpr(Immediate imm) {
     	return Const.getConstant(imm);
     }
     
-    public Expr toExpr(Register reg) {
+    public static Expr toExpr(Register reg) {
     	if (reg.id == Register.Id.EIZ)
     		return Const.getConstant(0);
     	else
     		return new Reg(reg);
     }
     
-    public Expr toExpr(Memory mem) {
+    public static Expr toExpr(Memory mem) {
     	Expr ret = null;
     	if (mem.getOffsetRegister() != null) {
     		ret = toExpr(mem.getOffsetRegister());
@@ -49,4 +49,5 @@ public abstract class Expr {
     	}
     	return ret;
     }
+
 }

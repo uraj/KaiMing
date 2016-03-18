@@ -5,10 +5,6 @@ import java.util.Comparator;
 public abstract class Entry implements Comparable<Long> {
     public abstract long getIndex();
 
-    public abstract int fillLabelInformation(Label l);
-
-    public abstract int fillLabelInformation(Label l, Entry next);
-
     @Override
     public final int compareTo(Long l) {
         return (int) (getIndex() - l);

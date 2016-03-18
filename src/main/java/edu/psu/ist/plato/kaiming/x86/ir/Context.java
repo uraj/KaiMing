@@ -2,6 +2,7 @@ package edu.psu.ist.plato.kaiming.x86.ir;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -9,8 +10,11 @@ import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.CFG;
 import edu.psu.ist.plato.kaiming.Entry;
 import edu.psu.ist.plato.kaiming.Procedure;
+import edu.psu.ist.plato.kaiming.util.Assert;
+import edu.psu.ist.plato.kaiming.x86.CompareInst;
 import edu.psu.ist.plato.kaiming.x86.Function;
 import edu.psu.ist.plato.kaiming.x86.Instruction;
+import edu.psu.ist.plato.kaiming.x86.Operand;
 
 public class Context extends Procedure {
 
@@ -34,10 +38,10 @@ public class Context extends Procedure {
         List<BasicBlock> bbs = new ArrayList<BasicBlock>(asmCFG.getSize());
         Map<BasicBlock, BasicBlock> map = new HashMap<BasicBlock, BasicBlock>();
         for (BasicBlock bb : asmCFG) {
-            List<Stmt> irstmt = new ArrayList<Stmt>();
+            List<Stmt> irstmt = new LinkedList<Stmt>();
             for (Entry e : bb) {
                 Instruction inst = (Instruction)e;
-                irstmt.addAll(Stmt.toIRStatements(inst));
+                irstmt.addAll(toIRStatements(inst));
             }
             BasicBlock irbb = new BasicBlock(this, irstmt, bb.getLabel());
             bbs.add(irbb);
@@ -72,10 +76,37 @@ public class Context extends Procedure {
     public Var getNewVariable(String name) {
         return new Var(this, name);
     }
-
-    @Override
-    public void setEntries(List<? extends Entry> entries) {
-        // TODO Auto-generated method stub
+    
+    public List<Stmt> toIRStatements(Instruction inst) {
+        LinkedList<Stmt> ret = new LinkedList<Stmt>();
+        if (inst.isCompareInst())
+            toIR((CompareInst)inst, ret);
+        else {
+            Assert.test(false, "Unreachable code");
+        }
+        return ret;
+    }
+    
+    private void toIR(CompareInst inst, List<Stmt> ret) {
+        Expr e0 = readOperand(inst, 0, ret);
+        Expr e1 = readOperand(inst, 1, ret);
+        ret.add(new CmpStmt(inst, e0, e1));
+    }
+    
+    private Expr readOperand(Instruction inst, int operandIndex, List<Stmt> stmt) {
+        Operand o = inst.getOperand(operandIndex);
+        Expr e = null;
+        if (o.isImmeidate()) {
+            e = Expr.toExpr(o.asImmediate());
+        } else if (o.isRegister()) {
+            e = Expr.toExpr(o.asRegister());
+        } else { // must be a memory-type operand
+            Var temp = getNewTempVariable();
+            LdStmt load = new LdStmt(inst, Expr.toExpr(o.asMemory()), temp);
+            stmt.add(load);
+            e = temp;
+        }
+        return e;
     }
 
 }
