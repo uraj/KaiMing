@@ -12,12 +12,18 @@ import edu.psu.ist.plato.kaiming.Entry;
 import edu.psu.ist.plato.kaiming.Procedure;
 import edu.psu.ist.plato.kaiming.util.Assert;
 import edu.psu.ist.plato.kaiming.util.Tuple;
+import edu.psu.ist.plato.kaiming.x86.BranchInst;
+import edu.psu.ist.plato.kaiming.x86.CallInst;
 import edu.psu.ist.plato.kaiming.x86.CompareInst;
 import edu.psu.ist.plato.kaiming.x86.Function;
 import edu.psu.ist.plato.kaiming.x86.Instruction;
 import edu.psu.ist.plato.kaiming.x86.JumpInst;
 import edu.psu.ist.plato.kaiming.x86.Memory;
+import edu.psu.ist.plato.kaiming.x86.MoveInst;
 import edu.psu.ist.plato.kaiming.x86.Operand;
+import edu.psu.ist.plato.kaiming.x86.PopInst;
+import edu.psu.ist.plato.kaiming.x86.PushInst;
+import edu.psu.ist.plato.kaiming.x86.Register;
 
 public class Context extends Procedure {
 
@@ -80,39 +86,13 @@ public class Context extends Procedure {
         return new Var(this, name);
     }
     
-    public List<Stmt> toIRStatements(Instruction inst) {
-        LinkedList<Stmt> ret = new LinkedList<Stmt>();
-        if (inst.isCompareInst())
-            toIR((CompareInst)inst, ret);
-        else if (inst.isJumpInst()) {
-            toIR((JumpInst)inst, ret);
-        }
-        else {
-            Assert.test(false, "Unreachable code");
-        }
-        return ret;
-    }
-    
-    private void toIR(CompareInst inst, List<Stmt> ret) {
-        Expr e0 = readOperand(inst, 0, ret);
-        Expr e1 = readOperand(inst, 1, ret);
-        ret.add(new CmpStmt(inst, e0, e1));
-    }
-    
-    private void toIR(JumpInst inst, List<Stmt> ret) {
-        Expr target = null; 
-        if (inst.isIndirect()) {
-            Tuple<Expr, LdStmt> tuple = loadMemory(inst, inst.getTarget());
-            target = tuple.first;
-            ret.add(tuple.second);
-        } else {
-            target = Expr.toExpr(inst.getTarget());
-        }
-        ret.add(new JmpStmt(inst, target));
-    }
-    
     private Expr readOperand(Instruction inst, int operandIndex, List<Stmt> stmt) {
-        Operand o = inst.getOperand(operandIndex);
+    	Operand o = inst.getOperand(operandIndex);
+    	return readOperand(inst, o, stmt);
+    }
+    
+    private Expr readOperand(Instruction inst, Operand o, List<Stmt> stmt) {    	
+        
         Expr e = null;
         if (o.isImmeidate()) {
             e = Expr.toExpr(o.asImmediate());
@@ -133,5 +113,85 @@ public class Context extends Procedure {
         LdStmt load = new LdStmt(inst, Expr.toExpr(mem), temp);
         return new Tuple<Expr, LdStmt>(temp, load);
     }
-
+    
+    private void toIR(CompareInst inst, List<Stmt> ret) {
+        Expr e0 = readOperand(inst, 0, ret);
+        Expr e1 = readOperand(inst, 1, ret);
+        ret.add(new CmpStmt(inst, e0, e1));
+    }
+    
+    private void toIR(BranchInst inst, List<Stmt> ret) {
+        Expr target = null; 
+        if (inst.isIndirect()) {
+            Tuple<Expr, LdStmt> tuple = loadMemory(inst, inst.getTarget());
+            target = tuple.first;
+            ret.add(tuple.second);
+        } else {
+            target = Expr.toExpr(inst.getTarget());
+        }
+        Stmt branch = null;
+        if (inst.isCallInst()) {
+        	branch = new CallStmt((CallInst)inst, target);
+        } else if (inst.isJumpInst()) {
+        	branch = new JmpStmt((JumpInst)inst, target);
+        } else {
+        	Assert.unreachable();
+        }
+        ret.add(branch);
+    }
+    
+    private void toIR(MoveInst inst, List<Stmt> ret) {
+    	Operand src = inst.getFrom();
+    	Operand dest = inst.getTo();
+    	Expr srcResult = readOperand(inst, src, ret);
+    	
+    	if (dest.isRegister()) {
+    		Lval destLval = Reg.getReg(dest.asRegister());
+    		ret.add(new AssignStmt(inst, destLval, srcResult));
+    	} else if (dest.isMemory()) {
+    		ret.add(new StStmt(inst, Expr.toExpr(dest.asMemory()), srcResult));	
+    	} else {
+    		Assert.unreachable();
+    	}
+    }
+    
+    private void toIR(PopInst inst, List<Stmt> ret) {
+    	LdStmt load = new LdStmt(inst, Reg.getReg(inst.getTarget()), Reg.esp); 
+    	ret.add(load);
+    	
+    	Const size = Const.getConstant(inst.getOperandSizeInBytes());
+    	BinaryExpr incEsp = new BinaryExpr(BinaryExpr.Op.UADD, Reg.esp, size);
+    	ret.add(new AssignStmt(inst, Reg.esp, incEsp));
+    }
+    
+    private void toIR(PushInst inst, List<Stmt> ret) {
+    	Const size = Const.getConstant(inst.getOperandSizeInBytes());
+    	BinaryExpr decEsp = new BinaryExpr(BinaryExpr.Op.USUB, Reg.esp, size);
+    	ret.add(new AssignStmt(inst, Reg.esp, decEsp));
+    	
+    	Expr toPush = null;
+    	Operand op = inst.getOperand();
+    	if (op.isImmeidate()) {
+    		toPush = Expr.toExpr(op.asImmediate());
+    	} else if (op.isRegister()) {
+    		toPush = Expr.toExpr(op.asRegister());
+    	} else {
+    		Assert.unreachable();
+    	}
+    	
+    	ret.add(new StStmt(inst, Reg.esp, toPush));
+    }
+    
+    public List<Stmt> toIRStatements(Instruction inst) {
+        LinkedList<Stmt> ret = new LinkedList<Stmt>();
+        if (inst.isCompareInst())   toIR((CompareInst)inst, ret);
+        else if (inst.isJumpInst()) toIR((JumpInst)inst, ret);
+        else if (inst.isMoveInst()) toIR((MoveInst)inst, ret);
+        else if (inst.isPopInst())  toIR((PopInst)inst, ret);
+        else if (inst.isPushInst()) toIR((PushInst)inst, ret);
+        else {
+            Assert.test(false, "Unreachable code");
+        }
+        return ret;
+    }
 }

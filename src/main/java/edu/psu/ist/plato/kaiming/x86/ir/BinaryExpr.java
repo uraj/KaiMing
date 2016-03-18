@@ -6,11 +6,14 @@ public class BinaryExpr extends Expr {
    
     public enum Op {
         ADD,
+        UADD,
         SUB,
+        USUB,
         OR,
         AND,
         XOR,
         MUL,
+        UMUL,
     }
     
     private Op mOperator;

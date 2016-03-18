@@ -7,4 +7,8 @@ public class PopInst extends Instruction {
     }
 
     public Register getTarget() { return (Register)getOperand(0); }
+    
+    public int getOperandSizeInBytes() {
+        return getTarget().getSizeInBits() / 8;
+    }
 }
