@@ -22,7 +22,7 @@ public abstract class Expr {
     }
     
     public static Expr toExpr(Register reg) {
-        return new Reg(reg);
+        return Reg.getReg(reg);
     }
     
     public static Expr toExpr(Memory mem) {

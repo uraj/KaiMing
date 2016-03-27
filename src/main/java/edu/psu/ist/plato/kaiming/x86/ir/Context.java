@@ -9,6 +9,7 @@ import java.util.Map;
 import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.CFG;
 import edu.psu.ist.plato.kaiming.Entry;
+import edu.psu.ist.plato.kaiming.Label;
 import edu.psu.ist.plato.kaiming.Procedure;
 import edu.psu.ist.plato.kaiming.util.Assert;
 import edu.psu.ist.plato.kaiming.util.Tuple;
@@ -23,7 +24,6 @@ import edu.psu.ist.plato.kaiming.x86.MoveInst;
 import edu.psu.ist.plato.kaiming.x86.Operand;
 import edu.psu.ist.plato.kaiming.x86.PopInst;
 import edu.psu.ist.plato.kaiming.x86.PushInst;
-import edu.psu.ist.plato.kaiming.x86.Register;
 
 public class Context extends Procedure {
 
@@ -194,4 +194,9 @@ public class Context extends Procedure {
         }
         return ret;
     }
+
+	@Override
+	public Label deriveSubLabel(BasicBlock bb) {
+		return null;
+	}
 }

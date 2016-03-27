@@ -20,5 +20,7 @@ public abstract class Procedure {
     }
     
     public abstract String getName();
+    
+    public abstract Label deriveSubLabel(BasicBlock bb);
 
 }
