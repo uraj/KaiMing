@@ -7,7 +7,7 @@ public class JmpStmt extends Stmt {
     private Expr mTarget;
     
     protected JmpStmt(JumpInst inst, Expr target) {
-        super(inst);
+        super(Kind.JMP, inst);
         mTarget = target;
     }
     

@@ -8,7 +8,7 @@ public class LdStmt extends Stmt {
 	private Lval mContent;
 	
 	protected LdStmt(Instruction inst, Expr addr, Lval content) {
-		super(inst);
+		super(Kind.LD, inst);
 		mAddr = addr;
 		mContent = content;
 	}
