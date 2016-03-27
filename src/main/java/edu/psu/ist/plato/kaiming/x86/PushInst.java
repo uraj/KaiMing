@@ -5,7 +5,7 @@ import edu.psu.ist.plato.kaiming.util.Assert;
 public class PushInst extends Instruction {
 
     protected PushInst(long addr, Opcode op, Operand source) {
-        super(addr, op, new Operand[] { source } );
+        super(Kind.PUSH, addr, op, new Operand[] { source } );
     }
 
     public Operand getOperand() { return getOperand(0); }

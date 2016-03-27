@@ -13,7 +13,7 @@ public class MultiplyInst extends Instruction {
                             Register.getRegister(Register.Id.EDX)};
     
     protected MultiplyInst(long addr, Opcode op, Operand[] operands) {
-        super(addr, op, operands);
+        super(Kind.MULTIPLY, addr, op, operands);
         switch (operands.length) {
             case 1:
                 mDest = sDefaultDest;

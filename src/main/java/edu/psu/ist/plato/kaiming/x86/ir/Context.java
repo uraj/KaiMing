@@ -13,9 +13,11 @@ import edu.psu.ist.plato.kaiming.Label;
 import edu.psu.ist.plato.kaiming.Procedure;
 import edu.psu.ist.plato.kaiming.util.Assert;
 import edu.psu.ist.plato.kaiming.util.Tuple;
+import edu.psu.ist.plato.kaiming.x86.BinaryArithInst;
 import edu.psu.ist.plato.kaiming.x86.BranchInst;
 import edu.psu.ist.plato.kaiming.x86.CallInst;
 import edu.psu.ist.plato.kaiming.x86.CompareInst;
+import edu.psu.ist.plato.kaiming.x86.DivideInst;
 import edu.psu.ist.plato.kaiming.x86.Function;
 import edu.psu.ist.plato.kaiming.x86.Instruction;
 import edu.psu.ist.plato.kaiming.x86.JumpInst;
@@ -24,6 +26,7 @@ import edu.psu.ist.plato.kaiming.x86.MoveInst;
 import edu.psu.ist.plato.kaiming.x86.Operand;
 import edu.psu.ist.plato.kaiming.x86.PopInst;
 import edu.psu.ist.plato.kaiming.x86.PushInst;
+import edu.psu.ist.plato.kaiming.x86.Register;
 
 public class Context extends Procedure {
 
@@ -160,13 +163,13 @@ public class Context extends Procedure {
     	ret.add(load);
     	
     	Const size = Const.getConstant(inst.getOperandSizeInBytes());
-    	BinaryExpr incEsp = new BinaryExpr(BinaryExpr.Op.UADD, Reg.esp, size);
+    	BExpr incEsp = new BExpr(BExpr.Op.UADD, Reg.esp, size);
     	ret.add(new AssignStmt(inst, Reg.esp, incEsp));
     }
     
     private void toIR(PushInst inst, List<Stmt> ret) {
     	Const size = Const.getConstant(inst.getOperandSizeInBytes());
-    	BinaryExpr decEsp = new BinaryExpr(BinaryExpr.Op.USUB, Reg.esp, size);
+    	BExpr decEsp = new BExpr(BExpr.Op.USUB, Reg.esp, size);
     	ret.add(new AssignStmt(inst, Reg.esp, decEsp));
     	
     	Expr toPush = null;
@@ -182,6 +185,23 @@ public class Context extends Procedure {
     	ret.add(new StStmt(inst, Reg.esp, toPush));
     }
     
+    private void toIR(DivideInst inst, List<Stmt> ret) {
+    	Tuple<Register, Register> x = inst.getDividend();
+    	Expr dividend = new BExpr(BExpr.Op.CONCAT, 
+    			Reg.getReg(x.first), Reg.getReg(x.second));
+    	Expr divider = readOperand(inst, inst.getDivider(), ret);
+    	Expr divid = new BExpr(BExpr.Op.DIV, dividend, divider);
+    	Expr low = new UExpr(UExpr.Op.LOW, divid);
+    	Expr high = new UExpr(UExpr.Op.HIGH, divid);
+    	Tuple<Register, Register> y = inst.getDest();
+    	ret.add(new AssignStmt(inst, Reg.getReg(y.first), low));
+    	ret.add(new AssignStmt(inst, Reg.getReg(y.second), high));
+    }
+    
+    private void toIR(BinaryArithInst inst, List<Stmt> ret) {
+    	
+    }
+    
     public List<Stmt> toIRStatements(Instruction inst) {
         LinkedList<Stmt> ret = new LinkedList<Stmt>();
         if (inst.isCompareInst())   toIR((CompareInst)inst, ret);
@@ -189,6 +209,7 @@ public class Context extends Procedure {
         else if (inst.isMoveInst()) toIR((MoveInst)inst, ret);
         else if (inst.isPopInst())  toIR((PopInst)inst, ret);
         else if (inst.isPushInst()) toIR((PushInst)inst, ret);
+        else if (inst.isDivideInst()) toIR((DivideInst)inst, ret);
         else {
             Assert.test(false, "Unreachable code");
         }

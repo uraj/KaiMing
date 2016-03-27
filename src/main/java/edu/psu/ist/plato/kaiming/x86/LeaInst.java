@@ -3,7 +3,7 @@ package edu.psu.ist.plato.kaiming.x86;
 public class LeaInst extends Instruction {
 
     protected LeaInst(long addr, Opcode op, Memory op1, Register op2) {
-        super(addr, op, new Operand[] {op1, op2});
+        super(Kind.LD_ADDR, addr, op, new Operand[] {op1, op2});
     }
 
     public Memory getExpression() {

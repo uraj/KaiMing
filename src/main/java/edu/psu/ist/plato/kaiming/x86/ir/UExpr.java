@@ -1,15 +1,16 @@
 package edu.psu.ist.plato.kaiming.x86.ir;
 
-public class UnaryExpr extends Expr {
+public class UExpr extends Expr {
     public enum Op {
-        Neg,
-        Load,
+        NEG,
+        LOW,
+        HIGH,
     }
     
     private Op mOperator;
     private Expr mSubExpr;
     
-    UnaryExpr(Op op, Expr subexpr) {
+    UExpr(Op op, Expr subexpr) {
         mOperator = op;
         mSubExpr = subexpr;
     }

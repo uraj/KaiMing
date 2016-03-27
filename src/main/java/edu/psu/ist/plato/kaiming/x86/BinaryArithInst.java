@@ -8,7 +8,7 @@ public class BinaryArithInst extends Instruction {
     
     protected BinaryArithInst(long addr, Opcode op, Operand operand1,
             Operand operand2) {
-        super(addr, op, new Operand[] { operand1, operand2 });
+        super(Kind.BIN_ARITH, addr, op, new Operand[] { operand1, operand2 });
         mModifiedFlags = Flag.getModifiedFlagsByOpcode(op.getOpcodeClass());
     }
 

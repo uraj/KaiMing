@@ -15,17 +15,43 @@ import edu.psu.ist.plato.kaiming.util.Assert;
 
 public abstract class Instruction extends Entry implements Iterable<Operand> {
 
+	public enum Kind {
+		BIN_ARITH,
+		UN_ARITH,
+		CALL,
+		RETURN,
+		COMPARE,
+		DIVIDE,
+		MULTIPLY,
+		BIT_TEST,
+		COND_SET,
+		EXCHANGE,
+		JUMP,
+		LD_ADDR,
+		MOVE,
+		NOP,
+		POP,
+		PUSH,
+		OTHER,
+	};
+	
+	private final Kind mKind;
     protected long mAddr;
     protected final Opcode mOpcode;
     private Operand[] mOperands;
     
     private final static Set<Flag> sModifiedFlags;
     
+    public final Kind getKind() {
+    	return mKind;
+    }
+    
     static {
         sModifiedFlags = Collections.unmodifiableSet(new HashSet<Flag>());
     }
 
-    protected Instruction(long addr, Opcode op, Operand[] operands) {
+    protected Instruction(Kind kind, long addr, Opcode op, Operand[] operands) {
+    	mKind = kind;
         mAddr = addr;
         mOpcode = op;
         mOperands = operands;
@@ -69,79 +95,79 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
     }
 
     public final boolean isJumpInst() {
-        return this instanceof JumpInst;
+        return mKind.equals(Kind.JUMP);
     }
     
     public final boolean isUncondJumpInst() {
-        return this instanceof JumpInst && !isConditional();
+        return mKind.equals(Kind.JUMP) && !isConditional();
     }
 
     public final boolean isCondJumpInst() {
-        return this instanceof CondJumpInst;
+        return mKind.equals(Kind.JUMP) && isConditional();
     }
 
     public final boolean isCondSetInst() {
-        return this instanceof CondSetInst;
-    }
-    
-    public final boolean isCondMoveInst() {
-        return this instanceof CondMoveInst;
+        return mKind.equals(Kind.COND_SET);
     }
     
     public final boolean isMoveInst() {
-        return this instanceof MoveInst;
+    	return mKind.equals(Kind.MOVE);
+    }
+    
+    public final boolean isCondMoveInst() {
+        return isMoveInst() && isConditional();
     }
     
     public final boolean isLeaInst() {
-        return this instanceof LeaInst;
+        return mKind.equals(Kind.LD_ADDR);
     }
     
     public final boolean isUncondMoveInst() {
-        return this instanceof MoveInst && !isConditional();
+        return isMoveInst() && !isConditional();
     }
 
     public final boolean isBinaryArithInst() {
-        return this instanceof BinaryArithInst;
+        return mKind.equals(Kind.BIN_ARITH);
     }
     
     public final boolean isMultiplyInst() {
-        return this instanceof MultiplyInst;
+        return mKind.equals(Kind.MULTIPLY);
     }
     
     public final boolean isDivideInst() {
-        return this instanceof DivideInst;
+        return mKind.equals(Kind.DIVIDE);
     }
     
     public final boolean isBitTestInst() {
-        return this instanceof BitTestInst;
+        return mKind.equals(Kind.BIT_TEST);
     }
     
     public final boolean isExchangeInst() {
-        return this instanceof ExchangeInst;
+        return mKind.equals(Kind.EXCHANGE);
     }
 
     public final boolean isCompareInst() {
-        return this instanceof CompareInst;
+        return mKind.equals(Kind.COMPARE);
     }
 
     public final boolean isUnaryArithInst() {
-        return this instanceof UnaryArithInst;
+        return mKind.equals(Kind.UN_ARITH);
     }
 
     public final boolean isPopInst() {
-        return this instanceof PopInst;
+        return mKind.equals(Kind.POP);
     }
 
     public final boolean isPushInst() {
-        return this instanceof PushInst;
+        return mKind.equals(Kind.PUSH);
     }
 
     public final boolean isCallInst() {
-        return this instanceof CallInst;
+        return mKind.equals(Kind.CALL);
     }
 
     public final boolean isReturnInst() {
-        return this instanceof ReturnInst;
+        return mKind.equals(Kind.RETURN);
     }
 
     public final boolean isBranchInst() {
@@ -149,11 +175,11 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
     }
     
     public final boolean isOtherInst() {
-        return this instanceof OtherInst;
+        return mKind.equals(Kind.OTHER);
     }
     
     public final boolean isNopInst() {
-        return this instanceof NopInst;
+        return mKind.equals(Kind.NOP);
     }
     
     public final boolean isTerminator() {
