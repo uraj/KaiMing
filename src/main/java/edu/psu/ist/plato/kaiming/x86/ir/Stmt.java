@@ -14,6 +14,7 @@ abstract public class Stmt extends Entry {
         LD,
         SETF,
         ST,
+        RET,
     }
     
     protected final Instruction mInst;

@@ -2,9 +2,10 @@ package edu.psu.ist.plato.kaiming.x86.ir;
 
 public class UExpr extends Expr {
     public enum Op {
-        NEG,
+        NOT,
         LOW,
         HIGH,
+        BSWAP,
     }
     
     private Op mOperator;

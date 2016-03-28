@@ -27,7 +27,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
 		COND_SET,
 		EXCHANGE,
 		JUMP,
-		LD_ADDR,
+		LEA,
 		MOVE,
 		NOP,
 		POP,
@@ -42,7 +42,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
     
     private final static Set<Flag> sModifiedFlags;
     
-    public final Kind getKind() {
+    public final Kind kind() {
     	return mKind;
     }
     
@@ -119,7 +119,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
     }
     
     public final boolean isLeaInst() {
-        return mKind.equals(Kind.LD_ADDR);
+        return mKind.equals(Kind.LEA);
     }
     
     public final boolean isUncondMoveInst() {

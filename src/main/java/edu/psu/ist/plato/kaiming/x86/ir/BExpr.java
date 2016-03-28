@@ -18,7 +18,7 @@ public class BExpr extends Expr {
         CONCAT,
         SHL,
         SHR,
-        ASR,
+        SAR,
     }
     
     private Op mOperator;

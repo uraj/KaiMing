@@ -6,27 +6,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import edu.psu.ist.plato.kaiming.BasicBlock;
-import edu.psu.ist.plato.kaiming.CFG;
-import edu.psu.ist.plato.kaiming.Entry;
-import edu.psu.ist.plato.kaiming.Label;
-import edu.psu.ist.plato.kaiming.Procedure;
+import edu.psu.ist.plato.kaiming.*;
 import edu.psu.ist.plato.kaiming.util.Assert;
 import edu.psu.ist.plato.kaiming.util.Tuple;
-import edu.psu.ist.plato.kaiming.x86.BinaryArithInst;
-import edu.psu.ist.plato.kaiming.x86.BranchInst;
-import edu.psu.ist.plato.kaiming.x86.CallInst;
-import edu.psu.ist.plato.kaiming.x86.CompareInst;
-import edu.psu.ist.plato.kaiming.x86.DivideInst;
-import edu.psu.ist.plato.kaiming.x86.Function;
-import edu.psu.ist.plato.kaiming.x86.Instruction;
-import edu.psu.ist.plato.kaiming.x86.JumpInst;
-import edu.psu.ist.plato.kaiming.x86.Memory;
-import edu.psu.ist.plato.kaiming.x86.MoveInst;
-import edu.psu.ist.plato.kaiming.x86.Operand;
-import edu.psu.ist.plato.kaiming.x86.PopInst;
-import edu.psu.ist.plato.kaiming.x86.PushInst;
-import edu.psu.ist.plato.kaiming.x86.Register;
+import edu.psu.ist.plato.kaiming.x86.*;
 
 public class Context extends Procedure {
 
@@ -89,6 +72,15 @@ public class Context extends Procedure {
         return new Var(this, name);
     }
     
+    private Stmt updateLval(Instruction inst, Operand operand, Expr value) {
+        Assert.test(!operand.isImmeidate());
+        if (operand.isRegister()) {
+            return new AssignStmt(inst, Reg.getReg(operand.asRegister()), value);
+        } else {
+            return new StStmt(inst, getNewTempVariable(), value);
+        }
+    }
+    
     private Expr readOperand(Instruction inst, int operandIndex, List<Stmt> stmt) {
     	Operand o = inst.getOperand(operandIndex);
     	return readOperand(inst, o, stmt);
@@ -143,19 +135,11 @@ public class Context extends Procedure {
         ret.add(branch);
     }
     
+    // TODO: handle conditional moves
     private void toIR(MoveInst inst, List<Stmt> ret) {
     	Operand src = inst.getFrom();
     	Operand dest = inst.getTo();
-    	Expr srcResult = readOperand(inst, src, ret);
-    	
-    	if (dest.isRegister()) {
-    		Lval destLval = Reg.getReg(dest.asRegister());
-    		ret.add(new AssignStmt(inst, destLval, srcResult));
-    	} else if (dest.isMemory()) {
-    		ret.add(new StStmt(inst, Expr.toExpr(dest.asMemory()), srcResult));	
-    	} else {
-    		Assert.unreachable();
-    	}
+    	ret.add(updateLval(inst, dest, readOperand(inst, src, ret)));
     }
     
     private void toIR(PopInst inst, List<Stmt> ret) {
@@ -198,20 +182,149 @@ public class Context extends Procedure {
     	ret.add(new AssignStmt(inst, Reg.getReg(y.second), high));
     }
     
+    private void toIR(ExchangeInst inst, List<Stmt> ret) {
+        Tuple<Operand, Operand> values = inst.getExchangedOperands();
+        Var d1 = getNewTempVariable();
+        Var d2 = getNewTempVariable();
+        ret.add(new AssignStmt(inst, d1, readOperand(inst, values.first, ret)));
+        ret.add(new AssignStmt(inst, d2, readOperand(inst, values.second, ret)));
+        ret.add(updateLval(inst, values.first, d2));
+        ret.add(updateLval(inst, values.second, d1));
+    }
+    
+    private void toIR(LeaInst inst, List<Stmt> ret) {
+        ret.add(new AssignStmt(inst,
+                Reg.getReg(inst.getResult()),
+                Expr.toExpr(inst.getExpression())));
+    }
+    
+    private void toIR(UnaryArithInst inst, List<Stmt> ret) {
+        UExpr.Op op = null;
+        Operand o = inst.getOperand();
+        switch(inst.getOpcode().getOpcodeClass()) {
+            case INC: // Use a binary expression to hold this
+                ret.add(updateLval(inst, o,
+                        new BExpr(BExpr.Op.ADD,
+                                readOperand(inst, o, ret),
+                                Const.getConstant(1))));
+                return;
+            case DEC:
+                ret.add(updateLval(inst, o,
+                        new BExpr(BExpr.Op.SUB,
+                                readOperand(inst, o, ret),
+                                Const.getConstant(1))));
+                return;
+            case NEG:
+                ret.add(updateLval(inst, o,
+                        new BExpr(BExpr.Op.SUB,
+                                Const.getConstant(0),
+                                readOperand(inst, o, ret))));
+                return;
+            case NOT:
+                op = UExpr.Op.NOT;
+                break;
+            case BSWAP:
+                break;
+            default:
+                Assert.unreachable();
+        }
+        Expr e = readOperand(inst, o, ret);
+        ret.add(updateLval(inst, o, new UExpr(op, e)));
+    }
+
     private void toIR(BinaryArithInst inst, List<Stmt> ret) {
-    	
+        BExpr.Op op = null;
+        switch(inst.getOpcode().getOpcodeClass()) {
+            case ADD:
+            case ADC:
+                op = BExpr.Op.ADD;
+                break;
+            case SUB:
+            case SBB:
+                op = BExpr.Op.SUB;
+                break;
+            case AND:
+                op = BExpr.Op.AND;
+                break;
+            case XOR:
+                op = BExpr.Op.XOR;
+                break;
+            case OR:
+                op = BExpr.Op.OR;
+                break;
+            case SAR:
+                op = BExpr.Op.SAR;
+                break;
+            case SHL:
+                op = BExpr.Op.SHL;
+                break;
+            case SHR:
+                op = BExpr.Op.SHR;
+                break;
+            default:
+                Assert.unreachable();
+        }
+        Expr e1 = readOperand(inst, inst.getSrc(), ret);
+        Expr e2 = readOperand(inst, inst.getDest(), ret);
+        BExpr bexp = new BExpr(op, e1, e2);
+        Operand dest = inst.getDest();
+        if (dest.isRegister()) {
+            ret.add(new AssignStmt(inst, Reg.getReg(dest.asRegister()), bexp));
+        } else { // must be a memory location
+            ret.add(new StStmt(inst, Expr.toExpr(dest.asMemory()), bexp));
+        }
     }
     
     public List<Stmt> toIRStatements(Instruction inst) {
         LinkedList<Stmt> ret = new LinkedList<Stmt>();
-        if (inst.isCompareInst())   toIR((CompareInst)inst, ret);
-        else if (inst.isJumpInst()) toIR((JumpInst)inst, ret);
-        else if (inst.isMoveInst()) toIR((MoveInst)inst, ret);
-        else if (inst.isPopInst())  toIR((PopInst)inst, ret);
-        else if (inst.isPushInst()) toIR((PushInst)inst, ret);
-        else if (inst.isDivideInst()) toIR((DivideInst)inst, ret);
-        else {
-            Assert.test(false, "Unreachable code");
+        switch (inst.kind()) {
+            case BIN_ARITH:
+                toIR((BinaryArithInst)inst, ret);
+                break;
+            case UN_ARITH:
+                toIR((UnaryArithInst)inst, ret);
+                break;
+            case BIT_TEST:
+                break;
+            case CALL:
+                CallInst call = (CallInst)inst;
+                ret.add(new CallStmt(call, Expr.toExpr(call.getTarget())));
+                break;
+            case COMPARE:
+                toIR((CompareInst)inst, ret);
+                break;
+            case COND_SET:
+                break;
+            case DIVIDE:
+                toIR((DivideInst)inst, ret);
+                break;
+            case EXCHANGE:
+                toIR((ExchangeInst)inst, ret);
+                break;
+            case JUMP:
+                toIR((JumpInst)inst, ret);
+                break;
+            case LEA:
+                toIR((LeaInst)inst, ret);
+                break;
+            case MOVE:
+                toIR((MoveInst)inst, ret);
+                break;
+            case MULTIPLY:
+                break;
+            case POP:
+                toIR((PopInst)inst, ret);
+                break;
+            case PUSH:
+                toIR((PushInst)inst, ret);
+                break;
+            case RETURN:
+                ret.add(new RetStmt(inst));
+                break;
+            case NOP: // We don't need nops in IR
+                break;
+            case OTHER:
+                Assert.unreachable();
         }
         return ret;
     }

@@ -6,7 +6,7 @@ public class CallStmt extends Stmt {
 
 	private Expr mTarget;
 	
-    protected CallStmt(CallInst inst, Expr target) {
+    public CallStmt(CallInst inst, Expr target) {
         super(Kind.CALL, inst);
         mTarget = target;
     }
