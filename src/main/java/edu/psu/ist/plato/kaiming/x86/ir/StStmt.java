@@ -8,7 +8,7 @@ public class StStmt extends Stmt {
 	private Expr mContent;
 	
 	protected StStmt(Instruction inst, Expr addr, Expr content) {
-		super(inst);
+		super(Kind.ST, inst);
 		mAddr = addr;
 		mContent = content;
 	}

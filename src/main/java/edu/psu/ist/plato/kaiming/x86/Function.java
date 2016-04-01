@@ -62,6 +62,7 @@ public class Function extends Procedure {
         return mHasIndirectJump;
     }
 
+    // TODO: Take conditional move into consideration
     private CFG buildCFG(List<? extends Entry> entries) {
         Instruction[] inst = entries.toArray(new Instruction[0]);
         Arrays.sort(inst, Instruction.comparator);

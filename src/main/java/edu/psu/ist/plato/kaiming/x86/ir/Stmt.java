@@ -8,14 +8,31 @@ import edu.psu.ist.plato.kaiming.x86.Instruction;
 
 abstract public class Stmt extends Entry {
     
+    public enum Kind {
+        ASSIGN,
+        CALL,
+        CMP,
+        JMP,
+        LD,
+        SETF,
+        ST,
+        RET,
+    }
+    
     protected final Instruction mInst;
     protected long mIndex;
     
     protected Map<Lval, DefStmt> mUDChain;
+    private final Kind mKind;
     
-    protected Stmt(Instruction inst) {
+    protected Stmt(Kind kind, Instruction inst) {
+        mKind = kind;
         mInst = inst;
         mIndex = -1;
+    }
+    
+    public final Kind kind() {
+        return mKind;
     }
     
     public Instruction getHostingInstruction() {

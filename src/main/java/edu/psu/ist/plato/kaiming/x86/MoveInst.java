@@ -3,7 +3,7 @@ package edu.psu.ist.plato.kaiming.x86;
 public class MoveInst extends Instruction {
 
     protected MoveInst(long addr, Opcode op, Operand from, Operand to) {
-        super(addr, op, new Operand[] { from, to });
+        super(Kind.MOVE, addr, op, new Operand[] { from, to });
     }
 
     public Operand getFrom() {

@@ -8,7 +8,7 @@ public class CmpStmt extends Stmt {
     private Expr mCmp2;
     
     protected CmpStmt(Instruction inst, Expr cmp1, Expr cmp2) {
-        super(inst);
+        super(Kind.CMP, inst);
         mCmp1 = cmp1;
         mCmp2 = cmp2;
     }

@@ -4,13 +4,13 @@ public abstract class BranchInst extends Instruction {
 
     private final boolean mIndirect;
     
-    protected BranchInst(long addr, Opcode op, Memory target, boolean isIndirect) {
-        super(addr, op, new Operand[] { target });
+    protected BranchInst(Kind kind, long addr, Opcode op, Memory target, boolean isIndirect) {
+        super(kind, addr, op, new Operand[] { target });
         mIndirect = isIndirect;
     }
     
-    protected BranchInst(long addr, Opcode op, Register target, boolean isIndirect) {
-        super(addr, op, new Operand[] { new Memory(0, target, null, 0) });
+    protected BranchInst(Kind kind, long addr, Opcode op, Register target, boolean isIndirect) {
+        super(kind, addr, op, new Operand[] { new Memory(0, target, null, 0) });
         mIndirect = isIndirect;
     }
     

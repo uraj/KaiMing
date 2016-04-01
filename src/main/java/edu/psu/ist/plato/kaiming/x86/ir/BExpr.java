@@ -2,7 +2,7 @@ package edu.psu.ist.plato.kaiming.x86.ir;
 
 import edu.psu.ist.plato.kaiming.x86.Opcode;
 
-public class BinaryExpr extends Expr {
+public class BExpr extends Expr {
    
     public enum Op {
         ADD,
@@ -13,19 +13,24 @@ public class BinaryExpr extends Expr {
         AND,
         XOR,
         MUL,
+        DIV,
         UMUL,
+        CONCAT,
+        SHL,
+        SHR,
+        SAR,
     }
     
     private Op mOperator;
     private Expr mLeft, mRight;
     
-    public BinaryExpr(Opcode opcode, Expr left, Expr right) {
+    public BExpr(Opcode opcode, Expr left, Expr right) {
         mOperator = opcodeToOp(opcode);
         mLeft = left;
         mRight = right;
     }
     
-    public BinaryExpr(Op op, Expr left, Expr right) {
+    public BExpr(Op op, Expr left, Expr right) {
         mOperator = op;
         mLeft = left;
         mRight = right;

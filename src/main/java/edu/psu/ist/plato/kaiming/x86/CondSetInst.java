@@ -7,7 +7,7 @@ public class CondSetInst extends Instruction {
     private final Set<Flag> mCond;
     
     protected CondSetInst(long addr, Opcode op, Operand operand) {
-        super(addr, op, new Operand[] {operand});
+        super(Kind.COND_SET, addr, op, new Operand[] {operand});
         mCond = Flag.getDependentFlagsByCondition(op.getRawOpcode().substring(3));
     }
 

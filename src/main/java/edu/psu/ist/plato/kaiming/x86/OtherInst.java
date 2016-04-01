@@ -6,7 +6,7 @@ package edu.psu.ist.plato.kaiming.x86;
 public class OtherInst extends Instruction {
 
     protected OtherInst(long addr, Opcode op, Operand[] operands) {
-        super(addr, op, operands);
+        super(Kind.OTHER, addr, op, operands);
     }
     
 }

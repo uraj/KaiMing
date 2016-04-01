@@ -108,12 +108,12 @@ public class Dependency {
     
     public final void transferDivideInst(DivideInst inst, BitSet in) {
         boolean affected = false;
-        for (Operand dest : inst.getDest()) {
+        for (Operand dest : inst.getDestIter()) {
             affected = clearBitForOperand(dest, in) || affected;
         }
         if (affected) {
             setBitForOperand(inst.getDivider(), in);
-            for (Operand dividend : inst.getDividend())
+            for (Operand dividend : inst.getDividendIter())
                 setBitForOperand(dividend, in);
         }
     }
