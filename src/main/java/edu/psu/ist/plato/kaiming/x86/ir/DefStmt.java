@@ -8,8 +8,8 @@ abstract public class DefStmt extends Stmt {
 	
 	protected Set<Stmt> mDUChain;
 	
-	public DefStmt(Instruction inst) {
-		super(inst);
+	public DefStmt(Kind kind, Instruction inst) {
+		super(kind, inst);
 	}
 	
 	abstract public Lval getLval();
