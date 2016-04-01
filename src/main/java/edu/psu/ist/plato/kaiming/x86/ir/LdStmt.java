@@ -2,7 +2,7 @@ package edu.psu.ist.plato.kaiming.x86.ir;
 
 import edu.psu.ist.plato.kaiming.x86.Instruction;
 
-public class LdStmt extends Stmt {
+public class LdStmt extends DefStmt {
 
 	private Expr mAddr;
 	private Lval mContent;
@@ -18,6 +18,11 @@ public class LdStmt extends Stmt {
 	}
 	
 	public Lval getContent() {
+		return mContent;
+	}
+
+	@Override
+	public Lval getLval() {
 		return mContent;
 	}
 

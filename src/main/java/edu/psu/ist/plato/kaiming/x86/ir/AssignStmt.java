@@ -2,7 +2,7 @@ package edu.psu.ist.plato.kaiming.x86.ir;
 
 import edu.psu.ist.plato.kaiming.x86.Instruction;
 
-public class AssignStmt extends Stmt {
+public class AssignStmt extends DefStmt {
 
     private Lval mLval;
     private Expr mExpr;
@@ -13,6 +13,7 @@ public class AssignStmt extends Stmt {
         mExpr = expr;
     }
     
+    @Override
     public Lval getLval() {
         return mLval;
     }
