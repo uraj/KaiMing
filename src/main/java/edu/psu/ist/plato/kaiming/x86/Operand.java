@@ -1,6 +1,6 @@
 package edu.psu.ist.plato.kaiming.x86;
 
-public class Operand {
+abstract public class Operand {
 	
 	public enum Type {
 		Register,
