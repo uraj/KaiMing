@@ -11,10 +11,10 @@ import edu.psu.ist.plato.kaiming.util.Assert;
 import edu.psu.ist.plato.kaiming.util.Tuple;
 import edu.psu.ist.plato.kaiming.x86.*;
 
-public class Context extends Procedure {
+public class Context extends Procedure<Stmt> {
 
     private Function mFun;
-    private CFG mCFG;
+    private CFG<Stmt> mCFG;
     private int mTempVarCount;
     
     public Context(Function fun) {
@@ -28,26 +28,28 @@ public class Context extends Procedure {
     }
     
     // TODO: Rewrite the function with Java 8 Stream interfaces
-    private CFG buildCFG(Function fun) {
-        CFG asmCFG = fun.getCFG();
-        List<BasicBlock> bbs = new ArrayList<BasicBlock>(asmCFG.getSize());
-        Map<BasicBlock, BasicBlock> map = new HashMap<BasicBlock, BasicBlock>();
-        for (BasicBlock bb : asmCFG) {
+    private CFG<Stmt> buildCFG(Function fun) {
+        CFG<Instruction> asmCFG = fun.getCFG();
+        List<BasicBlock<Stmt>> bbs = 
+                new ArrayList<BasicBlock<Stmt>>(asmCFG.getSize());
+        Map<BasicBlock<Instruction>, BasicBlock<Stmt>> map =
+                new HashMap<BasicBlock<Instruction>, BasicBlock<Stmt>>();
+        for (BasicBlock<Instruction> bb : asmCFG) {
             List<Stmt> irstmt = new LinkedList<Stmt>();
-            for (Entry e : bb) {
-                Instruction inst = (Instruction)e;
+            for (Instruction inst : bb) {
                 irstmt.addAll(toIRStatements(inst));
             }
-            BasicBlock irbb = new BasicBlock(this, irstmt, bb.getLabel());
+            BasicBlock<Stmt> irbb = 
+                    new BasicBlock<Stmt>(this, irstmt, bb.getLabel());
             bbs.add(irbb);
             map.put(bb, irbb);
         }
-        for (BasicBlock bb : asmCFG) {
-            BasicBlock irbb = map.get(bb);
-            for (BasicBlock pred : bb.getPredecessorAll()) {
+        for (BasicBlock<Instruction> bb : asmCFG) {
+            BasicBlock<Stmt> irbb = map.get(bb);
+            for (BasicBlock<Instruction> pred : bb.getPredecessorAll()) {
                 irbb.addPredecessor(map.get(pred));
             }
-            for (BasicBlock succ : bb.getSuccessorAll()) {
+            for (BasicBlock<Instruction> succ : bb.getSuccessorAll()) {
                 irbb.addSuccessor(map.get(succ));
             }
         }
@@ -60,7 +62,7 @@ public class Context extends Procedure {
     }
     
     @Override
-    public CFG getCFG() {
+    public CFG<Stmt> getCFG() {
         return mCFG;
     }
     
@@ -342,7 +344,7 @@ public class Context extends Procedure {
     }
 
 	@Override
-	public Label deriveSubLabel(BasicBlock bb) {
+	public Label deriveSubLabel(BasicBlock<Stmt> bb) {
 		return null;
 	}
 }

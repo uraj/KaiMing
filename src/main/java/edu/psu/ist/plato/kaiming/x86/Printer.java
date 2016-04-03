@@ -137,7 +137,7 @@ public class Printer extends PrintWriter {
         }
     }
     
-    public void printBasicBlock(BasicBlock bb) {
+    public void printBasicBlock(BasicBlock<Instruction> bb) {
         if (!mIsParseMode) {
             printAsmLabel((AsmLabel)bb.getLabel());
             println(':');
@@ -148,12 +148,12 @@ public class Printer extends PrintWriter {
         }
     }
     
-    public void printCFG(CFG f) {
+    public void printCFG(CFG<Instruction> f) {
         if (mIsParseMode) {
             printAsmLabel((AsmLabel)f.getEntryBlock().getLabel());
             println(':');
         }
-        for (BasicBlock bb : f) {
+        for (BasicBlock<Instruction> bb : f) {
             printBasicBlock(bb);
         }
     }

@@ -10,22 +10,22 @@ import java.util.ListIterator;
 
 import edu.psu.ist.plato.kaiming.util.ReverseIterator;
 
-public class BasicBlock implements Iterable<Entry>, Comparable<BasicBlock> {
+public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<BasicBlock<T>> {
 
-    protected List<BasicBlock> mPred;
-    protected List<BasicBlock> mSucc;
+    protected List<BasicBlock<T>> mPred;
+    protected List<BasicBlock<T>> mSucc;
 
-    protected List<Entry> mEntries;
+    protected List<T> mEntries;
 
     protected Label mLabel;
 
-    protected Procedure mUnit;
+    protected Procedure<T> mUnit;
     
-    private class ReverseEntryIterator implements ReverseIterator<Entry> {
+    private class ReverseEntryIterator implements ReverseIterator<T> {
 
-        ListIterator<Entry> mIter;
+        ListIterator<T> mIter;
         
-        public ReverseEntryIterator(List<Entry> entries) {
+        public ReverseEntryIterator(List<T> entries) {
             mIter = entries.listIterator(entries.size());
         }
         
@@ -35,7 +35,7 @@ public class BasicBlock implements Iterable<Entry>, Comparable<BasicBlock> {
         }
 
         @Override
-        public Entry previous() {
+        public T previous() {
             return mIter.previous();
         }
 
@@ -45,11 +45,11 @@ public class BasicBlock implements Iterable<Entry>, Comparable<BasicBlock> {
         }
     }
 
-    public BasicBlock(Procedure unit, List<? extends Entry> entries, Label label) {
-        mEntries = new LinkedList<Entry>(entries);
+    public BasicBlock(Procedure<T> unit, List<T> entries, Label label) {
+        mEntries = new LinkedList<T>(entries);
         mLabel = label;
-        mPred = new LinkedList<BasicBlock>();
-        mSucc = new LinkedList<BasicBlock>();
+        mPred = new LinkedList<BasicBlock<T>>();
+        mSucc = new LinkedList<BasicBlock<T>>();
         mUnit = unit;
     }
     
@@ -58,9 +58,10 @@ public class BasicBlock implements Iterable<Entry>, Comparable<BasicBlock> {
     }
     
     @Override
+    @SuppressWarnings("unchecked")
     public boolean equals(Object obj) {
         if (obj instanceof BasicBlock) {
-            return compareTo((BasicBlock)obj) == 0;
+            return compareTo((BasicBlock<T>)obj) == 0;
         } else {
             return super.hashCode() == obj.hashCode();
         }
@@ -72,7 +73,7 @@ public class BasicBlock implements Iterable<Entry>, Comparable<BasicBlock> {
     }
 
     @Override
-    public Iterator<Entry> iterator() {
+    public Iterator<T> iterator() {
         return mEntries.iterator();
     }
     
@@ -80,19 +81,19 @@ public class BasicBlock implements Iterable<Entry>, Comparable<BasicBlock> {
         return mEntries.size();
     }
     
-    public Entry[] getEntries() {
-        return mEntries.toArray(new Entry[0]);
+    public List<T> getEntries() {
+        return new ArrayList<T>(mEntries);
     }
     
-    public ReverseIterator<Entry> reverseIterator() {
+    public ReverseIterator<T> reverseIterator() {
         return new ReverseEntryIterator(mEntries);
     }
 
-    public Entry getFirstEntry() {
+    public T getFirstEntry() {
         return mEntries.get(0);
     }
 
-    public Entry getLastEntry() {
+    public T getLastEntry() {
         return mEntries.get(mEntries.size() - 1);
     }
 
@@ -104,51 +105,51 @@ public class BasicBlock implements Iterable<Entry>, Comparable<BasicBlock> {
         return mSucc.size() != 0;
     }
 
-    public boolean addPredecessor(BasicBlock e) {
+    public boolean addPredecessor(BasicBlock<T> e) {
         return mPred.add(e);
     }
 
-    public boolean addSuccessor(BasicBlock e) {
+    public boolean addSuccessor(BasicBlock<T> e) {
         return mSucc.add(e);
     }
     
-    public boolean addPredecessorAll(Collection<? extends BasicBlock> e) {
+    public boolean addPredecessorAll(Collection<? extends BasicBlock<T>> e) {
         return mPred.addAll(e);
     }
 
-    public boolean addSuccessorAll(Collection<? extends BasicBlock> e) {
+    public boolean addSuccessorAll(Collection<? extends BasicBlock<T>> e) {
         return mSucc.addAll(e);
     }
 
-    public BasicBlock getPredecessor(int pos) {
+    public BasicBlock<T> getPredecessor(int pos) {
         return mPred.get(pos);
     }
     
-    public BasicBlock getSuccessor(int pos) {
+    public BasicBlock<T> getSuccessor(int pos) {
         return mSucc.get(pos);
     }
     
-    public List<BasicBlock> getPredecessorAll() {
-        return new ArrayList<BasicBlock>(mPred);
+    public List<BasicBlock<T>> getPredecessorAll() {
+        return new ArrayList<BasicBlock<T>>(mPred);
     }
     
-    public List<BasicBlock> getSuccessorAll() {
-        return new ArrayList<BasicBlock>(mSucc);
+    public List<BasicBlock<T>> getSuccessorAll() {
+        return new ArrayList<BasicBlock<T>>(mSucc);
     }
     
-    public BasicBlock removePredecessor(int pos) {
+    public BasicBlock<T> removePredecessor(int pos) {
         return mPred.remove(pos);
     }
 
-    public BasicBlock removeSuccessor(int pos) {
+    public BasicBlock<T> removeSuccessor(int pos) {
         return mSucc.remove(pos);
     }
 
-    public boolean removePredecessor(BasicBlock bb) {
+    public boolean removePredecessor(BasicBlock<T> bb) {
         return mPred.remove(bb);
     }
 
-    public boolean removeSuccessor(BasicBlock bb) {
+    public boolean removeSuccessor(BasicBlock<T> bb) {
         return mSucc.remove(bb);
     }
     
@@ -160,11 +161,11 @@ public class BasicBlock implements Iterable<Entry>, Comparable<BasicBlock> {
         mSucc.clear();
     }
     
-    public Iterator<BasicBlock> iterPredecessor() {
+    public Iterator<BasicBlock<T>> iterPredecessor() {
         return mPred.iterator();
     }
 
-    public Iterator<BasicBlock> iterSuccessor() {
+    public Iterator<BasicBlock<T>> iterSuccessor() {
         return mSucc.iterator();
     }
     
@@ -184,14 +185,18 @@ public class BasicBlock implements Iterable<Entry>, Comparable<BasicBlock> {
         mLabel = label;
     }
 
-    public static BasicBlock[] split(Procedure unit,
-            final List<? extends Entry> entries, Integer[] pivots) {
+    
+    public static <I extends Entry> ArrayList<BasicBlock<I>> split(Procedure<I> unit,
+            final List<I> entries, Integer[] pivots) {
         
         if (pivots == null)
             return null;
         
-        if (pivots.length == 0)
-            return new BasicBlock[] { new BasicBlock(unit, entries, null) };
+        if (pivots.length == 0) {
+            ArrayList<BasicBlock<I>> ret = new ArrayList<BasicBlock<I>>();
+            ret.add(new BasicBlock<I>(unit, entries, null));
+            return ret;
+        }
 
         Arrays.sort(pivots);
         if (pivots[pivots.length - 1] > entries.size())
@@ -211,53 +216,53 @@ public class BasicBlock implements Iterable<Entry>, Comparable<BasicBlock> {
             j = 0;
         }
         
-        BasicBlock bb;
-        BasicBlock[] bbs = new BasicBlock[length + 1];
+        BasicBlock<I> bb;
+        ArrayList<BasicBlock<I>> bbs = new ArrayList<BasicBlock<I>>(length + 1);
         for (i = 0; i < length; ++i, ++j) {
-            bb = new BasicBlock(unit, entries.subList(prevPivot, pivots[j]),
+            bb = new BasicBlock<I>(unit, entries.subList(prevPivot, pivots[j]),
                     null);
-            bbs[i] = bb;
+            bbs.set(i, bb);
             prevPivot = pivots[j];
         }
-        bb = new BasicBlock(unit, entries.subList(prevPivot, entries.size()),
+        bb = new BasicBlock<I>(unit, entries.subList(prevPivot, entries.size()),
                 null);
-        bbs[i] = bb;
+        bbs.set(i, bb);
         return bbs;
     }
 
-    public BasicBlock[] split(Integer[] pivots) {
-        BasicBlock[] bbs = BasicBlock.split(mUnit, mEntries, pivots);
+    public ArrayList<BasicBlock<T>> split(Integer[] pivots) {
+        ArrayList<BasicBlock<T>> bbs = BasicBlock.split(mUnit, mEntries, pivots);
 
-        bbs[0].setLable(this.getLabel());
-        for (int i = 1; i < bbs.length; ++i) {
-            bbs[i].setLable(mUnit.deriveSubLabel(bbs[i]));
+        bbs.get(0).setLable(this.getLabel());
+        for (int i = 1; i < bbs.size(); ++i) {
+            bbs.get(i).setLable(mUnit.deriveSubLabel(bbs.get(i)));
         }
 
-        for (int i = 0; i < bbs.length - 1; ++i) {
-            Iterator<BasicBlock> iterSucc = bbs[i + 1].iterPredecessor();
+        for (int i = 0; i < bbs.size() - 1; ++i) {
+            Iterator<BasicBlock<T>> iterSucc = bbs.get(i + 1).iterPredecessor();
             while (iterSucc.hasNext()) {
-                bbs[i].addSuccessor(iterSucc.next());
+                bbs.get(i).addSuccessor(iterSucc.next());
             }
         }
 
-        for (int i = 1; i < bbs.length; ++i) {
-            Iterator<BasicBlock> iterPred = bbs[i - 1].iterSuccessor();
+        for (int i = 1; i < bbs.size(); ++i) {
+            Iterator<BasicBlock<T>> iterPred = bbs.get(i - 1).iterSuccessor();
             while (iterPred.hasNext()) {
-                bbs[i].addPredecessor(iterPred.next());
+                bbs.get(i).addPredecessor(iterPred.next());
             }
         }
 
-        BasicBlock first = bbs[0], last = bbs[bbs.length - 1];
-        Iterator<BasicBlock> iterPred = iterPredecessor();
+        BasicBlock<T> first = bbs.get(0), last = bbs.get(bbs.size() - 1);
+        Iterator<BasicBlock<T>> iterPred = iterPredecessor();
         while (iterPred.hasNext()) {
-            BasicBlock pred = iterPred.next();
+            BasicBlock<T> pred = iterPred.next();
             first.addPredecessor(pred);
             pred.removeSuccessor(this);
             pred.addSuccessor(first);
         }
-        Iterator<BasicBlock> iterSucc = iterSuccessor();
+        Iterator<BasicBlock<T>> iterSucc = iterSuccessor();
         while (iterSucc.hasNext()) {
-            BasicBlock succ = iterSucc.next();
+            BasicBlock<T> succ = iterSucc.next();
             last.addPredecessor(succ);
             succ.removePredecessor(this);
             succ.addPredecessor(last);
@@ -266,25 +271,25 @@ public class BasicBlock implements Iterable<Entry>, Comparable<BasicBlock> {
         return bbs;
     }
     
-    public BasicBlock[] split(Long index) {
+    public ArrayList<BasicBlock<T>> split(Long index) {
         int pivot = Entry.searchIndex(mEntries.toArray(new Entry[0]), index);
         return split(new Integer[] {pivot+1});
     }
 
     
     @Override
-    public int compareTo(BasicBlock bb) {
+    public int compareTo(BasicBlock<T> bb) {
         return Long.signum(getIndex() - bb.getIndex());
     }
     
-    public static BasicBlock searchContainingBlock(final BasicBlock[] bbs,
+    public static <I extends Entry> BasicBlock<I> searchContainingBlock(final BasicBlock<I>[] bbs,
             long addr) {
         return searchContainingBlock(Arrays.asList(bbs), addr);
     }
     
-    public static BasicBlock searchContainingBlock(final Iterable<BasicBlock> bbs,
+    public static <I extends Entry> BasicBlock<I> searchContainingBlock(final Iterable<BasicBlock<I>> bbs,
             long addr) {
-        for (BasicBlock bb : bbs) {
+        for (BasicBlock<I> bb : bbs) {
             if (bb.getLastEntry().compareTo(addr) >= 0
                     && bb.getFirstEntry().compareTo(addr) <= 0) {
                 return bb;

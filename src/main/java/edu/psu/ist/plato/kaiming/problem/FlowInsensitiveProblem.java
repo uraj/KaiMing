@@ -5,12 +5,12 @@ import java.util.Collection;
 import edu.psu.ist.plato.kaiming.Entry;
 import edu.psu.ist.plato.kaiming.Procedure;
 
-public abstract class FlowInsensitiveProblem<T> extends Problem<T> {
-    protected Procedure mP;
+public abstract class FlowInsensitiveProblem<E extends Entry, T> extends Problem<T> {
+    protected Procedure<E> mP;
     private Collection<? extends Entry> mEntries;
     private boolean mSolved;
     
-    public FlowInsensitiveProblem(Procedure p, Collection<? extends Entry> entryFlow) {
+    public FlowInsensitiveProblem(Procedure<E> p, Collection<E> entryFlow) {
         super(null);
         mSolved = false;
         mP = p;
