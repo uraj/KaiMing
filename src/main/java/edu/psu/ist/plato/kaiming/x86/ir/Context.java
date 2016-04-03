@@ -135,8 +135,9 @@ public class Context extends Procedure {
         ret.add(branch);
     }
     
-    // TODO: handle conditional moves
     private void toIR(MoveInst inst, List<Stmt> ret) {
+        // TODO: handle conditional moves
+        Assert.test(!inst.isConditional());
     	Operand src = inst.getFrom();
     	Operand dest = inst.getTo();
     	ret.add(updateLval(inst, dest, readOperand(inst, src, ret)));
@@ -268,10 +269,22 @@ public class Context extends Procedure {
         Expr e2 = readOperand(inst, inst.getDest(), ret);
         BExpr bexp = new BExpr(op, e1, e2);
         Operand dest = inst.getDest();
-        if (dest.isRegister()) {
-            ret.add(new AssignStmt(inst, Reg.getReg(dest.asRegister()), bexp));
-        } else { // must be a memory location
-            ret.add(new StStmt(inst, Expr.toExpr(dest.asMemory()), bexp));
+        ret.add(updateLval(inst, dest, bexp));
+    }
+    
+    private void toIR(MultiplyInst inst, List<Stmt> ret) {
+        Tuple<Operand, Operand> src = inst.getSrc();
+        Expr e1 = readOperand(inst, src.first, ret);
+        Expr e2 = readOperand(inst, src.second, ret);
+        BExpr bexp = new BExpr(BExpr.Op.MUL, e1, e2);
+        Tuple<Operand, Operand> dest = inst.getDest();
+        Var result = this.getNewTempVariable();
+        ret.add(new AssignStmt(inst, result, bexp));
+        Expr low = new UExpr(UExpr.Op.LOW, result);
+        ret.add(updateLval(inst, dest.first, low));
+        if (dest.second != null) {
+            Expr high = new UExpr(UExpr.Op.HIGH, result);
+            ret.add(updateLval(inst, dest.second, high));
         }
     }
     
@@ -284,16 +297,12 @@ public class Context extends Procedure {
             case UN_ARITH:
                 toIR((UnaryArithInst)inst, ret);
                 break;
-            case BIT_TEST:
-                break;
             case CALL:
                 CallInst call = (CallInst)inst;
                 ret.add(new CallStmt(call, Expr.toExpr(call.getTarget())));
                 break;
             case COMPARE:
                 toIR((CompareInst)inst, ret);
-                break;
-            case COND_SET:
                 break;
             case DIVIDE:
                 toIR((DivideInst)inst, ret);
@@ -311,6 +320,7 @@ public class Context extends Procedure {
                 toIR((MoveInst)inst, ret);
                 break;
             case MULTIPLY:
+                toIR((MultiplyInst)inst, ret);
                 break;
             case POP:
                 toIR((PopInst)inst, ret);
@@ -321,8 +331,10 @@ public class Context extends Procedure {
             case RETURN:
                 ret.add(new RetStmt(inst));
                 break;
-            case NOP: // We don't need nops in IR
+            case NOP:
                 break;
+            case COND_SET:
+            case BIT_TEST:
             case OTHER:
                 Assert.unreachable();
         }

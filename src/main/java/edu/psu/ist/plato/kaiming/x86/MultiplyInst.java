@@ -2,6 +2,8 @@ package edu.psu.ist.plato.kaiming.x86;
 
 import java.util.Arrays;
 
+import edu.psu.ist.plato.kaiming.util.Tuple;
+
 //TODO The source and destination are decided by operand length
 public class MultiplyInst extends Instruction {
 
@@ -34,11 +36,19 @@ public class MultiplyInst extends Instruction {
         }
     }
     
-    public Operand[] getDest() {
+    public Tuple<Operand, Operand> getDest() {
+        return new Tuple<Operand, Operand>(mDest[0], mDest.length == 1 ? null : mDest[1]);
+    }
+    
+    public Tuple<Operand, Operand> getSrc() {
+        return new Tuple<Operand, Operand>(mSrc[0], mSrc[1]);
+    }
+    
+    public Operand[] iterDest() {
         return Arrays.copyOf(mDest, mDest.length);
     }
     
-    public Operand[] getSrc() {
+    public Operand[] iterSrc() {
         return Arrays.copyOf(mSrc, mSrc.length);
     }
 

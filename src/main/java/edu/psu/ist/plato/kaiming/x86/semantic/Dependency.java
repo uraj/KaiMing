@@ -95,11 +95,11 @@ public class Dependency {
 
     public final void transferMultiplyInst(MultiplyInst inst, BitSet in) {
         boolean affected = false;
-        for (Operand dest : inst.getDest()) {
+        for (Operand dest : inst.iterDest()) {
             affected = clearBitForOperand(dest, in) || affected;
         }
         if (affected) {
-            Operand[] src = inst.getSrc();
+            Operand[] src = inst.iterSrc();
             for (int i = 0; i < src.length; ++i) {
                 setBitForOperand(src[i], in);
             }
