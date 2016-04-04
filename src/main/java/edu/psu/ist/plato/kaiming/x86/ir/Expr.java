@@ -1,10 +1,12 @@
 package edu.psu.ist.plato.kaiming.x86.ir;
 
+import edu.psu.ist.plato.kaiming.util.Assert;
 import edu.psu.ist.plato.kaiming.x86.Immediate;
 import edu.psu.ist.plato.kaiming.x86.Memory;
 import edu.psu.ist.plato.kaiming.x86.Register;
 
 public abstract class Expr {
+    
     public boolean isLval() {
         return false;
     };
@@ -48,6 +50,53 @@ public abstract class Expr {
             }
         }
         return ret;
+    }
+    
+    public static abstract class Visitor {
+
+        private boolean action(Expr expr) {
+            if (expr instanceof BExpr) {
+                return visitBExpr((BExpr)expr);
+            } else if (expr instanceof UExpr) {
+                return visitBExpr((BExpr)expr);
+            } else if (expr instanceof Lval) {
+                if (!visitLval((Lval)expr))
+                    return false;
+                if (expr instanceof Reg) {
+                    return visitReg((Reg)expr);
+                } else if (expr instanceof Var) {
+                    return visitVar((Var)expr);
+                } else {
+                    Assert.unreachable();
+                    return false;
+                }
+            } else if (expr instanceof Const) {
+                return visitConst((Const)expr);
+            } else {
+                Assert.unreachable();
+                return false;
+            }
+        }
+
+        public void visit(Expr toVisit) {
+            doVisit(toVisit);
+        }
+        
+        private boolean doVisit(Expr toVisit) {
+            if (!action(toVisit))
+                return false;
+            for (int i = 0; i < toVisit.getNumSubExpr(); ++i) {
+                visit(toVisit.getSubExpr(i));
+            }
+            return true;
+        }
+        
+        protected boolean visitBExpr(BExpr expr) { return true; };
+        protected boolean visitUExpr(UExpr expr) { return true; };
+        protected boolean visitLval(Lval lval) { return true; };
+        protected boolean visitVar(Var lval) { return true; };
+        protected boolean visitReg(Reg lval) { return true; };
+        protected boolean visitConst(Const c) { return true; };
     }
 
 }
