@@ -29,30 +29,29 @@ public class Unit {
     
     public static void UDAnalysis(Context ctx) throws UnsolvableException {
         class ReachingDefinition extends
-            PathInsensitiveProblem<Stmt, Map<Lval, Set<Tuple<BasicBlock<Stmt>, DefStmt>>>> {
+            PathInsensitiveProblem<Stmt, Map<Lval, Set<DefStmt>>> {
 
             public ReachingDefinition(Context ctx) {
                 super(ctx, ctx.getCFG(), PathInsensitiveProblem.Direction.FORWARD);
             }
 
             @Override
-            protected Map<Lval, Set<Tuple<BasicBlock<Stmt>, DefStmt>>>
+            protected Map<Lval, Set<DefStmt>>
             getInitialEntryState(BasicBlock<Stmt> bb) {
-                return new HashMap<Lval, Set<Tuple<BasicBlock<Stmt>, DefStmt>>>();
+                return new HashMap<Lval, Set<DefStmt>>();
             }
 
             @Override
-            protected Map<Lval, Set<Tuple<BasicBlock<Stmt>, DefStmt>>>
-            transfer(BasicBlock<Stmt> bb,
-                    Map<Lval, Set<Tuple<BasicBlock<Stmt>, DefStmt>>> in)
-                            throws UnsolvableException {
+            protected Map<Lval, Set<DefStmt>>
+            transfer(BasicBlock<Stmt> bb, Map<Lval, Set<DefStmt>> in)
+                    throws UnsolvableException {
                 // TODO Auto-generated method stub
                 return null;
             }
 
             @Override
-            protected Map<Lval, Set<Tuple<BasicBlock<Stmt>, DefStmt>>> confluence(
-                    Set<Map<Lval, Set<Tuple<BasicBlock<Stmt>, DefStmt>>>> dataset) {
+            protected Map<Lval, Set<DefStmt>>
+            confluence(Set<Map<Lval, Set<DefStmt>>> dataset) {
                 // TODO Auto-generated method stub
                 return null;
             }
@@ -60,7 +59,6 @@ public class Unit {
         
         ReachingDefinition rd = new ReachingDefinition(ctx);
         rd.solve();
-        Map<BasicBlock<Stmt>, Map<Lval, Set<Tuple<BasicBlock<Stmt>, DefStmt>>>>
-        solution = rd.getSolution();
+        Map<BasicBlock<Stmt>, Map<Lval, Set<DefStmt>>> solution = rd.getSolution();
     }
 }
