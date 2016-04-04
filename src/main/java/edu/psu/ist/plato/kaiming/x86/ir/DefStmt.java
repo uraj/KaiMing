@@ -6,13 +6,13 @@ import edu.psu.ist.plato.kaiming.x86.Instruction;
 
 abstract public class DefStmt extends Stmt {
 	
-	protected Set<Stmt> mDUChain;
+	private Set<Stmt> mDUChain;
 	
-	public DefStmt(Kind kind, Instruction inst) {
-		super(kind, inst);
+	public DefStmt(Kind kind, Instruction inst, Expr[] usedExpr) {
+		super(kind, inst, usedExpr);
 	}
 	
-	abstract public Lval getLval();
+	abstract public Lval getDefinedLval();
 	
 	final public Set<Stmt> getDefUseChain() {
 		return mDUChain;

@@ -8,7 +8,7 @@ public class LdStmt extends DefStmt {
 	private Lval mContent;
 	
 	protected LdStmt(Instruction inst, Expr addr, Lval content) {
-		super(Kind.LD, inst);
+		super(Kind.LD, inst, new Expr[] { addr });
 		mAddr = addr;
 		mContent = content;
 	}
@@ -22,7 +22,7 @@ public class LdStmt extends DefStmt {
 	}
 
 	@Override
-	public Lval getLval() {
+	public Lval getDefinedLval() {
 		return mContent;
 	}
 

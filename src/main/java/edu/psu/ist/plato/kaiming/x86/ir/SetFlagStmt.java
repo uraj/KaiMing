@@ -9,7 +9,7 @@ public class SetFlagStmt extends Stmt {
 
     
     protected SetFlagStmt(Instruction inst) {
-        super(Kind.SETF, inst);
+        super(Kind.SETF, inst, new Expr[] {});
     }
     
     public Set<Flag> affectedFlags() {

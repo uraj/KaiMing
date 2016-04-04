@@ -8,7 +8,7 @@ public class CallStmt extends DefStmt {
 	private Expr mTarget;
 	
     public CallStmt(CallInst inst, Expr target) {
-        super(Kind.CALL, inst);
+        super(Kind.CALL, inst, new Expr[] { target });
         mTarget = target;
     }
     
@@ -17,7 +17,7 @@ public class CallStmt extends DefStmt {
     }
 
     @Override
-    public Lval getLval() {
+    public Lval getDefinedLval() {
         // TODO: Make this value configurable with a "CallingConvention"
         // structure
         // FIXME: Theoretically, all caller-save registers can be

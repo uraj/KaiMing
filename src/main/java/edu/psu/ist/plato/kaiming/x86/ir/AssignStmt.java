@@ -8,13 +8,13 @@ public class AssignStmt extends DefStmt {
     private Expr mExpr;
     
     protected AssignStmt(Instruction inst, Lval lval, Expr expr) {
-        super(Kind.ASSIGN, inst);
+        super(Kind.ASSIGN, inst, new Expr[] { expr });
         mLval = lval;
         mExpr = expr;
     }
     
     @Override
-    public Lval getLval() {
+    public Lval getDefinedLval() {
         return mLval;
     }
     

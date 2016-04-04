@@ -1,5 +1,6 @@
 package edu.psu.ist.plato.kaiming.x86.ir;
 
+import edu.psu.ist.plato.kaiming.util.Tuple;
 import edu.psu.ist.plato.kaiming.x86.Instruction;
 
 public class CmpStmt extends Stmt {
@@ -8,7 +9,7 @@ public class CmpStmt extends Stmt {
     private Expr mCmp2;
     
     protected CmpStmt(Instruction inst, Expr cmp1, Expr cmp2) {
-        super(Kind.CMP, inst);
+        super(Kind.CMP, inst, new Expr[] { cmp1, cmp2 });
         mCmp1 = cmp1;
         mCmp2 = cmp2;
     }
@@ -21,8 +22,8 @@ public class CmpStmt extends Stmt {
         return mCmp2;
     }
     
-    public Expr[] getCompared() {
-        return new Expr[] { mCmp1, mCmp2 };
+    public Tuple<Expr, Expr> getCompared() {
+        return new Tuple<Expr, Expr>(mCmp1, mCmp2);
     }
 
 }

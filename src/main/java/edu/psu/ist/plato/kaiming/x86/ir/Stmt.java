@@ -1,11 +1,11 @@
 package edu.psu.ist.plato.kaiming.x86.ir;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import edu.psu.ist.plato.kaiming.Entry;
-import edu.psu.ist.plato.kaiming.util.Tuple;
-import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.x86.Instruction;
 
 
@@ -22,41 +22,71 @@ abstract public class Stmt extends Entry {
         RET,
     }
     
+    protected class LvalProbe extends Expr.Visitor {
+        
+        private Set<Lval> mLvals = new HashSet<Lval>(); 
+        
+        @Override
+        protected boolean visitLval(Lval lval) {
+            mLvals.add(lval);
+            return true;
+        }
+        
+        public Set<Lval> getLvals() {
+            return mLvals;
+        }
+    }
+    
     protected final Instruction mInst;
     protected long mIndex;
     
-    protected Map<Lval, Set<Tuple<BasicBlock<Stmt>, DefStmt>>> mUDChain;
+    private Expr[] mUsedExpr;
+    
+    private Map<Lval, Set<DefStmt>> mUDChain;
     private final Kind mKind;
     
-    protected Stmt(Kind kind, Instruction inst) {
+    protected Stmt(Kind kind, Instruction inst, Expr[] usedExpr) {
         mKind = kind;
         mInst = inst;
         mIndex = -1;
+        mUsedExpr = usedExpr;
+        mUDChain = new HashMap<Lval, Set<DefStmt>>();
+        LvalProbe prob = new LvalProbe();
+        for (Expr e : mUsedExpr) {
+            prob.visit(e);
+        }
+        for (Lval lv : prob.getLvals()) {
+            mUDChain.put(lv, null);
+        }
     }
     
-    public final Kind kind() {
+    final public Kind kind() {
         return mKind;
     }
     
-    public Instruction getHostingInstruction() {
+    final public Instruction getHostingInstruction() {
         return mInst;
     }
     
     @Override
-    public long getIndex() {
+    final public long getIndex() {
         return mIndex;
     }
     
-    public void setIndex(long index) {
+    final public void setIndex(long index) {
         mIndex = index;
     }
     
-    public Set<Tuple<BasicBlock<Stmt>, DefStmt>> getDef(Lval lval) {
+    final public Set<DefStmt> getDef(Lval lval) {
     	return mUDChain.get(lval);
     }
     
-    public Set<Tuple<BasicBlock<Stmt>, DefStmt>>
-    setDef(Lval lval, Set<Tuple<BasicBlock<Stmt>, DefStmt>> stmt) {
+    final public Set<DefStmt> setDef(Lval lval, Set<DefStmt> stmt) {
     	return mUDChain.put(lval, stmt);
     }
+    
+    final public Set<Lval> getUsedLvals() {
+        return mUDChain.keySet();
+    }
+    
 }
