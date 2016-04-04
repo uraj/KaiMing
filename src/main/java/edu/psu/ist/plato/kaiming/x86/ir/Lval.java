@@ -16,5 +16,10 @@ public abstract class Lval extends Expr {
     public Expr getSubExpr(int index) {
     	return null;
     }
-
+    
+    @Override
+    public abstract boolean equals(Object lv);
+    
+    @Override
+    public abstract int hashCode();
 }

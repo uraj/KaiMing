@@ -16,4 +16,17 @@ public class Var extends Lval {
     public Context getContext() {
         return mContext;
     }
+
+    @Override
+    public boolean equals(Object lv) {
+        if (lv instanceof Var) {
+            return ((Var)lv).mName.equals(mName);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return mName.hashCode();
+    }
 }

@@ -35,4 +35,22 @@ public class Reg extends Lval {
             default: return new Reg(register);
         }
     }
+
+    
+    public boolean equalsTo(Reg reg) {
+        return mReg.id == reg.mReg.id;
+    }
+    
+    @Override
+    public boolean equals(Object lv) {
+        if (lv instanceof Reg) {
+            return equalsTo((Reg)lv);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return mReg.id.hashCode();
+    }
 }
