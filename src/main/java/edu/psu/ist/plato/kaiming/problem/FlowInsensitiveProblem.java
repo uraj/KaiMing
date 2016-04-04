@@ -7,7 +7,7 @@ import edu.psu.ist.plato.kaiming.Procedure;
 
 public abstract class FlowInsensitiveProblem<E extends Entry, T> extends Problem<T> {
     protected Procedure<E> mP;
-    private Collection<? extends Entry> mEntries;
+    private Collection<E> mEntries;
     private boolean mSolved;
     
     public FlowInsensitiveProblem(Procedure<E> p, Collection<E> entryFlow) {
@@ -19,7 +19,7 @@ public abstract class FlowInsensitiveProblem<E extends Entry, T> extends Problem
 
     protected abstract T getInitialEntryState();
 
-    protected abstract T process(Entry e, T in) throws UnsolvableException;
+    protected abstract T process(E e, T in) throws UnsolvableException;
 
     @Override
     public final void solve() throws UnsolvableException {
@@ -29,7 +29,7 @@ public abstract class FlowInsensitiveProblem<E extends Entry, T> extends Problem
         }
         T solution;
         solution = getInitialEntryState();
-        for (Entry e : mEntries) {
+        for (E e : mEntries) {
             try {
                 solution = process(e, solution);
             } catch (UnsolvableException except) {
