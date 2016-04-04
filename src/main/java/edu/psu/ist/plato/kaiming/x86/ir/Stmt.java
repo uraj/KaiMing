@@ -1,8 +1,11 @@
 package edu.psu.ist.plato.kaiming.x86.ir;
 
 import java.util.Map;
+import java.util.Set;
 
 import edu.psu.ist.plato.kaiming.Entry;
+import edu.psu.ist.plato.kaiming.util.Tuple;
+import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.x86.Instruction;
 
 
@@ -22,7 +25,7 @@ abstract public class Stmt extends Entry {
     protected final Instruction mInst;
     protected long mIndex;
     
-    protected Map<Lval, DefStmt> mUDChain;
+    protected Map<Lval, Set<Tuple<BasicBlock<Stmt>, DefStmt>>> mUDChain;
     private final Kind mKind;
     
     protected Stmt(Kind kind, Instruction inst) {
@@ -48,11 +51,12 @@ abstract public class Stmt extends Entry {
         mIndex = index;
     }
     
-    public DefStmt getDef(Lval lval) {
+    public Set<Tuple<BasicBlock<Stmt>, DefStmt>> getDef(Lval lval) {
     	return mUDChain.get(lval);
     }
     
-    public DefStmt setDef(Lval lval, DefStmt stmt) {
+    public Set<Tuple<BasicBlock<Stmt>, DefStmt>>
+    setDef(Lval lval, Set<Tuple<BasicBlock<Stmt>, DefStmt>> stmt) {
     	return mUDChain.put(lval, stmt);
     }
 }
