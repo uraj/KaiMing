@@ -221,12 +221,12 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
         for (i = 0; i < length; ++i, ++j) {
             bb = new BasicBlock<I>(unit, entries.subList(prevPivot, pivots[j]),
                     null);
-            bbs.set(i, bb);
+            bbs.add(bb);
             prevPivot = pivots[j];
         }
         bb = new BasicBlock<I>(unit, entries.subList(prevPivot, entries.size()),
                 null);
-        bbs.set(i, bb);
+        bbs.add(bb);
         return bbs;
     }
 
