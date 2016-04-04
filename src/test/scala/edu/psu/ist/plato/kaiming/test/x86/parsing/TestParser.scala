@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.test.x86.parser
+package edu.psu.ist.plato.kaiming.test.x86.parsing
 
 
 import scala.io.Source
@@ -63,7 +63,7 @@ class TestParser extends FunSuite with BeforeAndAfter {
   }
   
   after {
-    println((total - failure) + "/" + total + " tests passed.")    
+    println((total - failure) + "/" + total + " tests passed.")
   }
     
 }
