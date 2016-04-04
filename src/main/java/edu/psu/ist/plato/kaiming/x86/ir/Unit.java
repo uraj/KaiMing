@@ -91,5 +91,16 @@ public class Unit {
         } catch (UnsolvableException e) {
             Assert.unreachable();
         }
+
+        // Set def-use chains given use-def chains
+        for (Stmt s : ctx.getEntries()) {
+            for (Lval lv : s.getUsedLvals()) {
+                for (DefStmt defs : s.getDef(lv)) {
+                    if (!defs.isExternal()) {
+                        defs.addToDefUseChain(s);
+                    }
+                }
+            }
+        }
     }
 }
