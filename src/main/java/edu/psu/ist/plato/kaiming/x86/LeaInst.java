@@ -7,10 +7,10 @@ public class LeaInst extends Instruction {
     }
 
     public Memory getExpression() {
-        return getOperand(0).asMemory();
+        return operand(0).asMemory();
     }
     
     public Register getResult() {
-        return getOperand(1).asRegister();
+        return operand(1).asRegister();
     }
 }

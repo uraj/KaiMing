@@ -122,7 +122,7 @@ public class Dependency {
         int idx = getIndex(Flag.CF);
         if (in.get(idx)) {
             in.clear(idx);
-            Operand[] ops = inst.getOperands();
+            Operand[] ops = inst.operands();
             for (int i = 0; i < ops.length; ++i) {
                 setBitForOperand(ops[i], in);
             }
@@ -130,8 +130,8 @@ public class Dependency {
     }
     
     public final void transferBinaryArithInst(BinaryArithInst inst, BitSet in) {
-        boolean affected = clearBitForOperand(inst.getDest(), in);
-        Set<Flag> flags = inst.getModifiedFlags();
+        boolean affected = clearBitForOperand(inst.dest(), in);
+        Set<Flag> flags = inst.modifiedFlags();
         for (Flag f : flags) {
             int idx = getIndex(f);
             if (in.get(idx)) {
@@ -140,14 +140,14 @@ public class Dependency {
             }
         }
         if (affected) {
-            if (!inst.getSrc().isImmeidate())
-                setBitForOperand(inst.getSrc(), in);
-            setBitForOperand(inst.getDest(), in);
+            if (!inst.src().isImmeidate())
+                setBitForOperand(inst.src(), in);
+            setBitForOperand(inst.dest(), in);
         }
     }
 
     public final void transferCondSetInst(CondSetInst inst, BitSet in) {
-        Operand op = inst.getDest();
+        Operand op = inst.dest();
         if (!op.isRegister())
             return;
         Register reg = (Register)op;
@@ -155,7 +155,7 @@ public class Dependency {
         if (!in.get(idx))
             return;
         in.clear(idx);
-        for (Flag f : inst.getDependentFlags()) {
+        for (Flag f : inst.dependentFlags()) {
             in.set(getIndex(f));
         }
     }
@@ -171,7 +171,7 @@ public class Dependency {
             return;
         }
         CondJumpInst cji = (CondJumpInst)inst;
-        String rawop = cji.getOpcode().getRawOpcode();
+        String rawop = cji.opcode().getRawOpcode();
         if (rawop.equals("jcxz") || rawop.equals("jecxz"))
             in.set(getIndex(Register.Id.ECX));
         for (Flag f : cji.getDependentFlags()) {
@@ -180,7 +180,7 @@ public class Dependency {
     }
     
     public final void transferCompareInst(CompareInst inst, BitSet in) {
-        Set<Flag> modifiedFlags = inst.getModifiedFlags();
+        Set<Flag> modifiedFlags = inst.modifiedFlags();
         boolean affectted = false;
         for (Flag f : modifiedFlags) {
             int idx = getIndex(f);
@@ -190,7 +190,7 @@ public class Dependency {
             }
         }
         if (affectted) {
-            Operand[] ops = inst.getOperands();
+            Operand[] ops = inst.operands();
             if (ops[0].isImmeidate() && ops[1].isImmeidate()) {
                 // Could this ever happen?
                 in.set(ImmIndex);
@@ -206,7 +206,7 @@ public class Dependency {
     }
     
     public final void transferExchangeInst(ExchangeInst inst, BitSet in) {
-        Operand op1 = inst.getOperand(0), op2 = inst.getOperand(1);
+        Operand op1 = inst.operand(0), op2 = inst.operand(1);
         BitSet tmp = new BitSet();
         tmp.or(in);
         boolean affected1 = clearBitForOperand(op1, tmp);
@@ -219,7 +219,7 @@ public class Dependency {
     }
     
     public final void transferPopInst(PopInst inst, BitSet in) {
-        Register dest = inst.getTarget().getContainingRegister();
+        Register dest = inst.popTarget().getContainingRegister();
         if (in.get(getIndex(dest.id))) {
             in.clear(getIndex(dest.id));
             in.set(getIndex(Register.Id.ESP));

@@ -31,7 +31,7 @@ public class Context extends Procedure<Stmt> {
     private CFG<Stmt> buildCFG(Function fun) {
         CFG<Instruction> asmCFG = fun.getCFG();
         List<BasicBlock<Stmt>> bbs = 
-                new ArrayList<BasicBlock<Stmt>>(asmCFG.getSize());
+                new ArrayList<BasicBlock<Stmt>>(asmCFG.size());
         Map<BasicBlock<Instruction>, BasicBlock<Stmt>> map =
                 new HashMap<BasicBlock<Instruction>, BasicBlock<Stmt>>();
         for (BasicBlock<Instruction> bb : asmCFG) {
@@ -53,7 +53,7 @@ public class Context extends Procedure<Stmt> {
                 irbb.addSuccessor(map.get(succ));
             }
         }
-        return createCFGObject(bbs, map.get(asmCFG.getEntryBlock()));
+        return createCFGObject(bbs, map.get(asmCFG.entryBlock()));
     }
 
     @Override
@@ -92,7 +92,7 @@ public class Context extends Procedure<Stmt> {
     }
     
     private Expr readOperand(Instruction inst, int operandIndex, List<Stmt> stmt) {
-    	Operand o = inst.getOperand(operandIndex);
+    	Operand o = inst.operand(operandIndex);
     	return readOperand(inst, o, stmt);
     }
     
@@ -162,10 +162,10 @@ public class Context extends Procedure<Stmt> {
     }
     
     private void toIR(PopInst inst, List<Stmt> ret) {
-    	LdStmt load = new LdStmt(inst, Reg.getReg(inst.getTarget()), Reg.esp); 
+    	LdStmt load = new LdStmt(inst, Reg.getReg(inst.popTarget()), Reg.esp); 
     	ret.add(load);
     	
-    	Const size = Const.getConstant(inst.getOperandSizeInBytes());
+    	Const size = Const.getConstant(inst.sizeInBits() / 8);
     	BExpr incEsp = new BExpr(BExpr.Op.UADD, Reg.esp, size);
     	ret.add(new AssignStmt(inst, Reg.esp, incEsp));
     }
@@ -176,7 +176,7 @@ public class Context extends Procedure<Stmt> {
     	ret.add(new AssignStmt(inst, Reg.esp, decEsp));
     	
     	Expr toPush = null;
-    	Operand op = inst.getOperand();
+    	Operand op = inst.pushedOperand();
     	if (op.isImmeidate()) {
     		toPush = Expr.toExpr(op.asImmediate());
     	} else if (op.isRegister()) {
@@ -223,8 +223,8 @@ public class Context extends Procedure<Stmt> {
     
     private void toIR(UnaryArithInst inst, List<Stmt> ret) {
         UExpr.Op op = null;
-        Operand o = inst.getOperand();
-        switch(inst.getOpcode().getOpcodeClass()) {
+        Operand o = inst.operand();
+        switch(inst.opcode().opcodeClass()) {
             case INC: // Use a binary expression to hold this
                 ret.add(updateOperand(inst, o,
                         new BExpr(BExpr.Op.ADD,
@@ -257,7 +257,7 @@ public class Context extends Procedure<Stmt> {
 
     private void toIR(BinaryArithInst inst, List<Stmt> ret) {
         BExpr.Op op = null;
-        switch(inst.getOpcode().getOpcodeClass()) {
+        switch(inst.opcode().opcodeClass()) {
             case ADD:
             case ADC:
                 op = BExpr.Op.ADD;
@@ -287,10 +287,10 @@ public class Context extends Procedure<Stmt> {
             default:
                 Assert.unreachable();
         }
-        Expr e1 = readOperand(inst, inst.getSrc(), ret);
-        Expr e2 = readOperand(inst, inst.getDest(), ret);
+        Expr e1 = readOperand(inst, inst.src(), ret);
+        Expr e2 = readOperand(inst, inst.dest(), ret);
         BExpr bexp = new BExpr(op, e1, e2);
-        Operand dest = inst.getDest();
+        Operand dest = inst.dest();
         ret.add(updateOperand(inst, dest, bexp));
     }
     

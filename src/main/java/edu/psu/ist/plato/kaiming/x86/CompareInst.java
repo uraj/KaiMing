@@ -24,15 +24,15 @@ public class CompareInst extends Instruction {
     }
     
     public boolean isTest() {
-        return getOpcode().getOpcodeClass() == Opcode.Class.TEST;
+        return opcode().opcodeClass() == Opcode.Class.TEST;
     }
     
     public boolean isCompare() {
-        return getOpcode().getOpcodeClass() == Opcode.Class.CMP;
+        return opcode().opcodeClass() == Opcode.Class.CMP;
     }
     
     @Override
-    public Set<Flag> getModifiedFlags() {
+    public Set<Flag> modifiedFlags() {
         return sCompareFlagSet;
     }
 }

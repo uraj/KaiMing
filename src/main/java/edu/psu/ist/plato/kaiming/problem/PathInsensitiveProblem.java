@@ -31,7 +31,7 @@ public abstract class PathInsensitiveProblem<E extends Entry, T> extends Problem
         mP = p;
         mCfg = cfg;
         mDirection = direction;
-        mMaxIter = sMaxIterMultiplier * mCfg.getSize(); 
+        mMaxIter = sMaxIterMultiplier * mCfg.size(); 
     }
     
     public void setMaxIteration(int max) {
@@ -77,7 +77,7 @@ public abstract class PathInsensitiveProblem<E extends Entry, T> extends Problem
                     UnsolvableException.Reason.SOLVED);
         }
 
-        int size = mCfg.getSize();
+        int size = mCfg.size();
         Map<BasicBlock<E>, T> entryMap = new HashMap<BasicBlock<E>, T>(size);
         Map<BasicBlock<E>, T> exitMap = new HashMap<BasicBlock<E>, T>(size);
         

@@ -6,9 +6,9 @@ public class PopInst extends Instruction {
         super(Kind.POP, addr, op, new Operand[] { target } );
     }
 
-    public Register getTarget() { return (Register)getOperand(0); }
+    public Register popTarget() { return operand(0).asRegister(); }
     
-    public int getOperandSizeInBytes() {
-        return getTarget().getSizeInBits() / 8;
+    public int sizeInBits() {
+        return popTarget().getSizeInBits();
     }
 }

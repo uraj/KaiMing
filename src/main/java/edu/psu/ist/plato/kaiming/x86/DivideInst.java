@@ -24,7 +24,7 @@ public class DivideInst extends Instruction {
     }
     
     public Operand getDivider() {
-        return getOperand(0);
+        return operand(0);
     }
     
     public Tuple<Register, Register> getDest() {

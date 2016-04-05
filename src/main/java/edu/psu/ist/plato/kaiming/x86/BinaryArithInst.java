@@ -9,18 +9,18 @@ public class BinaryArithInst extends Instruction {
     protected BinaryArithInst(long addr, Opcode op, Operand operand1,
             Operand operand2) {
         super(Kind.BIN_ARITH, addr, op, new Operand[] { operand1, operand2 });
-        mModifiedFlags = Flag.getModifiedFlagsByOpcode(op.getOpcodeClass());
+        mModifiedFlags = Flag.getModifiedFlagsByOpcode(op.opcodeClass());
     }
 
-    public Operand getSrc() {
-        return getOperand(0);
+    public Operand src() {
+        return operand(0);
     }
 
-    public Operand getDest() {
-        return getOperand(1);
+    public Operand dest() {
+        return operand(1);
     }
     
-    public Set<Flag> getModifiedFlags() {
+    public Set<Flag> modifiedFlags() {
         return mModifiedFlags;
     }
 }

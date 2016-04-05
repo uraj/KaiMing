@@ -6,5 +6,7 @@ public class UnaryArithInst extends Instruction {
         super(Kind.UN_ARITH, addr, opcode, new Operand[] {operand});
     }
     
-    public Operand getOperand() { return getOperand(0); }
+    public Operand operand() {
+        return operand(0);
+    }
 }

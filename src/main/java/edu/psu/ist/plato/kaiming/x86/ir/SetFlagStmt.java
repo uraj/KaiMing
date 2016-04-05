@@ -13,6 +13,6 @@ public class SetFlagStmt extends Stmt {
     }
     
     public Set<Flag> affectedFlags() {
-        return mInst.getModifiedFlags();
+        return mInst.modifiedFlags();
     }
 }

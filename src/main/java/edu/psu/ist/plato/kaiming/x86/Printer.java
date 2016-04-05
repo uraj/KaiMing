@@ -100,9 +100,9 @@ public class Printer extends PrintWriter {
 
     public void printInstruction(Instruction i) {
         if (mIsParseMode)
-            printSignedHex(i.getAddr());
+            printSignedHex(i.addr());
         print('\t');
-        print(i.getOpcode().getRawOpcode());
+        print(i.opcode().getRawOpcode());
         print('\t');
         if (i.isBranchInst()) {
             BranchInst bi = (BranchInst)i;
@@ -151,7 +151,7 @@ public class Printer extends PrintWriter {
     
     public void printCFG(CFG<Instruction> f) {
         if (mIsParseMode) {
-            printLabel((Label)f.getEntryBlock().getLabel());
+            printLabel((Label)f.entryBlock().getLabel());
             println(':');
         }
         for (BasicBlock<Instruction> bb : f) {

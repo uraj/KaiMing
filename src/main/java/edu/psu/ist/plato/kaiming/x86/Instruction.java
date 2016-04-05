@@ -67,7 +67,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
         return baos.toString();
     }
 
-    public final long getAddr() {
+    public final long addr() {
         return mAddr;
     }
 
@@ -75,7 +75,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
         mAddr = addr;
     }
 
-    public final Opcode getOpcode() {
+    public final Opcode opcode() {
         return mOpcode;
     }
 
@@ -83,15 +83,15 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
         mOperands[index] = operand;
     }
 
-    public final Operand getOperand(int index) {
+    public final Operand operand(int index) {
         return mOperands[index];
     }
     
-    public final Operand[] getOperands() {
+    public final Operand[] operands() {
         return Arrays.copyOf(mOperands, mOperands.length);
     }
 
-    public final int getNumOperands() {
+    public final int numOfOperands() {
         return mOperands.length;
     }
 
@@ -199,7 +199,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
     public static Instruction createInstruction(long addr, Opcode opcode,
             Operand[] operands, boolean isIndirect) {
         Instruction ret = null;
-        switch (opcode.getOpcodeClass()) {
+        switch (opcode.opcodeClass()) {
             case ADD:
             case ADC:
             case SUB:
@@ -334,12 +334,12 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
         return mAddr;
     }
     
-    public Set<Flag> getModifiedFlags() {
+    public Set<Flag> modifiedFlags() {
         return sModifiedFlags;
     }
     
-    public final boolean modifyFlags() {
-        return getModifiedFlags().size() != 0;
+    public final boolean modifyAnyFlag() {
+        return modifiedFlags().size() != 0;
     }
     
     public final boolean isRepeated() {

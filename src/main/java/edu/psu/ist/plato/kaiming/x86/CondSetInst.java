@@ -11,12 +11,12 @@ public class CondSetInst extends Instruction {
         mCond = Flag.getDependentFlagsByCondition(op.getRawOpcode().substring(3));
     }
 
-    public Set<Flag> getDependentFlags() {
+    public Set<Flag> dependentFlags() {
         return mCond;
     }
     
-    public Operand getDest() {
-        return getOperand(0);
+    public Operand dest() {
+        return operand(0);
     }
     
     @Override

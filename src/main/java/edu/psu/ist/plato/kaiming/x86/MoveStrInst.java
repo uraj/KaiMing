@@ -25,11 +25,11 @@ public class MoveStrInst extends Instruction {
     }
     
     public Memory fromAddr() {
-        return (Memory)getOperand(0);
+        return operand(0).asMemory();
     }
     
     public Memory toAddr() {
-        return (Memory)getOperand(1);
+        return operand(1).asMemory();
     }
 
 }

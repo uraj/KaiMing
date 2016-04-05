@@ -8,11 +8,11 @@ public class PushInst extends Instruction {
     
     protected PushInst(long addr, Opcode op, Operand source) {
         super(Kind.PUSH, addr, op, new Operand[] { source } );
-        mSizeInBits = getSizeInBits(mOpcode, getOperand());
+        mSizeInBits = getSizeInBits(mOpcode, pushedOperand());
     }
 
-    public Operand getOperand() {
-        return getOperand(0);
+    public Operand pushedOperand() {
+        return operand(0);
     }
     
     public int sizeInBits() {

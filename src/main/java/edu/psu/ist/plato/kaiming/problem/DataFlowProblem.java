@@ -17,7 +17,7 @@ public abstract class DataFlowProblem<T extends Entry> extends PathInsensitivePr
     
     public DataFlowProblem(Procedure<T> p, CFG<T> cfg, Direction direction) {
         super(p, cfg, direction);
-        int size = cfg.getSize();
+        int size = cfg.size();
         mGenMap = new HashMap<BasicBlock<T>, BitSet>(size);
         mKillMap = new HashMap<BasicBlock<T>, BitSet>(size);
         for (BasicBlock<T> bb : mCfg) {

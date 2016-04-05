@@ -7,11 +7,11 @@ public class MoveInst extends Instruction {
     }
 
     public Operand from() {
-        return getOperand(0);
+        return operand(0);
     }
 
     public Operand to() {
-        return getOperand(1);
+        return operand(1);
     }
 
     public boolean isLoad() {

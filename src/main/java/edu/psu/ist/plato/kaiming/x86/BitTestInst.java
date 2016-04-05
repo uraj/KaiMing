@@ -7,10 +7,10 @@ public class BitTestInst extends Instruction {
     }
 
     public Operand getIndexOperand() {
-        return getOperand(0);
+        return operand(0);
     }
     
     public Operand getSourceOperand() {
-        return getOperand(1);
+        return operand(1);
     }
 }

@@ -45,7 +45,7 @@ public class Unit {
                 Map<Lval, Set<DefStmt>> ret = new HashMap<Lval, Set<DefStmt>>();
                 // If a block is the entry, all registers used at the starting point
                 // are defined externally 
-                if (mCfg.getEntries() == bb) {
+                if (mCfg.entries() == bb) {
                     Set<DefStmt> set = new HashSet<DefStmt>();
                     set.add(DefStmt.External);
                     for (Id id : Register.Id.values()) {

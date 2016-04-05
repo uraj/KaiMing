@@ -17,7 +17,7 @@ public abstract class BranchInst extends Instruction {
     }
     
     public final Memory getTarget() {
-        return (Memory)getOperand(0);
+        return operand(0).asMemory();
     }
     
     public final boolean isIndirect() {

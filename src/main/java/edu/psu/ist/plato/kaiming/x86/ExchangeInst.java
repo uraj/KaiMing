@@ -9,10 +9,10 @@ public class ExchangeInst extends Instruction {
     }
     
     public Tuple<Operand, Operand> getExchangedOperands() {
-        return new Tuple<Operand, Operand>(getOperand(0), getOperand(1));
+        return new Tuple<Operand, Operand>(operand(0), operand(1));
     }
     
     public boolean isExchangeAdd() {
-        return getOpcode().getRawOpcode().equals("xadd");
+        return opcode().getRawOpcode().equals("xadd");
     }
 }

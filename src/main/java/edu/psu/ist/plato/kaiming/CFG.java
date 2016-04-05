@@ -38,11 +38,11 @@ public class CFG<T extends Entry> implements Iterable<BasicBlock<T>> {
         return mBBs.iterator();
     }
 
-    public BasicBlock<T> getEntryBlock() {
+    public BasicBlock<T> entryBlock() {
         return mEntry;
     }
 
-    public int getSize() {
+    public int size() {
         return mBBs.size();
     }
     
@@ -76,7 +76,7 @@ public class CFG<T extends Entry> implements Iterable<BasicBlock<T>> {
         mEntry = entry;
     }
     
-    public List<T> getEntries() {
+    public List<T> entries() {
         List<T> ret = new ArrayList<T>();
         for (BasicBlock<T> bb : this) {
             ret.addAll(bb.mEntries);
@@ -84,7 +84,7 @@ public class CFG<T extends Entry> implements Iterable<BasicBlock<T>> {
         return ret;
     }
     
-    public int getNumEntries() {
+    public int numOfEntries() {
         int ret = 0;
         for (BasicBlock<T> bb : this) {
             ret += bb.size();

@@ -11,7 +11,7 @@ public abstract class Procedure<T extends Entry> {
     public abstract CFG<T> getCFG();
     
     public List<T> getEntries() {
-        return getCFG().getEntries();
+        return getCFG().entries();
     }
 
     protected CFG<T> createCFGObject(Collection<BasicBlock<T>> bbs,
