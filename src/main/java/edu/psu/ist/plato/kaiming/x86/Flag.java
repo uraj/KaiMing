@@ -18,7 +18,7 @@ public enum Flag {
         }
     }
 
-    Flag(int pos) {
+    private Flag(int pos) {
         mPos = pos;
     }
 

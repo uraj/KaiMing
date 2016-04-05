@@ -53,4 +53,9 @@ public class Reg extends Lval {
     public int hashCode() {
         return mReg.id.hashCode();
     }
+
+    @Override
+    public int sizeInBits() {
+        return mReg.getSizeInBits();
+    }
 }

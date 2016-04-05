@@ -47,4 +47,5 @@ public class Memory extends Operand {
     public boolean isConcrete() {
         return mBase == null && mOff == null;
     }
+    
 }

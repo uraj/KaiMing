@@ -30,8 +30,16 @@ public class Printer extends PrintWriter {
     }
     
     public void printVar(Var v) {
-        print('@');
+        print("@(");
         print(v.getName());
+        print(":");
+        print(v.sizeInBits());
+        print(")");
+    }
+    
+    public void printFlg(Flg f) {
+        print('%');
+        print(f.flag.name().toUpperCase());
     }
     
     public void printLval(Lval lv) {
@@ -39,6 +47,8 @@ public class Printer extends PrintWriter {
             printReg((Reg)lv);
         } else if (lv instanceof Var) {
             printVar((Var)lv);
+        } else if (lv instanceof Flg) {
+            printFlg((Flg)lv);
         } else {
             Assert.unreachable();
         }
@@ -62,14 +72,27 @@ public class Printer extends PrintWriter {
             case XOR:    print('^'); break;
         }
     }
+    
     private void printBExpr(BExpr e) {
-        print('(');
-        printExpr(e.getLeftSubExpr());
-        print(") ");
+        {
+            boolean isLeftPrimitive = e.getLeftSubExpr() instanceof BExpr;
+            if (isLeftPrimitive)
+                print('(');
+            printExpr(e.getLeftSubExpr());
+            if (isLeftPrimitive)
+                print(')');
+        }
+        print(' ');
         printBExprOperator(e.getOperator());
-        print(" (");
-        printExpr(e.getRightSubExpr());
-        print(')');
+        print(' ');
+        {
+            boolean isRightPrimitive = e.getRightSubExpr() instanceof BExpr;
+            if (isRightPrimitive)
+                print('(');
+            printExpr(e.getRightSubExpr());
+            if (isRightPrimitive)
+                print(')');
+        }
     }
     
     private void printUExprOperator(UExpr.Op op) {
@@ -132,16 +155,16 @@ public class Printer extends PrintWriter {
     
     private void printLdStmt(LdStmt s) {
         printLval(s.getDefinedLval());
-        print(" <- ");
+        print(" <- [ ");
         printExpr(s.getAddr());
-        print(";");
+        print(" ];");
     }
 
     private void printStStmt(StStmt s) {
         printExpr(s.getContent());
-        print(" -> ");
+        print(" -> [ ");
         printExpr(s.getAddr());
-        print(";");
+        print(" ];");
     }
     
     public void printStmt(Stmt s) {
@@ -174,7 +197,11 @@ public class Printer extends PrintWriter {
     }
     
     public void printBasicBlock(BasicBlock<Stmt> bb) {
-        println(bb.getLabel().toString());
-        bb.forEach(s -> { printStmt(s); println(); });
+        println(bb.getLabel() + ":");
+        bb.forEach(s -> { print('\t'); printStmt(s); println(); });
+    }
+    
+    public void printContext(Context ctx) {
+        ctx.getCFG().forEach(bb -> printBasicBlock(bb));
     }
 }

@@ -8,7 +8,7 @@ import edu.psu.ist.plato.kaiming.x86.Flag;
 public class SetFlagStmt extends Stmt {
 
     
-    protected SetFlagStmt(Instruction inst) {
+    public SetFlagStmt(Instruction inst) {
         super(Kind.SETF, inst, new Expr[] {});
     }
     

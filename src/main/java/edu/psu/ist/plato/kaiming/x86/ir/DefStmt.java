@@ -8,7 +8,7 @@ abstract public class DefStmt extends Stmt {
 	
 	private Set<Stmt> mDUChain;
 	
-	public DefStmt(Kind kind, Instruction inst, Expr[] usedExpr) {
+	protected DefStmt(Kind kind, Instruction inst, Expr[] usedExpr) {
 		super(kind, inst, usedExpr);
 	}
 	
@@ -34,7 +34,7 @@ abstract public class DefStmt extends Stmt {
      * A special DefStmt object that indicates the initial definition
      * of all Lval values in a Context.
      */
-    static public DefStmt External = new DefStmt(null, null, null) {
+    static public DefStmt External = new DefStmt(null, null, new Expr[] {}) {
         @Override
         public Lval getDefinedLval() {
             return null;

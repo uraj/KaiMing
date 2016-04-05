@@ -6,7 +6,7 @@ public class JmpStmt extends Stmt {
 
     private Expr mTarget;
     
-    protected JmpStmt(JumpInst inst, Expr target) {
+    public JmpStmt(JumpInst inst, Expr target) {
         super(Kind.JMP, inst, new Expr[] {target});
         mTarget = target;
     }

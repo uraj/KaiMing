@@ -3,10 +3,18 @@ package edu.psu.ist.plato.kaiming.x86.ir;
 public class Var extends Lval {
     private String mName;
     private Context mContext;
+    private int mSize;
     
     public Var(Context context, String name) {
         mName = name;
         mContext = context;
+        mSize = 32;
+    }
+    
+    public Var(Context context, String name, int sizeInBits) {
+        mName = name;
+        mContext = context;
+        mSize = sizeInBits;
     }
     
     public String getName() {
@@ -28,5 +36,10 @@ public class Var extends Lval {
     @Override
     public int hashCode() {
         return mName.hashCode();
+    }
+
+    @Override
+    public int sizeInBits() {
+        return mSize;
     }
 }

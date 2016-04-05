@@ -5,7 +5,7 @@ import edu.psu.ist.plato.kaiming.x86.Instruction;
 public class RetStmt extends Stmt {
     private static final Expr[] sEmpty = new Expr[] {};
     
-    protected RetStmt(Instruction inst) {
+    public RetStmt(Instruction inst) {
         super(Kind.RET, inst, sEmpty);
     }
 }

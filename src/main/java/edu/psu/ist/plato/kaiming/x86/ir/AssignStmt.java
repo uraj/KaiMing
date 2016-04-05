@@ -7,7 +7,7 @@ public class AssignStmt extends DefStmt {
     private Lval mLval;
     private Expr mExpr;
     
-    protected AssignStmt(Instruction inst, Lval lval, Expr expr) {
+    public AssignStmt(Instruction inst, Lval lval, Expr expr) {
         super(Kind.ASSIGN, inst, new Expr[] { expr });
         mLval = lval;
         mExpr = expr;

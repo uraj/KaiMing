@@ -228,8 +228,8 @@ public class Dependency {
     }
     
     public final void transferMoveInst(MoveInst inst, BitSet in) {
-        if (clearBitForOperand(inst.getTo(), in)) {
-            setBitForOperand(inst.getFrom(), in);
+        if (clearBitForOperand(inst.to(), in)) {
+            setBitForOperand(inst.from(), in);
             if (inst.isConditional()) {
                 CondMoveInst ci = (CondMoveInst)inst;
                 for (Flag f : ci.getDependentFlags()) {

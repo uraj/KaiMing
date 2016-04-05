@@ -20,4 +20,8 @@ public class Assert {
     public static void unreachable() {
         test(false, "Uncreachable code");
     }
+    
+    public static void unreachable(String msg) {
+        test(false, "Uncreachable code: " + msg);
+    }
 }

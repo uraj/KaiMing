@@ -29,6 +29,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
 		JUMP,
 		LEA,
 		MOVE,
+		MOVE_STR,
 		NOP,
 		POP,
 		PUSH,
@@ -310,6 +311,11 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
                 Assert.test(operands.length == 1);
                 Assert.test(operands[0] instanceof Register);
                 ret = new PopInst(addr, opcode, (Register) operands[0]);
+                break;
+            case MOVS:
+                ret = new MoveStrInst(addr, opcode,
+                        new Memory(null, 0, Register.getRegister(Register.Id.ESI), null, 1),
+                        new Memory(null, 0, Register.getRegister(Register.Id.EDI), null, 1));
                 break;
             default:
                 ret = new OtherInst(addr, opcode, operands);

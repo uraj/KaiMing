@@ -6,19 +6,19 @@ public class MoveInst extends Instruction {
         super(Kind.MOVE, addr, op, new Operand[] { from, to });
     }
 
-    public Operand getFrom() {
+    public Operand from() {
         return getOperand(0);
     }
 
-    public Operand getTo() {
+    public Operand to() {
         return getOperand(1);
     }
 
     public boolean isLoad() {
-        return getFrom() instanceof Memory;
+        return from() instanceof Memory;
     }
 
     public boolean isStore() {
-        return getTo() instanceof Memory;
+        return to() instanceof Memory;
     }
 }

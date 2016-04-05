@@ -67,20 +67,28 @@ public class Context extends Procedure<Stmt> {
     }
     
     public Var getNewTempVariable() {
-        return new Var(this, "var_" + mTempVarCount++);
+        return new Var(this, "temp_" + mTempVarCount++);
+    }
+    
+    public Var getNewTempVariable(int sizeInBits) {
+        return new Var(this, "temp_" + mTempVarCount++, sizeInBits);
     }
     
     public Var getNewVariable(String name) {
         return new Var(this, name);
     }
     
-    private Stmt updateLval(Instruction inst, Operand operand, Expr value) {
+    private Stmt updateOperand(Instruction inst, Operand operand, Expr value) {
         Assert.test(!operand.isImmeidate());
         if (operand.isRegister()) {
             return new AssignStmt(inst, Reg.getReg(operand.asRegister()), value);
         } else {
             return new StStmt(inst, getNewTempVariable(), value);
         }
+    }
+    
+    private Stmt updateLval(Instruction inst, Lval lv, Expr value) {
+        return new AssignStmt(inst, lv, value);
     }
     
     private Expr readOperand(Instruction inst, int operandIndex, List<Stmt> stmt) {
@@ -140,9 +148,17 @@ public class Context extends Procedure<Stmt> {
     private void toIR(MoveInst inst, List<Stmt> ret) {
         // TODO: handle conditional moves
         Assert.test(!inst.isConditional());
-    	Operand src = inst.getFrom();
-    	Operand dest = inst.getTo();
-    	ret.add(updateLval(inst, dest, readOperand(inst, src, ret)));
+    	Operand src = inst.from();
+    	Operand dest = inst.to();
+    	ret.add(updateOperand(inst, dest, readOperand(inst, src, ret)));
+    }
+    
+    private void toIR(MoveStrInst inst, List<Stmt> ret) {
+        Memory src = inst.fromAddr();
+        Memory dest = inst.toAddr();
+        Var var = getNewTempVariable(inst.moveSizeInBits());
+        ret.add(updateLval(inst, var, readOperand(inst, src, ret)));
+        ret.add(updateOperand(inst, dest, var));
     }
     
     private void toIR(PopInst inst, List<Stmt> ret) {
@@ -155,7 +171,7 @@ public class Context extends Procedure<Stmt> {
     }
     
     private void toIR(PushInst inst, List<Stmt> ret) {
-    	Const size = Const.getConstant(inst.getOperandSizeInBytes());
+    	Const size = Const.getConstant(inst.sizeInBits() / 8);
     	BExpr decEsp = new BExpr(BExpr.Op.USUB, Reg.esp, size);
     	ret.add(new AssignStmt(inst, Reg.esp, decEsp));
     	
@@ -165,6 +181,10 @@ public class Context extends Procedure<Stmt> {
     		toPush = Expr.toExpr(op.asImmediate());
     	} else if (op.isRegister()) {
     		toPush = Expr.toExpr(op.asRegister());
+    	} else if (op.isMemory()) {
+    	    Var var = getNewTempVariable(inst.sizeInBits());
+    	    ret.add(updateLval(inst, var, readOperand(inst, op, ret)));
+    	    toPush = var;
     	} else {
     		Assert.unreachable();
     	}
@@ -191,8 +211,8 @@ public class Context extends Procedure<Stmt> {
         Var d2 = getNewTempVariable();
         ret.add(new AssignStmt(inst, d1, readOperand(inst, values.first, ret)));
         ret.add(new AssignStmt(inst, d2, readOperand(inst, values.second, ret)));
-        ret.add(updateLval(inst, values.first, d2));
-        ret.add(updateLval(inst, values.second, d1));
+        ret.add(updateOperand(inst, values.first, d2));
+        ret.add(updateOperand(inst, values.second, d1));
     }
     
     private void toIR(LeaInst inst, List<Stmt> ret) {
@@ -206,19 +226,19 @@ public class Context extends Procedure<Stmt> {
         Operand o = inst.getOperand();
         switch(inst.getOpcode().getOpcodeClass()) {
             case INC: // Use a binary expression to hold this
-                ret.add(updateLval(inst, o,
+                ret.add(updateOperand(inst, o,
                         new BExpr(BExpr.Op.ADD,
                                 readOperand(inst, o, ret),
                                 Const.getConstant(1))));
                 return;
             case DEC:
-                ret.add(updateLval(inst, o,
+                ret.add(updateOperand(inst, o,
                         new BExpr(BExpr.Op.SUB,
                                 readOperand(inst, o, ret),
                                 Const.getConstant(1))));
                 return;
             case NEG:
-                ret.add(updateLval(inst, o,
+                ret.add(updateOperand(inst, o,
                         new BExpr(BExpr.Op.SUB,
                                 Const.getConstant(0),
                                 readOperand(inst, o, ret))));
@@ -232,7 +252,7 @@ public class Context extends Procedure<Stmt> {
                 Assert.unreachable();
         }
         Expr e = readOperand(inst, o, ret);
-        ret.add(updateLval(inst, o, new UExpr(op, e)));
+        ret.add(updateOperand(inst, o, new UExpr(op, e)));
     }
 
     private void toIR(BinaryArithInst inst, List<Stmt> ret) {
@@ -271,7 +291,7 @@ public class Context extends Procedure<Stmt> {
         Expr e2 = readOperand(inst, inst.getDest(), ret);
         BExpr bexp = new BExpr(op, e1, e2);
         Operand dest = inst.getDest();
-        ret.add(updateLval(inst, dest, bexp));
+        ret.add(updateOperand(inst, dest, bexp));
     }
     
     private void toIR(MultiplyInst inst, List<Stmt> ret) {
@@ -280,13 +300,13 @@ public class Context extends Procedure<Stmt> {
         Expr e2 = readOperand(inst, src.second, ret);
         BExpr bexp = new BExpr(BExpr.Op.MUL, e1, e2);
         Tuple<Operand, Operand> dest = inst.getDest();
-        Var result = this.getNewTempVariable();
+        Var result = getNewTempVariable(64);
         ret.add(new AssignStmt(inst, result, bexp));
         Expr low = new UExpr(UExpr.Op.LOW, result);
-        ret.add(updateLval(inst, dest.first, low));
+        ret.add(updateOperand(inst, dest.first, low));
         if (dest.second != null) {
             Expr high = new UExpr(UExpr.Op.HIGH, result);
-            ret.add(updateLval(inst, dest.second, high));
+            ret.add(updateOperand(inst, dest.second, high));
         }
     }
     
@@ -321,6 +341,9 @@ public class Context extends Procedure<Stmt> {
             case MOVE:
                 toIR((MoveInst)inst, ret);
                 break;
+            case MOVE_STR:
+                toIR((MoveStrInst)inst, ret);
+                break;
             case MULTIPLY:
                 toIR((MultiplyInst)inst, ret);
                 break;
@@ -338,7 +361,7 @@ public class Context extends Procedure<Stmt> {
             case COND_SET:
             case BIT_TEST:
             case OTHER:
-                Assert.unreachable();
+                Assert.unreachable("Unrecogized instruction: " + inst);
         }
         return ret;
     }

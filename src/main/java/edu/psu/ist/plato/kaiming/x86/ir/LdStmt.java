@@ -7,7 +7,7 @@ public class LdStmt extends DefStmt {
 	private Expr mAddr;
 	private Lval mContent;
 	
-	protected LdStmt(Instruction inst, Expr addr, Lval content) {
+	public LdStmt(Instruction inst, Expr addr, Lval content) {
 		super(Kind.LD, inst, new Expr[] { addr });
 		mAddr = addr;
 		mContent = content;

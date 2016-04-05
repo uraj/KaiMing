@@ -1,5 +1,8 @@
 package edu.psu.ist.plato.kaiming.x86.ir;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+
 import edu.psu.ist.plato.kaiming.util.Assert;
 import edu.psu.ist.plato.kaiming.x86.Immediate;
 import edu.psu.ist.plato.kaiming.x86.Memory;
@@ -49,6 +52,8 @@ public abstract class Expr {
                 ret = new BExpr(BExpr.Op.UADD, Const.getConstant(mem.getDisplacement()), ret);
             }
         }
+        if (ret == null)
+            ret = Const.getConstant(mem.getDisplacement());
         return ret;
     }
     
@@ -73,6 +78,7 @@ public abstract class Expr {
             } else if (expr instanceof Const) {
                 return visitConst((Const)expr);
             } else {
+                System.err.println(expr);
                 Assert.unreachable();
                 return false;
             }
@@ -99,4 +105,12 @@ public abstract class Expr {
         protected boolean visitConst(Const c) { return true; };
     }
 
+    @Override
+    public String toString() {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Printer p = new Printer(new PrintStream(baos));
+        p.printExpr(this);
+        p.close();
+        return baos.toString();
+    }
 }

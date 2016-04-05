@@ -22,5 +22,7 @@ public abstract class Lval extends Expr {
     
     @Override
     public abstract int hashCode();
+    
+    public abstract int sizeInBits();
 
 }
