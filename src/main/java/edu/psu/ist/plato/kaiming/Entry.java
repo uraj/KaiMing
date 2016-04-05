@@ -3,17 +3,17 @@ package edu.psu.ist.plato.kaiming;
 import java.util.Comparator;
 
 public abstract class Entry implements Comparable<Long> {
-    public abstract long getIndex();
+    public abstract long index();
 
     @Override
     public final int compareTo(Long l) {
-        return (int) (getIndex() - l);
+        return (int) (index() - l);
     }
     
     public static Comparator<Entry> comparator = new Comparator<Entry> () {
         @Override
         public final int compare(Entry e1, Entry e2) {
-            return Long.signum(e1.getIndex() - e2.getIndex());
+            return Long.signum(e1.index() - e2.index());
         }
     };
     
@@ -35,7 +35,7 @@ public abstract class Entry implements Comparable<Long> {
     
     public static Entry search(Iterable<Entry> entries, long index) {
         for (Entry e : entries) {
-            if (e.getIndex() == index)
+            if (e.index() == index)
                 return e;
         }
         return null;

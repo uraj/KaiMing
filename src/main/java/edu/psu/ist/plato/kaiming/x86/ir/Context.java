@@ -23,13 +23,13 @@ public class Context extends Procedure<Stmt> {
         mCFG = buildCFG(fun);
     }
     
-    public Function getFunction() {
+    public Function function() {
         return mFun;
     }
     
     // TODO: Rewrite the function with Java 8 Stream interfaces
     private CFG<Stmt> buildCFG(Function fun) {
-        CFG<Instruction> asmCFG = fun.getCFG();
+        CFG<Instruction> asmCFG = fun.cfg();
         List<BasicBlock<Stmt>> bbs = 
                 new ArrayList<BasicBlock<Stmt>>(asmCFG.size());
         Map<BasicBlock<Instruction>, BasicBlock<Stmt>> map =
@@ -53,16 +53,17 @@ public class Context extends Procedure<Stmt> {
                 irbb.addSuccessor(map.get(succ));
             }
         }
+
         return createCFGObject(bbs, map.get(asmCFG.entryBlock()));
     }
 
     @Override
-    public String getName() {
-        return mFun.getName();
+    public String name() {
+        return mFun.name();
     }
     
     @Override
-    public CFG<Stmt> getCFG() {
+    public CFG<Stmt> cfg() {
         return mCFG;
     }
     

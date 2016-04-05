@@ -69,7 +69,7 @@ abstract public class Stmt extends Entry {
     }
     
     @Override
-    final public long getIndex() {
+    final public long index() {
         return mIndex;
     }
     

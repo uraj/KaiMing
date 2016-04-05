@@ -34,7 +34,7 @@ public class Function extends Procedure<Instruction> {
     }
     
     @Override
-    public CFG<Instruction> getCFG() {
+    public CFG<Instruction> cfg() {
         return mCFG;
     }
     
@@ -43,7 +43,7 @@ public class Function extends Procedure<Instruction> {
     }
 
     public List<Instruction> getInstructions() {
-        return (List<Instruction>) getEntries();
+        return (List<Instruction>) entries();
     }
 
     public static BasicBlock<Instruction>
@@ -111,7 +111,7 @@ public class Function extends Procedure<Instruction> {
                     BasicBlock<Instruction> targetBB = BasicBlock.searchContainingBlock(bbs, targetAddr);
                     if (targetBB == null)
                         continue;
-                    Assert.test(targetBB.getFirstEntry().getIndex() == targetAddr, mLabel.getName());
+                    Assert.test(targetBB.getFirstEntry().index() == targetAddr, mLabel.name());
                     bbs.get(i).addSuccessor(targetBB);
                     targetBB.addPredecessor(bbs.get(i));
                     if (!bin.isCondJumpInst()) {
@@ -144,14 +144,14 @@ public class Function extends Procedure<Instruction> {
     }
 
     @Override
-    public String getName() {
-        return mLabel.getName();
+    public String name() {
+        return mLabel.name();
     }
 
     public Label deriveSubLabel(BasicBlock<Instruction> bb) {
         Assert.test(mLabel != null);
-        Assert.test(mLabel.getName() != null);
-        String name = mLabel.getName() + sSubLabelSuffix
+        Assert.test(mLabel.name() != null);
+        String name = mLabel.name() + sSubLabelSuffix
                 + String.valueOf(mSubLabelCount++);
         Label ret = new Label(name, 0);
         bb.getFirstEntry().fillLabelInformation(ret);

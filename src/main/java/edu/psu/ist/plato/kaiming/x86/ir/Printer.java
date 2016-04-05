@@ -202,6 +202,6 @@ public class Printer extends PrintWriter {
     }
     
     public void printContext(Context ctx) {
-        ctx.getCFG().forEach(bb -> printBasicBlock(bb));
+        ctx.cfg().forEach(bb -> printBasicBlock(bb));
     }
 }

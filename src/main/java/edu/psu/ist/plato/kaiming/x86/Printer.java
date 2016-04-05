@@ -43,7 +43,7 @@ public class Printer extends PrintWriter {
     
     public void printOpMemory(Memory mem) {
         if (!mIsParseMode && mem instanceof Relocation) {
-            print(((Relocation) mem).getLabel().getName());
+            print(((Relocation) mem).getLabel().name());
             return;
         }
         if (mem.getBaseRegister() != null
@@ -123,10 +123,10 @@ public class Printer extends PrintWriter {
 
     public void printLabel(Label label) {
         if (mIsParseMode) {
-            printSignedHex(label.getAddr());
+            printSignedHex(label.addr());
             print('\t');
         }
-        print(label.getName());
+        print(label.name());
     }
 
     public void printFunction(Function f) {

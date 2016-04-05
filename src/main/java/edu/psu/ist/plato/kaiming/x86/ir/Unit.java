@@ -36,7 +36,7 @@ public class Unit {
             PathInsensitiveProblem<Stmt, Map<Lval, Set<DefStmt>>> {
             
             public ReachingDefinition(Context ctx) {
-                super(ctx, ctx.getCFG(), PathInsensitiveProblem.Direction.FORWARD);
+                super(ctx, ctx.cfg(), PathInsensitiveProblem.Direction.FORWARD);
             }
             
             @Override
@@ -93,7 +93,7 @@ public class Unit {
         }
 
         // Set def-use chains given use-def chains
-        for (Stmt s : ctx.getEntries()) {
+        for (Stmt s : ctx.entries()) {
             for (Lval lv : s.getUsedLvals()) {
                 for (DefStmt defs : s.getDef(lv)) {
                     if (!defs.isExternal()) {

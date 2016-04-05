@@ -54,7 +54,7 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
     }
     
     public long getIndex() {
-        return getFirstEntry().getIndex();
+        return getFirstEntry().index();
     }
     
     @Override

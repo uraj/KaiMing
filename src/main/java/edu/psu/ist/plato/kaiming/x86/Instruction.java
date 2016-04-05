@@ -330,7 +330,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
     }
 
     @Override
-    public long getIndex() {
+    public long index() {
         return mAddr;
     }
     

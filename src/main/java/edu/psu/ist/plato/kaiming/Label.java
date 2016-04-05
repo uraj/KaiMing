@@ -15,11 +15,11 @@ public class Label {
         return mName;
     }
 
-    public long getAddr() {
+    public long addr() {
         return mAddr;
     }
 
-    public String getName() {
+    public String name() {
         return mName;
     }
 
