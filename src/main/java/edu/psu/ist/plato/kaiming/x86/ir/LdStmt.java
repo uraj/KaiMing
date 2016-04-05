@@ -16,10 +16,6 @@ public class LdStmt extends DefStmt {
 	public Expr getAddr() {
 		return mAddr;
 	}
-	
-	public Lval getContent() {
-		return mContent;
-	}
 
 	@Override
 	public Lval getDefinedLval() {
