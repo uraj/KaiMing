@@ -140,7 +140,7 @@ public class Printer extends PrintWriter {
     
     public void printBasicBlock(BasicBlock<Instruction> bb) {
         if (!mIsParseMode) {
-            printLabel(bb.getLabel());
+            printLabel(bb.label());
             println(':');
         }
         for (Entry e : bb) {
@@ -151,7 +151,7 @@ public class Printer extends PrintWriter {
     
     public void printCFG(CFG<Instruction> f) {
         if (mIsParseMode) {
-            printLabel((Label)f.entryBlock().getLabel());
+            printLabel((Label)f.entryBlock().label());
             println(':');
         }
         for (BasicBlock<Instruction> bb : f) {

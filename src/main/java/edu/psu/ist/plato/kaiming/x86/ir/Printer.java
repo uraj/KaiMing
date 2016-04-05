@@ -197,7 +197,7 @@ public class Printer extends PrintWriter {
     }
     
     public void printBasicBlock(BasicBlock<Stmt> bb) {
-        println(bb.getLabel() + ":");
+        println(bb.label() + ":");
         bb.forEach(s -> { print('\t'); printStmt(s); println(); });
     }
     

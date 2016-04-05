@@ -50,8 +50,8 @@ public class Function extends Procedure<Instruction> {
     searchContainingBlock(Collection<BasicBlock<Instruction>> bbs,
             long addr) {
         for (BasicBlock<Instruction> bb : bbs) {
-            if (bb.getLastEntry().compareTo(addr) >= 0
-                    && bb.getFirstEntry().compareTo(addr) <= 0) {
+            if (bb.lastEntry().compareTo(addr) >= 0
+                    && bb.firstEntry().compareTo(addr) <= 0) {
                 return bb;
             }
         }
@@ -103,7 +103,7 @@ public class Function extends Procedure<Instruction> {
         
         mHasIndirectJump = false;
         for (int i = 0; i < bbs.size(); ++i) {
-            Instruction in = bbs.get(i).getLastEntry();
+            Instruction in = bbs.get(i).lastEntry();
             if (in.isJumpInst()) {
                 JumpInst bin = (JumpInst)in;
                 if (!bin.isIndirect() && bin.isTargetConcrete()) {
@@ -111,7 +111,7 @@ public class Function extends Procedure<Instruction> {
                     BasicBlock<Instruction> targetBB = BasicBlock.searchContainingBlock(bbs, targetAddr);
                     if (targetBB == null)
                         continue;
-                    Assert.test(targetBB.getFirstEntry().index() == targetAddr, mLabel.name());
+                    Assert.test(targetBB.firstEntry().index() == targetAddr, mLabel.name());
                     bbs.get(i).addSuccessor(targetBB);
                     targetBB.addPredecessor(bbs.get(i));
                     if (!bin.isCondJumpInst()) {
@@ -154,7 +154,7 @@ public class Function extends Procedure<Instruction> {
         String name = mLabel.name() + sSubLabelSuffix
                 + String.valueOf(mSubLabelCount++);
         Label ret = new Label(name, 0);
-        bb.getFirstEntry().fillLabelInformation(ret);
+        bb.firstEntry().fillLabelInformation(ret);
         return ret;
     }
 }

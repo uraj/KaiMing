@@ -53,8 +53,8 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
         mUnit = unit;
     }
     
-    public long getIndex() {
-        return getFirstEntry().index();
+    public long index() {
+        return firstEntry().index();
     }
     
     @Override
@@ -69,7 +69,7 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
     
     @Override
     public int hashCode() {
-        return (int)getIndex();
+        return (int)index();
     }
 
     @Override
@@ -81,7 +81,7 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
         return mEntries.size();
     }
     
-    public List<T> getEntries() {
+    public List<T> entries() {
         return new ArrayList<T>(mEntries);
     }
     
@@ -89,11 +89,11 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
         return new ReverseEntryIterator(mEntries);
     }
 
-    public T getFirstEntry() {
+    public T firstEntry() {
         return mEntries.get(0);
     }
 
-    public T getLastEntry() {
+    public T lastEntry() {
         return mEntries.get(mEntries.size() - 1);
     }
 
@@ -121,19 +121,19 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
         return mSucc.addAll(e);
     }
 
-    public BasicBlock<T> getPredecessor(int pos) {
+    public BasicBlock<T> predecessor(int pos) {
         return mPred.get(pos);
     }
     
-    public BasicBlock<T> getSuccessor(int pos) {
+    public BasicBlock<T> successor(int pos) {
         return mSucc.get(pos);
     }
     
-    public List<BasicBlock<T>> getPredecessorAll() {
+    public List<BasicBlock<T>> allPredecessor() {
         return new ArrayList<BasicBlock<T>>(mPred);
     }
     
-    public List<BasicBlock<T>> getSuccessorAll() {
+    public List<BasicBlock<T>> allSuccessor() {
         return new ArrayList<BasicBlock<T>>(mSucc);
     }
     
@@ -169,15 +169,15 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
         return mSucc.iterator();
     }
     
-    public int getNumPredecessor() {
+    public int numOfPredecessor() {
         return mPred.size();
     }
     
-    public int getNumSuccessor() {
+    public int numOfSuccessor() {
         return mSucc.size();
     }
     
-    public Label getLabel() {
+    public Label label() {
         return mLabel;
     }
 
@@ -233,7 +233,7 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
     public ArrayList<BasicBlock<T>> split(Integer[] pivots) {
         ArrayList<BasicBlock<T>> bbs = BasicBlock.split(mUnit, mEntries, pivots);
 
-        bbs.get(0).setLable(this.getLabel());
+        bbs.get(0).setLable(this.label());
         for (int i = 1; i < bbs.size(); ++i) {
             bbs.get(i).setLable(mUnit.deriveSubLabel(bbs.get(i)));
         }
@@ -279,7 +279,7 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
     
     @Override
     public int compareTo(BasicBlock<T> bb) {
-        return Long.signum(getIndex() - bb.getIndex());
+        return Long.signum(index() - bb.index());
     }
     
     public static <I extends Entry> BasicBlock<I> searchContainingBlock(final BasicBlock<I>[] bbs,
@@ -290,8 +290,8 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
     public static <I extends Entry> BasicBlock<I> searchContainingBlock(final Iterable<BasicBlock<I>> bbs,
             long addr) {
         for (BasicBlock<I> bb : bbs) {
-            if (bb.getLastEntry().compareTo(addr) >= 0
-                    && bb.getFirstEntry().compareTo(addr) <= 0) {
+            if (bb.lastEntry().compareTo(addr) >= 0
+                    && bb.firstEntry().compareTo(addr) <= 0) {
                 return bb;
             }
         }

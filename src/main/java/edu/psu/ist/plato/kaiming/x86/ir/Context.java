@@ -40,20 +40,27 @@ public class Context extends Procedure<Stmt> {
                 irstmt.addAll(toIRStatements(inst));
             }
             BasicBlock<Stmt> irbb = 
-                    new BasicBlock<Stmt>(this, irstmt, bb.getLabel());
+                    new BasicBlock<Stmt>(this, irstmt, bb.label());
             bbs.add(irbb);
             map.put(bb, irbb);
         }
         for (BasicBlock<Instruction> bb : asmCFG) {
             BasicBlock<Stmt> irbb = map.get(bb);
-            for (BasicBlock<Instruction> pred : bb.getPredecessorAll()) {
+            for (BasicBlock<Instruction> pred : bb.allPredecessor()) {
                 irbb.addPredecessor(map.get(pred));
             }
-            for (BasicBlock<Instruction> succ : bb.getSuccessorAll()) {
+            for (BasicBlock<Instruction> succ : bb.allSuccessor()) {
                 irbb.addSuccessor(map.get(succ));
             }
         }
-
+        // Set indices for IR statements
+        int stmtNo = 0;
+        for (BasicBlock<Instruction> bb : asmCFG) {
+            BasicBlock<Stmt> irbb = map.get(bb);
+            for (Stmt s : irbb) {
+                s.setIndex(stmtNo++);
+            }
+        }
         return createCFGObject(bbs, map.get(asmCFG.entryBlock()));
     }
 
