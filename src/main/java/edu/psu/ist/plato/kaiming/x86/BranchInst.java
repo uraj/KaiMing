@@ -1,5 +1,7 @@
 package edu.psu.ist.plato.kaiming.x86;
 
+import edu.psu.ist.plato.kaiming.Label;
+
 public abstract class BranchInst extends Instruction {
 
     private final boolean mIndirect;
@@ -26,7 +28,7 @@ public abstract class BranchInst extends Instruction {
         return !mIndirect && getTarget().isImmeidate();
     }
 
-    public final boolean relocateTarget(AsmLabel l) {
+    public final boolean relocateTarget(Label l) {
         if (l == null || isIndirect() || !isTargetConcrete())
             return false;
         setOperand(0, new Relocation(getTarget(), l));

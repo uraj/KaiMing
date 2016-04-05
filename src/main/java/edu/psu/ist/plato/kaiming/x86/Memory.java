@@ -48,4 +48,12 @@ public class Memory extends Operand {
         return mBase == null && mOff == null;
     }
     
+    public boolean isRelocation() {
+        return false;
+    }
+    
+    public Relocation asRelocation() {
+        return (Relocation)this;
+    }
+    
 }

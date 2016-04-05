@@ -7,6 +7,7 @@ import java.util.Iterator;
 import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.CFG;
 import edu.psu.ist.plato.kaiming.Entry;
+import edu.psu.ist.plato.kaiming.Label;
 
 // TODO: We should re-implement this once we have the  
 // visitor infrastructure ready.
@@ -120,7 +121,7 @@ public class Printer extends PrintWriter {
         }
     }
 
-    public void printAsmLabel(AsmLabel label) {
+    public void printLabel(Label label) {
         if (mIsParseMode) {
             printSignedHex(label.getAddr());
             print('\t');
@@ -129,7 +130,7 @@ public class Printer extends PrintWriter {
     }
 
     public void printFunction(Function f) {
-        printAsmLabel(f.getLabel());
+        printLabel(f.getLabel());
         println(':');
         for (Instruction i : f.getInstructions()) {
             printInstruction(i);
@@ -139,7 +140,7 @@ public class Printer extends PrintWriter {
     
     public void printBasicBlock(BasicBlock<Instruction> bb) {
         if (!mIsParseMode) {
-            printAsmLabel((AsmLabel)bb.getLabel());
+            printLabel(bb.getLabel());
             println(':');
         }
         for (Entry e : bb) {
@@ -150,7 +151,7 @@ public class Printer extends PrintWriter {
     
     public void printCFG(CFG<Instruction> f) {
         if (mIsParseMode) {
-            printAsmLabel((AsmLabel)f.getEntryBlock().getLabel());
+            printLabel((Label)f.getEntryBlock().getLabel());
             println(':');
         }
         for (BasicBlock<Instruction> bb : f) {

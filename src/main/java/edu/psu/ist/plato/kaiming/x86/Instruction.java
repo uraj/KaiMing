@@ -325,9 +325,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
     }
     
     public int fillLabelInformation(Label l) {
-        Assert.test(l instanceof AsmLabel);
-        AsmLabel nl = (AsmLabel) l;
-        nl.setAddr(mAddr);
+        l.setAddr(mAddr);
         return 0;
     }
 

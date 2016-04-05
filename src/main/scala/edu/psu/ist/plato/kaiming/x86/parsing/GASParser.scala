@@ -4,7 +4,7 @@ import scala.util.parsing.combinator.RegexParsers
 import scala.collection.mutable.ListBuffer
 import scala.collection.JavaConversions.bufferAsJavaList
 
-import edu.psu.ist.plato.kaiming.x86.AsmLabel;
+import edu.psu.ist.plato.kaiming.Label;
 import edu.psu.ist.plato.kaiming.x86.Function;
 import edu.psu.ist.plato.kaiming.x86.Opcode;
 import edu.psu.ist.plato.kaiming.x86.Instruction;
@@ -67,8 +67,8 @@ object GASParser extends RegexParsers() {
       x => x.toString.substring(0, x.length() - 1)
     }
   
-  def funlabel : Parser[AsmLabel] = address ~ label ~ nl ^^ { 
-      case addr ~ label ~ _ => new AsmLabel(label, addr)
+  def funlabel : Parser[Label] = address ~ label ~ nl ^^ { 
+      case addr ~ label ~ _ => new Label(label, addr)
     }
   
   
