@@ -54,8 +54,8 @@ object GASParser extends RegexParsers() {
   def address = positive
   
   def integer : Parser[Int] = opt("-") ~ positive ^^ {
-      case Some(_) ~ positive => positive
-      case None ~ positive => -positive
+      case Some(_) ~ positive => -positive
+      case None ~ positive => positive
     }
   
   def imm : Parser[Immediate] = "$" ~> integer ^^ {
