@@ -11,7 +11,7 @@ public class Relocation extends Memory {
         mLabel = l;
     }
 
-    public Label getLabel() { return mLabel; }
+    public Label label() { return mLabel; }
     
     @Override
     public boolean isRelocation() {

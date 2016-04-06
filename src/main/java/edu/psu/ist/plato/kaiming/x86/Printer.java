@@ -43,7 +43,7 @@ public class Printer extends PrintWriter {
     
     public void printOpMemory(Memory mem) {
         if (!mIsParseMode && mem instanceof Relocation) {
-            print(((Relocation) mem).getLabel().name());
+            print(((Relocation) mem).label().name());
             return;
         }
         if (mem.getBaseRegister() != null
