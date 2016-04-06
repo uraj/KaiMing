@@ -29,4 +29,11 @@ public class Assert {
         if (!condition)
             throw new IllegalArgumentException();
     }
+    
+    /**
+     * A debug-use wrapper of @Assert.test 
+     */
+    public static void debug(boolean condition) {
+        test(condition);
+    }
 }

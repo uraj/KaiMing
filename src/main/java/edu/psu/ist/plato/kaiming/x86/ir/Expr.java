@@ -77,6 +77,8 @@ public abstract class Expr {
                 }
             } else if (expr instanceof Const) {
                 return visitConst((Const)expr);
+            } else if (expr instanceof Lb) {
+                return action(((Lb)expr).underlyingExpr());
             } else {
                 System.err.println(expr);
                 Assert.unreachable();

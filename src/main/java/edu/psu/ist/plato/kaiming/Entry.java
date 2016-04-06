@@ -7,10 +7,10 @@ public abstract class Entry implements Comparable<Long> {
 
     @Override
     public final int compareTo(Long l) {
-        return (int) (index() - l);
+        return Long.signum(index() - l);
     }
     
-    public static Comparator<Entry> comparator = new Comparator<Entry> () {
+    public final static Comparator<Entry> comparator = new Comparator<Entry> () {
         @Override
         public final int compare(Entry e1, Entry e2) {
             return Long.signum(e1.index() - e2.index());

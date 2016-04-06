@@ -2,9 +2,9 @@ package edu.psu.ist.plato.kaiming.x86;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.TreeSet;
 import java.util.Map;
-import java.util.Set;
+import java.util.SortedSet;
 
 public enum Flag {
     CF(0), PF(2), AF(4), ZF(6), SF(7), TF(8), IF(9), DF(10), OF(11);
@@ -32,40 +32,40 @@ public enum Flag {
         return sFlags[pos];
     }
     
-    static private final Map<String, Set<Flag>> sCondLookup;
-    static private final Map<Opcode.Class, Set<Flag>> sOpcodeLookup;
+    static private final Map<String, SortedSet<Flag>> sCondLookup;
+    static private final Map<Opcode.Class, SortedSet<Flag>> sOpcodeLookup;
     
     static {
-        sCondLookup = new HashMap<String, Set<Flag>>();
-        Set<Flag> v, imv;
+        sCondLookup = new HashMap<String, SortedSet<Flag>>();
+        SortedSet<Flag> v, imv;
         
-        v = new HashSet<Flag>();
-        imv = Collections.unmodifiableSet(v);
+        v = new TreeSet<Flag>();
+        imv = Collections.unmodifiableSortedSet(v);
         sCondLookup.put("", imv);
         
-        v = new HashSet<Flag>();
+        v = new TreeSet<Flag>();
         v.add(Flag.OF);
-        imv = Collections.unmodifiableSet(v);
+        imv = Collections.unmodifiableSortedSet(v);
         sCondLookup.put("o", imv);
         sCondLookup.put("no", imv);
         
-        v = new HashSet<Flag>();
+        v = new TreeSet<Flag>();
         v.add(Flag.SF);
-        imv = Collections.unmodifiableSet(v);
+        imv = Collections.unmodifiableSortedSet(v);
         sCondLookup.put("s", imv);
         sCondLookup.put("ns", imv);
         
-        v = new HashSet<Flag>();
+        v = new TreeSet<Flag>();
         v.add(Flag.ZF);
-        imv = Collections.unmodifiableSet(v);
+        imv = Collections.unmodifiableSortedSet(v);
         sCondLookup.put("e", imv);
         sCondLookup.put("z", imv);
         sCondLookup.put("ne", imv);
         sCondLookup.put("nz", imv);
         
-        v = new HashSet<Flag>();
+        v = new TreeSet<Flag>();
         v.add(Flag.CF);
-        imv = Collections.unmodifiableSet(v);
+        imv = Collections.unmodifiableSortedSet(v);
         sCondLookup.put("b", imv);
         sCondLookup.put("nae", imv);
         sCondLookup.put("c", imv);
@@ -73,89 +73,89 @@ public enum Flag {
         sCondLookup.put("ae", imv);
         sCondLookup.put("nc", imv);
         
-        v = new HashSet<Flag>();
+        v = new TreeSet<Flag>();
         v.add(Flag.CF);
         v.add(Flag.ZF);
-        imv = Collections.unmodifiableSet(v);
+        imv = Collections.unmodifiableSortedSet(v);
         sCondLookup.put("be", imv);
         sCondLookup.put("na", imv);
         sCondLookup.put("nbe", imv);
         sCondLookup.put("a", imv);
         
-        v = new HashSet<Flag>();
+        v = new TreeSet<Flag>();
         v.add(Flag.OF);
         v.add(Flag.SF);
-        imv = Collections.unmodifiableSet(v);
+        imv = Collections.unmodifiableSortedSet(v);
         sCondLookup.put("l", imv);
         sCondLookup.put("nge", imv);
         sCondLookup.put("nl", imv);
         sCondLookup.put("ge", imv);
         
-        v = new HashSet<Flag>();
+        v = new TreeSet<Flag>();
         v.add(Flag.ZF);
         v.add(Flag.SF);
         v.add(Flag.OF);
-        imv = Collections.unmodifiableSet(v);
+        imv = Collections.unmodifiableSortedSet(v);
         sCondLookup.put("le", imv);
         sCondLookup.put("ng", imv);
         sCondLookup.put("nle", imv);
         sCondLookup.put("g", imv);
 
-        v = new HashSet<Flag>();
+        v = new TreeSet<Flag>();
         v.add(Flag.PF);
-        imv = Collections.unmodifiableSet(v);
+        imv = Collections.unmodifiableSortedSet(v);
         sCondLookup.put("p", imv);
         sCondLookup.put("pe", imv);
         sCondLookup.put("np", imv);
         sCondLookup.put("po", imv);
         
-        v = new HashSet<Flag>();
-        imv = Collections.unmodifiableSet(v);
+        v = new TreeSet<Flag>();
+        imv = Collections.unmodifiableSortedSet(v);
         sCondLookup.put("cxz", imv);
         sCondLookup.put("ecxz", imv);
     }
     
     static {
-        sOpcodeLookup = new HashMap<Opcode.Class, Set<Flag>>();
-        Set<Flag> v, imv;
+        sOpcodeLookup = new HashMap<Opcode.Class, SortedSet<Flag>>();
+        SortedSet<Flag> v, imv;
         
-        v = new HashSet<Flag>();
+        v = new TreeSet<Flag>();
         v.add(Flag.OF);
         v.add(Flag.CF);
         v.add(Flag.SF);
         v.add(Flag.ZF);
         v.add(Flag.PF);
         v.add(Flag.AF);
-        imv = Collections.unmodifiableSet(v);
+        imv = Collections.unmodifiableSortedSet(v);
         sOpcodeLookup.put(Opcode.Class.ADD, imv);
         sOpcodeLookup.put(Opcode.Class.ADC, imv);
         sOpcodeLookup.put(Opcode.Class.SUB, imv);
         sOpcodeLookup.put(Opcode.Class.SBB, imv);
         sOpcodeLookup.put(Opcode.Class.NEG, imv);
         
-        v = new HashSet<Flag>();
+        v = new TreeSet<Flag>();
         v.add(Flag.OF);
         v.add(Flag.CF);
-        imv = Collections.unmodifiableSet(v);
+        imv = Collections.unmodifiableSortedSet(v);
         sOpcodeLookup.put(Opcode.Class.MUL, imv);
         
-        v = new HashSet<Flag>();
+        v = new TreeSet<Flag>();
         v.add(Flag.OF);
         v.add(Flag.SF);
         v.add(Flag.ZF);
         v.add(Flag.PF);
         v.add(Flag.AF);
-        imv = Collections.unmodifiableSet(v);
+        imv = Collections.unmodifiableSortedSet(v);
         sOpcodeLookup.put(Opcode.Class.INC, imv);
         sOpcodeLookup.put(Opcode.Class.DEC, imv);
         
-        v = new HashSet<Flag>();
+        v = new TreeSet<Flag>();
         v.add(Flag.OF);
         v.add(Flag.CF);
         v.add(Flag.SF);
         v.add(Flag.ZF);
         v.add(Flag.PF);
-        imv = Collections.unmodifiableSet(v);
+        imv = Collections.unmodifiableSortedSet(v);
         sOpcodeLookup.put(Opcode.Class.AND, imv);
         sOpcodeLookup.put(Opcode.Class.OR, imv);
         sOpcodeLookup.put(Opcode.Class.XOR, imv);
@@ -163,8 +163,8 @@ public enum Flag {
         sOpcodeLookup.put(Opcode.Class.SHL, imv);
         sOpcodeLookup.put(Opcode.Class.SHR, imv);
         
-        v = new HashSet<Flag>();
-        imv = Collections.unmodifiableSet(v);
+        v = new TreeSet<Flag>();
+        imv = Collections.unmodifiableSortedSet(v);
         sOpcodeLookup.put(Opcode.Class.DIV, imv);
         sOpcodeLookup.put(Opcode.Class.LEA, imv);
         sOpcodeLookup.put(Opcode.Class.NOT, imv);
@@ -172,11 +172,11 @@ public enum Flag {
         sOpcodeLookup.put(Opcode.Class.BSWAP, imv);
     }
     
-    public static Set<Flag> getDependentFlagsByCondition(String condition) {
+    public static SortedSet<Flag> getDependentFlagsByCondition(String condition) {
         return sCondLookup.get(condition);
     }
     
-    public static Set<Flag> getModifiedFlagsByOpcode(Opcode.Class op) {
+    public static SortedSet<Flag> getModifiedFlagsByOpcode(Opcode.Class op) {
         return sOpcodeLookup.get(op);
     }
 

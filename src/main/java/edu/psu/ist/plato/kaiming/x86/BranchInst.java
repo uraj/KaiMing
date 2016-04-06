@@ -37,4 +37,14 @@ public abstract class BranchInst extends Instruction {
         setOperand(0, new Relocation(target(), l));
         return true;
     }
+    
+    public final boolean isTargetRelocated() {
+        return target().isRelocation();
+    }
+
+    public final Label targetLabel() {
+        if (isTargetRelocated())
+            return target().asRelocation().label();
+        return null;
+    }
 }

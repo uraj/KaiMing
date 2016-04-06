@@ -36,4 +36,5 @@ public class Flg extends Lval {
     public int sizeInBits() {
         return 1;
     }
+
 }

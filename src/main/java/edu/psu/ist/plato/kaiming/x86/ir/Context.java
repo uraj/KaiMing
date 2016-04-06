@@ -50,7 +50,9 @@ public class Context extends Procedure<Stmt> {
         int stmtNo = 0;
         for (BasicBlock<Instruction> bb : asmCFG) {
             BasicBlock<Stmt> irbb = map.get(bb);
+            Assert.test(irbb != null);
             for (Stmt s : irbb) {
+                Assert.test(s != null);
                 s.setIndex(stmtNo++);
             }
         }
@@ -139,7 +141,12 @@ public class Context extends Procedure<Stmt> {
         if (inst.isCallInst()) {
         	branch = new CallStmt((CallInst)inst, target);
         } else if (inst.isJumpInst()) {
-        	branch = new JmpStmt((JumpInst)inst, target);
+            Expr maybeRelocated;
+            if (inst.isTargetRelocated())
+                maybeRelocated = new Lb(target, inst.targetLabel());
+            else
+                maybeRelocated = target;
+            branch = new JmpStmt((JumpInst)inst, maybeRelocated);
         } else {
         	Assert.unreachable();
         }

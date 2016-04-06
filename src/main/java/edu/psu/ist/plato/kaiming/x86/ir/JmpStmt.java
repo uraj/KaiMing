@@ -1,5 +1,8 @@
 package edu.psu.ist.plato.kaiming.x86.ir;
 
+import java.util.Set;
+
+import edu.psu.ist.plato.kaiming.x86.Flag;
 import edu.psu.ist.plato.kaiming.x86.JumpInst;
 
 public class JmpStmt extends Stmt {
@@ -17,5 +20,9 @@ public class JmpStmt extends Stmt {
     
     public boolean isConditional() {
     	return ((JumpInst)mInst).isConditional();
+    }
+    
+    public Set<Flag> dependentFlags() {
+        return ((JumpInst)mInst).dependentFlags();
     }
 }

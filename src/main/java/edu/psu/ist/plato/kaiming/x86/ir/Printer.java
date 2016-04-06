@@ -112,6 +112,10 @@ public class Printer extends PrintWriter {
         print(')');
     }
     
+    private void printLb(Lb l) {
+        print(l.label().name());
+    }
+    
     public void printExpr(Expr e) {
         if (e instanceof Const) {
             printConst((Const) e);
@@ -121,6 +125,8 @@ public class Printer extends PrintWriter {
             printBExpr((BExpr) e);
         } else if (e instanceof UExpr) {
             printUExpr((UExpr) e);
+        } else if (e instanceof Lb) {
+            printLb((Lb)e);
         } else {
             Assert.unreachable();
         }
@@ -148,7 +154,13 @@ public class Printer extends PrintWriter {
     }
     
     private void printJmpStmt(JmpStmt s) {
-        print("jmp ");
+        print("jmp");
+        if (s.isConditional()) {
+            print('[');
+            s.dependentFlags().forEach(f -> print(f.toString().substring(0, 1)));
+            print(']');
+        }
+        print(" ");
         printExpr(s.target());
         print(";");
     }
