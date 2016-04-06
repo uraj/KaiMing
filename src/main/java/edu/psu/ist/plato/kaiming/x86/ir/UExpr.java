@@ -16,23 +16,23 @@ public class UExpr extends Expr {
         mSubExpr = subexpr;
     }
     
-    public Op getOperator() {
+    public Op operator() {
         return mOperator;
     }
     
-    public Expr getSubExpr() {
+    public Expr subExpr() {
         return mSubExpr;
     }
     
     @Override
-    public Expr getSubExpr(int index) {
+    public Expr subExpr(int index) {
         if (index == 0)
-            return getSubExpr();
+            return subExpr();
         return null;
     }
 
     @Override
-    public int getNumSubExpr() {
+    public int numOfSubExpr() {
         return 1;
     }
 }

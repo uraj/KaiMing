@@ -11,7 +11,7 @@ public class JmpStmt extends Stmt {
         mTarget = target;
     }
     
-    public Expr getTarget() {
+    public Expr target() {
         return mTarget;
     }
     

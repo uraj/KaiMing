@@ -6,11 +6,11 @@ public class LeaInst extends Instruction {
         super(Kind.LEA, addr, op, new Operand[] {op1, op2});
     }
 
-    public Memory getExpression() {
+    public Memory addrExpression() {
         return operand(0).asMemory();
     }
     
-    public Register getResult() {
+    public Register loadedRegister() {
         return operand(1).asRegister();
     }
 }

@@ -16,7 +16,7 @@ public abstract class BranchInst extends Instruction {
         mIndirect = isIndirect;
     }
     
-    public final Memory getTarget() {
+    public final Memory target() {
         return operand(0).asMemory();
     }
     
@@ -25,13 +25,16 @@ public abstract class BranchInst extends Instruction {
     }
     
     public final boolean isTargetConcrete() {
-        return !mIndirect && getTarget().isImmeidate();
+        if (mIndirect)
+            return false;
+        Memory target = target();
+        return target.baseRegister() == null && target.offsetRegister() == null;
     }
 
     public final boolean relocateTarget(Label l) {
         if (l == null || isIndirect() || !isTargetConcrete())
             return false;
-        setOperand(0, new Relocation(getTarget(), l));
+        setOperand(0, new Relocation(target(), l));
         return true;
     }
 }

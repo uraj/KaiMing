@@ -13,11 +13,11 @@ public class StStmt extends Stmt {
 		mContent = content;
 	}
 	
-	public Expr getAddr() {
+	public Expr storeTo() {
 		return mAddr;
 	}
 	
-	public Expr getContent() {
+	public Expr storedExpr() {
 		return mContent;
 	}
 

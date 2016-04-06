@@ -42,39 +42,39 @@ public class Printer extends PrintWriter {
     public static Printer err = new Printer(System.err);
     
     public void printOpMemory(Memory mem) {
-        if (!mIsParseMode && mem instanceof Relocation) {
-            print(((Relocation) mem).label().name());
+        if (!mIsParseMode && mem.isRelocation()) {
+            print(mem.asRelocation().label().name());
             return;
         }
-        if (mem.getBaseRegister() != null
-                && mem.getBaseRegister().isSegmentRegister()) {
-            printOpRegister(mem.getBaseRegister());
+        if (mem.baseRegister() != null
+                && mem.baseRegister().isSegmentRegister()) {
+            printOpRegister(mem.baseRegister());
             print(':');
-            if (mem.getOffsetRegister() != null) {
+            if (mem.offsetRegister() != null) {
                 print('(');
-                printOpRegister(mem.getOffsetRegister());
+                printOpRegister(mem.offsetRegister());
                 print(')');
             } else
-                printSignedHex(mem.getDisplacement());
+                printSignedHex(mem.displacement());
             return;
         }
         
-        long disp = mem.getDisplacement();
+        long disp = mem.displacement();
         printSignedHex(disp);
-        if (mem.getBaseRegister() == null && mem.getOffsetRegister() == null)
+        if (mem.baseRegister() == null && mem.offsetRegister() == null)
             return;
         print('(');
-        if (mem.getBaseRegister() != null
-                && !mem.getBaseRegister().isSegmentRegister()) {
-            printOpRegister(mem.getBaseRegister());
+        if (mem.baseRegister() != null
+                && !mem.baseRegister().isSegmentRegister()) {
+            printOpRegister(mem.baseRegister());
         }
-        if (mem.getOffsetRegister() != null) {
+        if (mem.offsetRegister() != null) {
             print(',');
-            printOpRegister(mem.getOffsetRegister());
+            printOpRegister(mem.offsetRegister());
         }
-        if (mem.getMultiplier() != 1) {
+        if (mem.multiplier() != 1) {
             print(',');
-            print(mem.getMultiplier());
+            print(mem.multiplier());
         }
         print(')');
     }
@@ -85,14 +85,14 @@ public class Printer extends PrintWriter {
     }
 
     public void printOperand(Operand op) {
-        switch (op.getType()) {
-            case Immediate:
+        switch (op.type()) {
+            case IMMEDIATE:
                 printOpImmediate((Immediate) op);
                 break;
-            case Memory:
+            case MEMORY:
                 printOpMemory((Memory) op);
                 break;
-            case Register:
+            case REGISTER:
                 printOpRegister((Register) op);
                 break;
         }
@@ -102,7 +102,7 @@ public class Printer extends PrintWriter {
         if (mIsParseMode)
             printSignedHex(i.addr());
         print('\t');
-        print(i.opcode().getRawOpcode());
+        print(i.opcode().rawOpcode());
         print('\t');
         if (i.isBranchInst()) {
             BranchInst bi = (BranchInst)i;
@@ -130,9 +130,9 @@ public class Printer extends PrintWriter {
     }
 
     public void printFunction(Function f) {
-        printLabel(f.getLabel());
+        printLabel(f.label());
         println(':');
-        for (Instruction i : f.getInstructions()) {
+        for (Instruction i : f.entries()) {
             printInstruction(i);
             println();
         }

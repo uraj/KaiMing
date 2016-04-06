@@ -6,9 +6,9 @@ import java.io.PrintStream;
 abstract public class Operand {
 	
 	public enum Type {
-		Register,
-		Memory,
-		Immediate,
+		REGISTER,
+		MEMORY,
+		IMMEDIATE,
 	}
 	
 	private final Type mType;
@@ -18,18 +18,18 @@ abstract public class Operand {
 	}
 	
 	public final boolean isRegister() { 
-	    return mType == Type.Register;
+	    return mType == Type.REGISTER;
 	}
 	
 	public final boolean isMemory() {
-	    return mType == Type.Memory;
+	    return mType == Type.MEMORY;
 	}
 
 	public final boolean isImmeidate() { 
-	    return mType == Type.Immediate; 
+	    return mType == Type.IMMEDIATE; 
 	}
 	
-	public final Type getType() { 
+	public final Type type() { 
 	    return mType;
 	}
 	

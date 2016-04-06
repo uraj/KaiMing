@@ -33,11 +33,11 @@ public class CallInst extends BranchInst {
         mCalled = f;
     }
     
-    public Function getCalledFunction() {
+    public Function calledFunction() {
         return mCalled;
     }
     
-    public static final Set<Register.Id> getCallerSavedRegister() {
+    public static final Set<Register.Id> callerSavedRegister() {
         return sCallerSavedRegs;
     }
 }

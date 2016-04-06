@@ -14,11 +14,11 @@ public class AssignStmt extends DefStmt {
     }
     
     @Override
-    public Lval getDefinedLval() {
+    public Lval definedLval() {
         return mLval;
     }
     
-    public Expr getExpr() {
+    public Expr usedRval() {
         return mExpr;
     }
 

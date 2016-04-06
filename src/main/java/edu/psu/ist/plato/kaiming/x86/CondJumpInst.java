@@ -9,15 +9,15 @@ public class CondJumpInst extends JumpInst {
     
     protected CondJumpInst(long addr, Opcode op, Memory target, boolean isIndirect) {
         super(addr, op, target, isIndirect);
-        mCond = Flag.getDependentFlagsByCondition(op.getRawOpcode().substring(1));
+        mCond = Flag.getDependentFlagsByCondition(op.rawOpcode().substring(1));
     }
     
     protected CondJumpInst(long addr, Opcode op, Register target, boolean isIndirect) {
         super(addr, op, target, isIndirect);
-        mCond = Flag.getDependentFlagsByCondition(op.getRawOpcode().substring(1));
+        mCond = Flag.getDependentFlagsByCondition(op.rawOpcode().substring(1));
     }
 
-    public Set<Flag> getDependentFlags() {
+    public Set<Flag> dependentFlags() {
         return mCond;
     }
     

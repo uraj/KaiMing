@@ -12,12 +12,12 @@ public class CallStmt extends DefStmt {
         mTarget = target;
     }
     
-    public Expr getTarget() {
+    public Expr target() {
     	return mTarget;
     }
 
     @Override
-    public Lval getDefinedLval() {
+    public Lval definedLval() {
         // TODO: Make this value configurable with a "CallingConvention"
         // structure
         // FIXME: Theoretically, all caller-save registers can be

@@ -6,11 +6,11 @@ public class BitTestInst extends Instruction {
         super(Kind.BIT_TEST, addr, op, new Operand[]{bt1, bt2});
     }
 
-    public Operand getIndexOperand() {
+    public Operand indexOperand() {
         return operand(0);
     }
     
-    public Operand getSourceOperand() {
+    public Operand sourceOperand() {
         return operand(1);
     }
 }

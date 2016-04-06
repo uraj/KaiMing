@@ -51,17 +51,17 @@ public class Const extends Expr {
 		return getConstant(imm.getValue());
 	}
 	
-	public long getValue() {
+	public long value() {
 		return mValue;
 	}
 	
 	@Override
-	public int getNumSubExpr() {
+	public int numOfSubExpr() {
 		return 0;
 	}
 	
 	@Override
-	public Expr getSubExpr(int index) {
+	public Expr subExpr(int index) {
 		return null;
 	}
 

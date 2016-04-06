@@ -1,7 +1,5 @@
 package edu.psu.ist.plato.kaiming.x86.ir;
 
-import edu.psu.ist.plato.kaiming.x86.Opcode;
-
 public class BExpr extends Expr {
    
     public enum Op {
@@ -24,46 +22,35 @@ public class BExpr extends Expr {
     private Op mOperator;
     private Expr mLeft, mRight;
     
-    public BExpr(Opcode opcode, Expr left, Expr right) {
-        mOperator = opcodeToOp(opcode);
-        mLeft = left;
-        mRight = right;
-    }
-    
-    public BExpr(Op op, Expr left, Expr right) {
+        public BExpr(Op op, Expr left, Expr right) {
         mOperator = op;
         mLeft = left;
         mRight = right;
     }
     
-    // TODO: not implemented
-    private Op opcodeToOp(Opcode opcode) {
-    	return null;
-    }
-    
-    public Expr getLeftSubExpr() {
+    public Expr leftSubExpr() {
         return mLeft;
     }
     
-    public Expr getRightSubExpr() {
+    public Expr rightSubExpr() {
         return mRight;
     }
     
     @Override
-    public Expr getSubExpr(int index) {
+    public Expr subExpr(int index) {
         if (index == 0)
-            return getLeftSubExpr();
+            return leftSubExpr();
         if (index == 1)
-            return getRightSubExpr();
-        return null;
+            return rightSubExpr();
+        throw new IllegalArgumentException("Sub expression index out of bound");
     }
     
-    public Op getOperator() {
+    public Op operator() {
         return mOperator;
     }
 
     @Override
-    public int getNumSubExpr() {
+    public int numOfSubExpr() {
         return 2;
     }
 }

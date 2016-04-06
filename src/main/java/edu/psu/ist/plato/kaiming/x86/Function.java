@@ -29,7 +29,7 @@ public class Function extends Procedure<Instruction> {
         mSubLabelCount = 0;
     }
 
-    public Label getLabel() {
+    public Label label() {
         return mLabel;
     }
     
@@ -40,10 +40,6 @@ public class Function extends Procedure<Instruction> {
     
     public void setEntries(List<Instruction> entries) {
         mCFG = buildCFG(entries);
-    }
-
-    public List<Instruction> getInstructions() {
-        return (List<Instruction>) entries();
     }
 
     public static BasicBlock<Instruction>
@@ -78,10 +74,11 @@ public class Function extends Procedure<Instruction> {
             if (inst[i].isBranchInst() && !inst[i].isCallInst()) {
                 BranchInst bin = (BranchInst)inst[i];
                 if (!bin.isIndirect() && bin.isTargetConcrete()) {
-                    long target = bin.getTarget().getDisplacement();
+                    long target = bin.target().displacement();
                     int idx = Entry.searchIndex(inst, target);
-                    if (idx != -1)
+                    if (idx != -1) {
                         pivots.add(idx);
+                    }
                 }
             }
         }
@@ -107,11 +104,14 @@ public class Function extends Procedure<Instruction> {
             if (in.isJumpInst()) {
                 JumpInst bin = (JumpInst)in;
                 if (!bin.isIndirect() && bin.isTargetConcrete()) {
-                    long targetAddr = bin.getTarget().getDisplacement();
+
+                    long targetAddr = bin.target().displacement();
                     BasicBlock<Instruction> targetBB = BasicBlock.searchContainingBlock(bbs, targetAddr);
                     if (targetBB == null)
                         continue;
                     Assert.test(targetBB.firstEntry().index() == targetAddr, mLabel.name());
+                    // relocate target
+                    bin.relocateTarget(targetBB.label());
                     bbs.get(i).addSuccessor(targetBB);
                     targetBB.addPredecessor(bbs.get(i));
                     if (!bin.isCondJumpInst()) {

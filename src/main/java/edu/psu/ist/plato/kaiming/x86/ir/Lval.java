@@ -8,12 +8,12 @@ public abstract class Lval extends Expr {
     }
 
     @Override
-    public int getNumSubExpr() {
+    public int numOfSubExpr() {
         return 0;
     }
     
     @Override
-    public Expr getSubExpr(int index) {
+    public Expr subExpr(int index) {
     	return null;
     }
     

@@ -12,9 +12,9 @@ abstract public class DefStmt extends Stmt {
 		super(kind, inst, usedExpr);
 	}
 	
-	abstract public Lval getDefinedLval();
-	
-	final public Set<Stmt> getDefUseChain() {
+	abstract public Lval definedLval();
+		
+	final public Set<Stmt> defUseChain() {
 		return mDUChain;
 	}
 	
@@ -36,7 +36,7 @@ abstract public class DefStmt extends Stmt {
      */
     static public DefStmt External = new DefStmt(null, null, new Expr[] {}) {
         @Override
-        public Lval getDefinedLval() {
+        public Lval definedLval() {
             return null;
         }
     };

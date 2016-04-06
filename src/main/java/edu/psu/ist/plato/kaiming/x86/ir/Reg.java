@@ -9,7 +9,7 @@ public class Reg extends Lval {
         mReg = reg;
     }
     
-    public Register getRegister() {
+    public Register x86Register() {
         return mReg;
     }
     
@@ -56,6 +56,6 @@ public class Reg extends Lval {
 
     @Override
     public int sizeInBits() {
-        return mReg.getSizeInBits();
+        return mReg.sizeInBits();
     }
 }

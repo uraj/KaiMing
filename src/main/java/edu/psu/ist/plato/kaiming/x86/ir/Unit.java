@@ -61,15 +61,15 @@ public class Unit {
                     throws UnsolvableException {
                 Map<Lval, Set<DefStmt>> out = new HashMap<Lval, Set<DefStmt>>(in);
                 for (Stmt s : bb) {
-                    for (Lval lv : s.getUsedLvals()) {
-                        s.setDef(lv, new HashSet<DefStmt>(out.get(lv)));
+                    for (Lval lv : s.usedLvals()) {
+                        s.updateDefFor(lv, new HashSet<DefStmt>(out.get(lv)));
                     }
                     
                     if (s instanceof DefStmt) {
                         DefStmt defstmt = (DefStmt)s;
                         Set<DefStmt> defset = new HashSet<DefStmt>();
                         defset.add(defstmt);
-                        out.put(defstmt.getDefinedLval(), defset);
+                        out.put(defstmt.definedLval(), defset);
                     }
                 }
                 return out;
@@ -94,8 +94,8 @@ public class Unit {
 
         // Set def-use chains given use-def chains
         for (Stmt s : ctx.entries()) {
-            for (Lval lv : s.getUsedLvals()) {
-                for (DefStmt defs : s.getDef(lv)) {
+            for (Lval lv : s.usedLvals()) {
+                for (DefStmt defs : s.searchDefFor(lv)) {
                     if (!defs.isExternal()) {
                         defs.addToDefUseChain(s);
                     }

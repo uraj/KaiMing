@@ -46,6 +46,8 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
     }
 
     public BasicBlock(Procedure<T> unit, List<T> entries, Label label) {
+        if (entries.size() == 0)
+            throw new IllegalArgumentException("A basic block has at least one entry");
         mEntries = new LinkedList<T>(entries);
         mLabel = label;
         mPred = new LinkedList<BasicBlock<T>>();
@@ -58,13 +60,16 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
     }
     
     @Override
-    @SuppressWarnings("unchecked")
+    public int compareTo(BasicBlock<T> bb) {
+        return Long.signum(index() - bb.index());
+    }
+    
+    @Override
     public boolean equals(Object obj) {
         if (obj instanceof BasicBlock) {
-            return compareTo((BasicBlock<T>)obj) == 0;
-        } else {
-            return super.hashCode() == obj.hashCode();
+            return ((BasicBlock<?>)obj).index() == index();
         }
+        return false;
     }
     
     @Override
@@ -276,12 +281,6 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
         return split(new Integer[] {pivot+1});
     }
 
-    
-    @Override
-    public int compareTo(BasicBlock<T> bb) {
-        return Long.signum(index() - bb.index());
-    }
-    
     public static <I extends Entry> BasicBlock<I> searchContainingBlock(final BasicBlock<I>[] bbs,
             long addr) {
         return searchContainingBlock(Arrays.asList(bbs), addr);

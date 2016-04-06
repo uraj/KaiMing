@@ -13,12 +13,12 @@ public class LdStmt extends DefStmt {
 		mContent = content;
 	}
 	
-	public Expr getAddr() {
+	public Expr loadFrom() {
 		return mAddr;
 	}
 
 	@Override
-	public Lval getDefinedLval() {
+	public Lval definedLval() {
 		return mContent;
 	}
 

@@ -95,11 +95,11 @@ public class Dependency {
 
     public final void transferMultiplyInst(MultiplyInst inst, BitSet in) {
         boolean affected = false;
-        for (Operand dest : inst.iterDest()) {
+        for (Operand dest : inst.destArray()) {
             affected = clearBitForOperand(dest, in) || affected;
         }
         if (affected) {
-            Operand[] src = inst.iterSrc();
+            Operand[] src = inst.srcArray();
             for (int i = 0; i < src.length; ++i) {
                 setBitForOperand(src[i], in);
             }
@@ -108,12 +108,12 @@ public class Dependency {
     
     public final void transferDivideInst(DivideInst inst, BitSet in) {
         boolean affected = false;
-        for (Operand dest : inst.getDestIter()) {
+        for (Operand dest : inst.destIterator()) {
             affected = clearBitForOperand(dest, in) || affected;
         }
         if (affected) {
-            setBitForOperand(inst.getDivider(), in);
-            for (Operand dividend : inst.getDividendIter())
+            setBitForOperand(inst.divider(), in);
+            for (Operand dividend : inst.dividendIterator())
                 setBitForOperand(dividend, in);
         }
     }
@@ -151,7 +151,7 @@ public class Dependency {
         if (!op.isRegister())
             return;
         Register reg = (Register)op;
-        int idx = getIndex(reg.getContainingRegister().id);
+        int idx = getIndex(reg.containingRegister().id);
         if (!in.get(idx))
             return;
         in.clear(idx);
@@ -171,10 +171,10 @@ public class Dependency {
             return;
         }
         CondJumpInst cji = (CondJumpInst)inst;
-        String rawop = cji.opcode().getRawOpcode();
+        String rawop = cji.opcode().rawOpcode();
         if (rawop.equals("jcxz") || rawop.equals("jecxz"))
             in.set(getIndex(Register.Id.ECX));
-        for (Flag f : cji.getDependentFlags()) {
+        for (Flag f : cji.dependentFlags()) {
             in.set(getIndex(f));
         }
     }
@@ -219,7 +219,7 @@ public class Dependency {
     }
     
     public final void transferPopInst(PopInst inst, BitSet in) {
-        Register dest = inst.popTarget().getContainingRegister();
+        Register dest = inst.popTarget().containingRegister();
         if (in.get(getIndex(dest.id))) {
             in.clear(getIndex(dest.id));
             in.set(getIndex(Register.Id.ESP));
@@ -232,7 +232,7 @@ public class Dependency {
             setBitForOperand(inst.from(), in);
             if (inst.isConditional()) {
                 CondMoveInst ci = (CondMoveInst)inst;
-                for (Flag f : ci.getDependentFlags()) {
+                for (Flag f : ci.dependentFlags()) {
                     in.set(getIndex(f));
                 }
             }
@@ -240,15 +240,15 @@ public class Dependency {
     }
     
     public final void transferLeaInst(LeaInst inst, BitSet in) {
-        Register result = inst.getResult().getContainingRegister();
+        Register result = inst.loadedRegister().containingRegister();
         int index = getIndex(result.id);
         if (in.get(index)) {
             in.clear(index);
-            Memory exp = inst.getExpression();
+            Memory exp = inst.addrExpression();
             if (exp.isConcrete())
                 in.set(ImmIndex);
-            setBitForOperand(exp.getBaseRegister(), in);
-            setBitForOperand(exp.getOffsetRegister(), in);
+            setBitForOperand(exp.baseRegister(), in);
+            setBitForOperand(exp.offsetRegister(), in);
         }
     }
     
@@ -256,52 +256,52 @@ public class Dependency {
         if (op == null)
             return;
         
-        switch (op.getType()) {
-            case Register:{
-                int idx = getIndex(op.asRegister().getContainingRegister().id);
+        switch (op.type()) {
+            case REGISTER:{
+                int idx = getIndex(op.asRegister().containingRegister().id);
                 if (idx != -1)
                     in.set(idx);
                 break;
             }
-            case Memory: {
+            case MEMORY: {
                 in.set(MemIndex);
                 Memory mem = (Memory)op;
                 Register reg;
-                reg = mem.getBaseRegister();
+                reg = mem.baseRegister();
                 if (reg != null) {
-                    int idx = getIndex(reg.getContainingRegister().id);
+                    int idx = getIndex(reg.containingRegister().id);
                     if (idx != -1)
                         in.set(idx);
                 }
-                reg = mem.getOffsetRegister();
+                reg = mem.offsetRegister();
                 if (reg != null) {
-                    int idx = getIndex(reg.getContainingRegister().id);
+                    int idx = getIndex(reg.containingRegister().id);
                     if (idx != -1)
-                        in.set(getIndex(reg.getContainingRegister().id));
+                        in.set(getIndex(reg.containingRegister().id));
                 }
                 if (mem.isConcrete()) {
                     in.set(ImmIndex);
                 }
                 break;
             }
-            case Immediate:
+            case IMMEDIATE:
                 in.set(ImmIndex);
         }
     }
     
     public static boolean clearBitForOperand(Operand op, BitSet in) {
         boolean ret = false;
-        switch (op.getType()) {
-            case Register: {
-                Register reg = op.asRegister().getContainingRegister();
+        switch (op.type()) {
+            case REGISTER: {
+                Register reg = op.asRegister().containingRegister();
                 ret = in.get(getIndex(reg.id));
                 in.clear(getIndex(reg.id));
                 break;
             }
-            case Memory:
+            case MEMORY:
                 ret = in.get(MemIndex);
                 break;
-            case Immediate:
+            case IMMEDIATE:
                 break;
         }
         return ret;

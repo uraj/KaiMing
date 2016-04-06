@@ -110,7 +110,7 @@ public class Register extends Operand {
     private static final Register eiz = new Register(Id.EIZ, 32);
 
     private Register(Id id, int size) {
-        super(Type.Register);
+        super(Type.REGISTER);
         this.id = id;
         mSize = size;
     }
@@ -161,7 +161,9 @@ public class Register extends Operand {
         return getRegister(sNameMap.get(name));
     }
     
-    public int getSizeInBits() { return mSize; }
+    public int sizeInBits() {
+        return mSize;
+    }
     
     public boolean isSegmentRegister() {
         switch (id) {
@@ -177,7 +179,7 @@ public class Register extends Operand {
         }
     }
     
-    public Register getContainingRegister() {
+    public Register containingRegister() {
         switch (id) {
             case AX: 
             case AH: 
@@ -217,7 +219,7 @@ public class Register extends Operand {
         }
     }
     
-    public static Set<Register.Id> get32BitGeneralRegs () {
+    public static Set<Register.Id> general32BitRegs () {
         return s32BitGeneralRegs;
     }
 }

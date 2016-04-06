@@ -16,7 +16,7 @@ public class Printer extends PrintWriter {
     public static Printer err = new Printer(System.err);
 
     public void printConst(Const c) {
-        long value = c.getValue();
+        long value = c.value();
         if (value < 0) {
             print(String.format("-0x%x", -value));
         } else {
@@ -26,12 +26,12 @@ public class Printer extends PrintWriter {
     
     public void printReg(Reg r) {
         print('%');
-        print(r.getRegister().id.name().toLowerCase());
+        print(r.x86Register().id.name().toLowerCase());
     }
     
     public void printVar(Var v) {
         print("@(");
-        print(v.getName());
+        print(v.name());
         print(":");
         print(v.sizeInBits());
         print(")");
@@ -75,21 +75,21 @@ public class Printer extends PrintWriter {
     
     private void printBExpr(BExpr e) {
         {
-            boolean isLeftPrimitive = e.getLeftSubExpr() instanceof BExpr;
+            boolean isLeftPrimitive = e.leftSubExpr() instanceof BExpr;
             if (isLeftPrimitive)
                 print('(');
-            printExpr(e.getLeftSubExpr());
+            printExpr(e.leftSubExpr());
             if (isLeftPrimitive)
                 print(')');
         }
         print(' ');
-        printBExprOperator(e.getOperator());
+        printBExprOperator(e.operator());
         print(' ');
         {
-            boolean isRightPrimitive = e.getRightSubExpr() instanceof BExpr;
+            boolean isRightPrimitive = e.rightSubExpr() instanceof BExpr;
             if (isRightPrimitive)
                 print('(');
-            printExpr(e.getRightSubExpr());
+            printExpr(e.rightSubExpr());
             if (isRightPrimitive)
                 print(')');
         }
@@ -106,9 +106,9 @@ public class Printer extends PrintWriter {
     
     private void printUExpr(UExpr e) {
         print('(');
-        printUExprOperator(e.getOperator());
+        printUExprOperator(e.operator());
         print(' ');
-        printExpr(e.getSubExpr());
+        printExpr(e.subExpr());
         print(')');
     }
     
@@ -127,43 +127,43 @@ public class Printer extends PrintWriter {
     }
     
     private void printAssignStmt(AssignStmt s) {
-        printLval(s.getDefinedLval());
+        printLval(s.definedLval());
         print(" = ");
-        printExpr(s.getExpr());
+        printExpr(s.usedRval());
         print(";");
     }
     
     private void printCallStmt(CallStmt s) {
         print("call ");
-        printExpr(s.getTarget());
+        printExpr(s.target());
         print(";");
     }
     
     private void printCmpStmt(CmpStmt s) {
         print("cmp ");
-        printExpr(s.getComparedFirst());
+        printExpr(s.comparedFirst());
         print(", ");
-        printExpr(s.getComparedSecond());
+        printExpr(s.comparedSecond());
         print(";");
     }
     
     private void printJmpStmt(JmpStmt s) {
         print("jmp ");
-        printExpr(s.getTarget());
+        printExpr(s.target());
         print(";");
     }
     
     private void printLdStmt(LdStmt s) {
-        printLval(s.getDefinedLval());
+        printLval(s.definedLval());
         print(" <- [ ");
-        printExpr(s.getAddr());
+        printExpr(s.loadFrom());
         print(" ];");
     }
 
     private void printStStmt(StStmt s) {
-        printExpr(s.getContent());
+        printExpr(s.storedExpr());
         print(" -> [ ");
-        printExpr(s.getAddr());
+        printExpr(s.storeTo());
         print(" ];");
     }
     

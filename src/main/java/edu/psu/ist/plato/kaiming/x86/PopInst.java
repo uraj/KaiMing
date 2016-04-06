@@ -9,6 +9,6 @@ public class PopInst extends Instruction {
     public Register popTarget() { return operand(0).asRegister(); }
     
     public int sizeInBits() {
-        return popTarget().getSizeInBits();
+        return popTarget().sizeInBits();
     }
 }

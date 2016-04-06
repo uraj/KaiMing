@@ -6,8 +6,8 @@ public class Relocation extends Memory {
 
     private Label mLabel;
     public Relocation(Memory m, Label l) {
-        super(m.getDisplacement(), m.getBaseRegister(),
-                m.getOffsetRegister(), m.getMultiplier());
+        super(m.displacement(), m.baseRegister(),
+                m.offsetRegister(), m.multiplier());
         mLabel = l;
     }
 

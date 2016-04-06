@@ -8,7 +8,7 @@ public class MoveStrInst extends Instruction {
     
     protected MoveStrInst(long addr, Opcode op, Memory from, Memory to) {
         super(Kind.MOVE_STR, addr, op, new Operand[] {from, to});
-        String code = op.getRawOpcode();
+        String code = op.rawOpcode();
         if (code.endsWith("l")) {
             mSizeInBits = 32;
         } else if (code.endsWith("w")) {

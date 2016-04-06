@@ -20,9 +20,9 @@ public class PushInst extends Instruction {
     }
     
     private int getSizeInBits(Opcode opcode, Operand op) {
-    	String rawop = opcode.getRawOpcode();
+    	String rawop = opcode.rawOpcode();
     	if (op.isRegister()) {
-    		return op.asRegister().getSizeInBits();
+    		return op.asRegister().sizeInBits();
     	} else {
     		if (rawop.endsWith("l")) {
     			return 32;

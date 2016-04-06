@@ -252,7 +252,7 @@ public class Opcode {
             mClass = Class.UD;
     }
 
-    public String getRawOpcode() {
+    public String rawOpcode() {
         return mCode;
     }
     

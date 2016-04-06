@@ -10,7 +10,7 @@ public abstract class Problem<T> {
     
     public abstract void solve() throws UnsolvableException;
 
-    public final T getSolution() {
+    public final T solution() {
         return mSolution;
     };
     

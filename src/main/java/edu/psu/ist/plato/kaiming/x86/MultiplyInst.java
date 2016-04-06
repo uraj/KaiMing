@@ -36,19 +36,19 @@ public class MultiplyInst extends Instruction {
         }
     }
     
-    public Tuple<Operand, Operand> getDest() {
+    public Tuple<Operand, Operand> dest() {
         return new Tuple<Operand, Operand>(mDest[0], mDest.length == 1 ? null : mDest[1]);
     }
     
-    public Tuple<Operand, Operand> getSrc() {
+    public Tuple<Operand, Operand> src() {
         return new Tuple<Operand, Operand>(mSrc[0], mSrc[1]);
     }
     
-    public Operand[] iterDest() {
+    public Operand[] destArray() {
         return Arrays.copyOf(mDest, mDest.length);
     }
     
-    public Operand[] iterSrc() {
+    public Operand[] srcArray() {
         return Arrays.copyOf(mSrc, mSrc.length);
     }
 

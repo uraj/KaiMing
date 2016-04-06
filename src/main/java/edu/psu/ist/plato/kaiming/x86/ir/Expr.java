@@ -14,9 +14,9 @@ public abstract class Expr {
         return false;
     };
     
-    public abstract Expr getSubExpr(int index);
+    public abstract Expr subExpr(int index);
     
-    public abstract int getNumSubExpr();
+    public abstract int numOfSubExpr();
     
     public static Const toExpr(Immediate imm) {
         return Const.getConstant(imm);
@@ -32,28 +32,28 @@ public abstract class Expr {
     
     public static Expr toExpr(Memory mem) {
         Expr ret = null;
-        if (mem.getOffsetRegister() != null) {
-            ret = toExpr(mem.getOffsetRegister());
-            if (mem.getMultiplier() != 1) {
-                ret = new BExpr(BExpr.Op.UMUL, ret, Const.getConstant(mem.getMultiplier()));
+        if (mem.offsetRegister() != null) {
+            ret = toExpr(mem.offsetRegister());
+            if (mem.multiplier() != 1) {
+                ret = new BExpr(BExpr.Op.UMUL, ret, Const.getConstant(mem.multiplier()));
             }
         }
-        if (mem.getBaseRegister() != null) {
+        if (mem.baseRegister() != null) {
             if (ret == null) {
-                ret = toExpr(mem.getBaseRegister());
+                ret = toExpr(mem.baseRegister());
             } else {
-                ret = new BExpr(BExpr.Op.UADD, toExpr(mem.getBaseRegister()), ret);
+                ret = new BExpr(BExpr.Op.UADD, toExpr(mem.baseRegister()), ret);
             }
         }
-        if (mem.getDisplacement() != 0) {
+        if (mem.displacement() != 0) {
             if (ret == null) {
-                ret = Const.getConstant(mem.getDisplacement());
+                ret = Const.getConstant(mem.displacement());
             } else {
-                ret = new BExpr(BExpr.Op.UADD, Const.getConstant(mem.getDisplacement()), ret);
+                ret = new BExpr(BExpr.Op.UADD, Const.getConstant(mem.displacement()), ret);
             }
         }
         if (ret == null)
-            ret = Const.getConstant(mem.getDisplacement());
+            ret = Const.getConstant(mem.displacement());
         return ret;
     }
     
@@ -91,8 +91,8 @@ public abstract class Expr {
         private boolean doVisit(Expr toVisit) {
             if (!action(toVisit))
                 return false;
-            for (int i = 0; i < toVisit.getNumSubExpr(); ++i) {
-                visit(toVisit.getSubExpr(i));
+            for (int i = 0; i < toVisit.numOfSubExpr(); ++i) {
+                visit(toVisit.subExpr(i));
             }
             return true;
         }

@@ -27,7 +27,6 @@ public class Context extends Procedure<Stmt> {
         return mFun;
     }
     
-    // TODO: Rewrite the function with Java 8 Stream interfaces
     private CFG<Stmt> buildCFG(Function fun) {
         CFG<Instruction> asmCFG = fun.cfg();
         List<BasicBlock<Stmt>> bbs = 
@@ -36,9 +35,7 @@ public class Context extends Procedure<Stmt> {
                 new HashMap<BasicBlock<Instruction>, BasicBlock<Stmt>>();
         for (BasicBlock<Instruction> bb : asmCFG) {
             List<Stmt> irstmt = new LinkedList<Stmt>();
-            for (Instruction inst : bb) {
-                irstmt.addAll(toIRStatements(inst));
-            }
+            bb.forEach(inst -> irstmt.addAll(toIRStatements(inst)));
             BasicBlock<Stmt> irbb = 
                     new BasicBlock<Stmt>(this, irstmt, bb.label());
             bbs.add(irbb);
@@ -46,12 +43,8 @@ public class Context extends Procedure<Stmt> {
         }
         for (BasicBlock<Instruction> bb : asmCFG) {
             BasicBlock<Stmt> irbb = map.get(bb);
-            for (BasicBlock<Instruction> pred : bb.allPredecessor()) {
-                irbb.addPredecessor(map.get(pred));
-            }
-            for (BasicBlock<Instruction> succ : bb.allSuccessor()) {
-                irbb.addSuccessor(map.get(succ));
-            }
+            bb.allPredecessor().forEach(pred -> irbb.addPredecessor(map.get(pred)));
+            bb.allSuccessor().forEach(succ -> irbb.addSuccessor(map.get(succ)));
         }
         // Set indices for IR statements
         int stmtNo = 0;
@@ -136,11 +129,11 @@ public class Context extends Procedure<Stmt> {
     private void toIR(BranchInst inst, List<Stmt> ret) {
         Expr target = null; 
         if (inst.isIndirect()) {
-            Tuple<Expr, LdStmt> tuple = loadMemory(inst, inst.getTarget());
+            Tuple<Expr, LdStmt> tuple = loadMemory(inst, inst.target());
             target = tuple.first;
             ret.add(tuple.second);
         } else {
-            target = Expr.toExpr(inst.getTarget());
+            target = Expr.toExpr(inst.target());
         }
         Stmt branch = null;
         if (inst.isCallInst()) {
@@ -201,20 +194,20 @@ public class Context extends Procedure<Stmt> {
     }
     
     private void toIR(DivideInst inst, List<Stmt> ret) {
-    	Tuple<Register, Register> x = inst.getDividend();
+    	Tuple<Register, Register> x = inst.dividend();
     	Expr dividend = new BExpr(BExpr.Op.CONCAT, 
     			Reg.getReg(x.first), Reg.getReg(x.second));
-    	Expr divider = readOperand(inst, inst.getDivider(), ret);
+    	Expr divider = readOperand(inst, inst.divider(), ret);
     	Expr divid = new BExpr(BExpr.Op.DIV, dividend, divider);
     	Expr low = new UExpr(UExpr.Op.LOW, divid);
     	Expr high = new UExpr(UExpr.Op.HIGH, divid);
-    	Tuple<Register, Register> y = inst.getDest();
+    	Tuple<Register, Register> y = inst.dest();
     	ret.add(new AssignStmt(inst, Reg.getReg(y.first), low));
     	ret.add(new AssignStmt(inst, Reg.getReg(y.second), high));
     }
     
     private void toIR(ExchangeInst inst, List<Stmt> ret) {
-        Tuple<Operand, Operand> values = inst.getExchangedOperands();
+        Tuple<Operand, Operand> values = inst.exchangedOperands();
         Var d1 = getNewTempVariable();
         Var d2 = getNewTempVariable();
         ret.add(new AssignStmt(inst, d1, readOperand(inst, values.first, ret)));
@@ -225,8 +218,8 @@ public class Context extends Procedure<Stmt> {
     
     private void toIR(LeaInst inst, List<Stmt> ret) {
         ret.add(new AssignStmt(inst,
-                Reg.getReg(inst.getResult()),
-                Expr.toExpr(inst.getExpression())));
+                Reg.getReg(inst.loadedRegister()),
+                Expr.toExpr(inst.addrExpression())));
     }
     
     private void toIR(UnaryArithInst inst, List<Stmt> ret) {
@@ -303,11 +296,11 @@ public class Context extends Procedure<Stmt> {
     }
     
     private void toIR(MultiplyInst inst, List<Stmt> ret) {
-        Tuple<Operand, Operand> src = inst.getSrc();
+        Tuple<Operand, Operand> src = inst.src();
         Expr e1 = readOperand(inst, src.first, ret);
         Expr e2 = readOperand(inst, src.second, ret);
         BExpr bexp = new BExpr(BExpr.Op.MUL, e1, e2);
-        Tuple<Operand, Operand> dest = inst.getDest();
+        Tuple<Operand, Operand> dest = inst.dest();
         Var result = getNewTempVariable(64);
         ret.add(new AssignStmt(inst, result, bexp));
         Expr low = new UExpr(UExpr.Op.LOW, result);
@@ -329,7 +322,7 @@ public class Context extends Procedure<Stmt> {
                 break;
             case CALL:
                 CallInst call = (CallInst)inst;
-                ret.add(new CallStmt(call, Expr.toExpr(call.getTarget())));
+                ret.add(new CallStmt(call, Expr.toExpr(call.target())));
                 break;
             case COMPARE:
                 toIR((CompareInst)inst, ret);

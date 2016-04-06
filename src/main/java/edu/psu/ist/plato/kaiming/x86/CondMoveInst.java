@@ -8,11 +8,11 @@ public class CondMoveInst extends MoveInst {
 
     protected CondMoveInst(long addr, Opcode op, Operand from, Operand to) {
         super(addr, op, from, to);
-        mCond = Flag.getDependentFlagsByCondition(op.getRawOpcode()
+        mCond = Flag.getDependentFlagsByCondition(op.rawOpcode()
                 .substring(4));
     }
 
-    public Set<Flag> getDependentFlags() {
+    public Set<Flag> dependentFlags() {
         return mCond;
     }
     

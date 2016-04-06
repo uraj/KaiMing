@@ -5,7 +5,7 @@ public class Immediate extends Operand {
 	private final long mValue;
 	
 	private Immediate(long value) {
-		super(Type.Immediate);
+		super(Type.IMMEDIATE);
 		mValue = value;
 	}
 	

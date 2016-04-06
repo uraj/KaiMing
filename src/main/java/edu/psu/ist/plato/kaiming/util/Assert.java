@@ -24,4 +24,9 @@ public class Assert {
     public static void unreachable(String msg) {
         test(false, "Uncreachable code: " + msg);
     }
+    
+    public static void verify(boolean condition) {
+        if (!condition)
+            throw new IllegalArgumentException();
+    }
 }

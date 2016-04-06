@@ -40,7 +40,7 @@ public class FunctionLayoutLinuxGcc {
     // The heuristic is that if a function saves esp in ebp, then it 
     // tends to use ebp to address its local variables and parameters. 
     private Addressing guessAddressing(Function func) {
-        for (Instruction i : func.getInstructions()) {
+        for (Instruction i : func.entries()) {
             if (i.isMoveInst()) {
                 Operand o0, o1;
                 o0 = i.operand(0);
@@ -60,7 +60,7 @@ public class FunctionLayoutLinuxGcc {
     private Tuple<Integer, Integer> guessStackFrameLayout(Function func) {
         int framesize = 0;
         int numPushes = 0;
-        for (Instruction i : func.getInstructions()) {
+        for (Instruction i : func.entries()) {
             if (i.isPushInst())
                 ++numPushes;
             else if (i.opcode().opcodeClass() == Opcode.Class.SUB) {
@@ -79,15 +79,15 @@ public class FunctionLayoutLinuxGcc {
     
     private int guessArgumentNumber(Function func, Addressing addr) {
         int ret = -1;
-        List<Instruction> insts = func.getInstructions();
+        List<Instruction> insts = func.entries();
         if (addr == Addressing.EBP_ADDRESSING) {
             for (Instruction i : insts) {
                 for (Operand o : i.operands()) {
                     if (o.isMemory()) {
                         Memory m = o.asMemory();
-                        if (m.getOffsetRegister() == null && 
-                                m.getBaseRegister().id == Register.Id.EBP) {
-                            long disp = m.getDisplacement();
+                        if (m.offsetRegister() == null && 
+                                m.baseRegister().id == Register.Id.EBP) {
+                            long disp = m.displacement();
                             if (disp > Integer.MAX_VALUE)
                                 continue;
                             int num = (int)(disp / 4 - 1);
@@ -102,9 +102,9 @@ public class FunctionLayoutLinuxGcc {
                 for (Operand o : i.operands()) {
                     if (o.isMemory()) {
                         Memory m = o.asMemory();
-                        if (m.getOffsetRegister() == null && 
-                                m.getBaseRegister().id == Register.Id.EBP) {
-                            long disp = m.getDisplacement();
+                        if (m.offsetRegister() == null && 
+                                m.baseRegister().id == Register.Id.EBP) {
+                            long disp = m.displacement();
                             if (disp < startOfArgs && disp > Integer.MAX_VALUE)
                                 continue;
                             int num = (int)(disp / 4);

@@ -14,7 +14,7 @@ public enum Flag {
     static {
         sFlags = new Flag[32];
         for (Flag f : Flag.values()) {
-            sFlags[f.getBitPosition()] = f;
+            sFlags[f.bitPosition()] = f;
         }
     }
 
@@ -22,7 +22,7 @@ public enum Flag {
         mPos = pos;
     }
 
-    public int getBitPosition() {
+    public int bitPosition() {
         return mPos;
     }
 

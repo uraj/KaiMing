@@ -17,11 +17,11 @@ public class Var extends Lval {
         mSize = sizeInBits;
     }
     
-    public String getName() {
+    public String name() {
         return mName;
     }
     
-    public Context getContext() {
+    public Context context() {
         return mContext;
     }
 

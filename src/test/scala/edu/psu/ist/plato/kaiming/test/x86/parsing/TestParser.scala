@@ -51,9 +51,9 @@ class TestParser extends FunSuite with BeforeAndAfter {
         case (Some(funcs), _) =>
           println("OK")
           val baos = new ByteArrayOutputStream()
-          val printer = new Printer(baos, true)
+          val printer = new Printer(baos, false)
           for (func <- funcs) {
-            printer.printFunction(func)
+            printer.printCFG(func.cfg())
           }
           source.close()
           printer.close()

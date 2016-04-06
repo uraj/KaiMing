@@ -79,7 +79,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
         return mOpcode;
     }
 
-    public final void setOperand(int index, Operand operand) {
+    protected final void setOperand(int index, Operand operand) {
         mOperands[index] = operand;
     }
 
@@ -297,6 +297,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
                 break;
             case MOV:
                 Assert.test(operands.length == 2);
+                Assert.test(!(operands[0].isMemory() && operands[1].isMemory()));
                 ret = new MoveInst(addr, opcode, operands[0], operands[1]);
                 break;
             case CMOV:

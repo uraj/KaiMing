@@ -8,11 +8,11 @@ public class ExchangeInst extends Instruction {
         super(Kind.EXCHANGE, addr, op, new Operand[] {xchg1, xchg2});
     }
     
-    public Tuple<Operand, Operand> getExchangedOperands() {
+    public Tuple<Operand, Operand> exchangedOperands() {
         return new Tuple<Operand, Operand>(operand(0), operand(1));
     }
     
     public boolean isExchangeAdd() {
-        return opcode().getRawOpcode().equals("xadd");
+        return opcode().rawOpcode().equals("xadd");
     }
 }

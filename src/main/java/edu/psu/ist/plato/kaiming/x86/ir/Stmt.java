@@ -32,7 +32,7 @@ abstract public class Stmt extends Entry {
             return true;
         }
         
-        public Set<Lval> getLvals() {
+        public Set<Lval> probedLvals() {
             return mLvals;
         }
     }
@@ -55,7 +55,7 @@ abstract public class Stmt extends Entry {
         for (Expr e : mUsedExpr) {
             prob.visit(e);
         }
-        for (Lval lv : prob.getLvals()) {
+        for (Lval lv : prob.probedLvals()) {
             mUDChain.put(lv, null);
         }
     }
@@ -64,7 +64,7 @@ abstract public class Stmt extends Entry {
         return mKind;
     }
     
-    final public Instruction getHostingInstruction() {
+    final public Instruction hostInstruction() {
         return mInst;
     }
     
@@ -77,15 +77,15 @@ abstract public class Stmt extends Entry {
         mIndex = index;
     }
     
-    final public Set<DefStmt> getDef(Lval lval) {
+    final public Set<DefStmt> searchDefFor(Lval lval) {
     	return mUDChain.get(lval);
     }
     
-    final public Set<DefStmt> setDef(Lval lval, Set<DefStmt> stmt) {
+    final public Set<DefStmt> updateDefFor(Lval lval, Set<DefStmt> stmt) {
     	return mUDChain.put(lval, stmt);
     }
     
-    final public Set<Lval> getUsedLvals() {
+    final public Set<Lval> usedLvals() {
         return mUDChain.keySet();
     }
     

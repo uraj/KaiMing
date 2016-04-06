@@ -14,15 +14,15 @@ public class CmpStmt extends Stmt {
         mCmp2 = cmp2;
     }
     
-    public Expr getComparedFirst() {
+    public Expr comparedFirst() {
         return mCmp1;
     }
     
-    public Expr getComparedSecond() {
+    public Expr comparedSecond() {
         return mCmp2;
     }
     
-    public Tuple<Expr, Expr> getCompared() {
+    public Tuple<Expr, Expr> compared() {
         return new Tuple<Expr, Expr>(mCmp1, mCmp2);
     }
 
