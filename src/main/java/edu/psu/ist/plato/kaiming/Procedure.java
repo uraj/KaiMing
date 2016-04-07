@@ -21,6 +21,6 @@ public abstract class Procedure<T extends Entry> {
     
     public abstract String name();
     
-    public abstract Label deriveSubLabel(BasicBlock<T> bb);
+    protected abstract Label deriveSubLabel(BasicBlock<T> bb);
 
 }

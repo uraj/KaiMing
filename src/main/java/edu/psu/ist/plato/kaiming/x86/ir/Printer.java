@@ -112,8 +112,8 @@ public class Printer extends PrintWriter {
         print(')');
     }
     
-    private void printLb(Lb l) {
-        print(l.label().name());
+    private void printTarget(Target l) {
+        print(l.targetLabel().name());
     }
     
     public void printExpr(Expr e) {
@@ -125,8 +125,8 @@ public class Printer extends PrintWriter {
             printBExpr((BExpr) e);
         } else if (e instanceof UExpr) {
             printUExpr((UExpr) e);
-        } else if (e instanceof Lb) {
-            printLb((Lb)e);
+        } else if (e instanceof Target) {
+            printTarget((Target)e);
         } else {
             Assert.unreachable();
         }
@@ -213,7 +213,16 @@ public class Printer extends PrintWriter {
         bb.forEach(s -> { print('\t'); printStmt(s); println(); });
     }
     
+    public void printIndentedBasicBlock(BasicBlock<Stmt> bb) {
+        print('\t');
+        println(bb.label() + ":");
+        bb.forEach(s -> { print("\t\t"); printStmt(s); println(); });
+    }
+    
     public void printContext(Context ctx) {
+        print(ctx.name());
+        println(" {");
         ctx.cfg().forEach(bb -> printBasicBlock(bb));
+        println('}');
     }
 }

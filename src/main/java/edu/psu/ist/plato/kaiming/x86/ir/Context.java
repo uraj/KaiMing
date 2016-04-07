@@ -33,11 +33,12 @@ public class Context extends Procedure<Stmt> {
                 new ArrayList<BasicBlock<Stmt>>(asmCFG.size());
         Map<BasicBlock<Instruction>, BasicBlock<Stmt>> map =
                 new HashMap<BasicBlock<Instruction>, BasicBlock<Stmt>>();
+        int labelNo = 0;
         for (BasicBlock<Instruction> bb : asmCFG) {
             List<Stmt> irstmt = new LinkedList<Stmt>();
             bb.forEach(inst -> irstmt.addAll(toIRStatements(inst)));
             BasicBlock<Stmt> irbb = 
-                    new BasicBlock<Stmt>(this, irstmt, bb.label());
+                    new BasicBlock<Stmt>(this, irstmt, new Label("L_" + labelNo++, -1));
             bbs.add(irbb);
             map.put(bb, irbb);
         }
@@ -50,12 +51,26 @@ public class Context extends Procedure<Stmt> {
         int stmtNo = 0;
         for (BasicBlock<Instruction> bb : asmCFG) {
             BasicBlock<Stmt> irbb = map.get(bb);
-            Assert.test(irbb != null);
             for (Stmt s : irbb) {
                 Assert.test(s != null);
                 s.setIndex(stmtNo++);
             }
+            irbb.label().setAddr(irbb.index());
         }
+        
+        for (BasicBlock<Stmt> bb : bbs) {
+            Stmt last = bb.lastEntry();
+            if (last.kind() == Stmt.Kind.JMP) {
+                JmpStmt js = (JmpStmt)last;
+                BranchInst lastInst = (BranchInst)js.hostInstruction();
+                if (lastInst.target().isRelocation()) {
+                    BasicBlock<Instruction> asmTarget =
+                            lastInst.target().asRelocation().targetBlock();
+                    js.resolveTarget(map.get(asmTarget));
+                }
+            }
+        }
+        
         return createCFGObject(bbs, map.get(asmCFG.entryBlock()));
     }
 
@@ -141,12 +156,7 @@ public class Context extends Procedure<Stmt> {
         if (inst.isCallInst()) {
         	branch = new CallStmt((CallInst)inst, target);
         } else if (inst.isJumpInst()) {
-            Expr maybeRelocated;
-            if (inst.isTargetRelocated())
-                maybeRelocated = new Lb(target, inst.targetLabel());
-            else
-                maybeRelocated = target;
-            branch = new JmpStmt((JumpInst)inst, maybeRelocated);
+            branch = new JmpStmt((JumpInst)inst, target);
         } else {
         	Assert.unreachable();
         }
@@ -375,7 +385,7 @@ public class Context extends Procedure<Stmt> {
     }
 
 	@Override
-	public Label deriveSubLabel(BasicBlock<Stmt> bb) {
+	protected Label deriveSubLabel(BasicBlock<Stmt> bb) {
 		return null;
 	}
 }

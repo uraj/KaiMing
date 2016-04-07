@@ -3,6 +3,7 @@ package edu.psu.ist.plato.kaiming.x86.ir;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
+import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.util.Assert;
 import edu.psu.ist.plato.kaiming.x86.Immediate;
 import edu.psu.ist.plato.kaiming.x86.Memory;
@@ -77,8 +78,8 @@ public abstract class Expr {
                 }
             } else if (expr instanceof Const) {
                 return visitConst((Const)expr);
-            } else if (expr instanceof Lb) {
-                return action(((Lb)expr).underlyingExpr());
+            } else if (expr instanceof Target) {
+                return action(((Target)expr).underlyingExpr());
             } else {
                 System.err.println(expr);
                 Assert.unreachable();
@@ -114,5 +115,9 @@ public abstract class Expr {
         p.printExpr(this);
         p.close();
         return baos.toString();
+    }
+    
+    public Target asTarget(BasicBlock<Stmt> bb) {
+        return new Target(this, bb);
     }
 }

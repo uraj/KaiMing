@@ -9,8 +9,6 @@ import edu.psu.ist.plato.kaiming.CFG;
 import edu.psu.ist.plato.kaiming.Entry;
 import edu.psu.ist.plato.kaiming.Label;
 
-// TODO: We should re-implement this once we have the  
-// visitor infrastructure ready.
 public class Printer extends PrintWriter {
 
     private boolean mIsParseMode;
@@ -43,7 +41,7 @@ public class Printer extends PrintWriter {
     
     public void printOpMemory(Memory mem) {
         if (!mIsParseMode && mem.isRelocation()) {
-            print(mem.asRelocation().label().name());
+            print(mem.asRelocation().targetBlock().label());
             return;
         }
         if (mem.baseRegister() != null

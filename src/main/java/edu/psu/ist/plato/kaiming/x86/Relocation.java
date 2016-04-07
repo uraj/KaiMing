@@ -1,17 +1,19 @@
 package edu.psu.ist.plato.kaiming.x86;
 
-import edu.psu.ist.plato.kaiming.Label;
+import edu.psu.ist.plato.kaiming.BasicBlock;
 
 public class Relocation extends Memory {
 
-    private Label mLabel;
-    public Relocation(Memory m, Label l) {
+    private BasicBlock<Instruction> mTB;
+    public Relocation(Memory m, BasicBlock<Instruction> target) {
         super(m.displacement(), m.baseRegister(),
                 m.offsetRegister(), m.multiplier());
-        mLabel = l;
+        mTB = target;
     }
 
-    public Label label() { return mLabel; }
+    public BasicBlock<Instruction> targetBlock() {
+        return mTB;
+    }
     
     @Override
     public boolean isRelocation() {

@@ -1,5 +1,6 @@
 package edu.psu.ist.plato.kaiming.x86;
 
+import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.Label;
 
 public abstract class BranchInst extends Instruction {
@@ -31,10 +32,10 @@ public abstract class BranchInst extends Instruction {
         return target.baseRegister() == null && target.offsetRegister() == null;
     }
 
-    public final boolean relocateTarget(Label l) {
-        if (l == null || isIndirect() || !isTargetConcrete())
+    public final boolean relocateTarget(BasicBlock<Instruction> target) {
+        if (target == null || isIndirect() || !isTargetConcrete())
             return false;
-        setOperand(0, new Relocation(target(), l));
+        setOperand(0, new Relocation(target(), target));
         return true;
     }
     
@@ -44,7 +45,7 @@ public abstract class BranchInst extends Instruction {
 
     public final Label targetLabel() {
         if (isTargetRelocated())
-            return target().asRelocation().label();
+            return target().asRelocation().targetBlock().label();
         return null;
     }
 }

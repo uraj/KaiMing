@@ -3,6 +3,7 @@ package edu.psu.ist.plato.kaiming.x86;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -110,7 +111,7 @@ public class Function extends Procedure<Instruction> {
                         continue;
                     Assert.test(targetBB.firstEntry().index() == targetAddr, mLabel.name());
                     // relocate target
-                    bin.relocateTarget(targetBB.label());
+                    bin.relocateTarget(targetBB);
                     bbs.get(i).addSuccessor(targetBB);
                     targetBB.addPredecessor(bbs.get(i));
                     if (!bin.isCondJumpInst()) {
@@ -141,8 +142,16 @@ public class Function extends Procedure<Instruction> {
         } else {
             cfg.addAll(bbs);
         }
-
+        checkCFGSanity(bbs);
         return createCFGObject(cfg, bbs.get(0));
+    }
+    
+    private void checkCFGSanity(List<BasicBlock<Instruction>> bbs) {
+        Set<BasicBlock<Instruction>> all = new HashSet<BasicBlock<Instruction>>(bbs);
+        for (BasicBlock<Instruction> bb : bbs) {
+            bb.allPredecessor().forEach(pred -> Assert.test(all.contains(pred)));
+            bb.allSuccessor().forEach(succ -> Assert.test(all.contains(succ)));
+        }
     }
 
     @Override
