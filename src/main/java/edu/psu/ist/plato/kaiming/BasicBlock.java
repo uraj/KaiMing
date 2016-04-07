@@ -3,11 +3,13 @@ package edu.psu.ist.plato.kaiming;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 
+import edu.psu.ist.plato.kaiming.util.Assert;
 import edu.psu.ist.plato.kaiming.util.ReverseIterator;
 
 public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<BasicBlock<T>> {
@@ -111,10 +113,12 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
     }
 
     public boolean addPredecessor(BasicBlock<T> e) {
+        Assert.verify(e != null);
         return mPred.add(e);
     }
 
     public boolean addSuccessor(BasicBlock<T> e) {
+        Assert.verify(e != null);
         return mSucc.add(e);
     }
     
@@ -135,11 +139,11 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
     }
     
     public List<BasicBlock<T>> allPredecessor() {
-        return new ArrayList<BasicBlock<T>>(mPred);
+        return Collections.unmodifiableList(mPred);
     }
     
     public List<BasicBlock<T>> allSuccessor() {
-        return new ArrayList<BasicBlock<T>>(mSucc);
+        return Collections.unmodifiableList(mSucc);
     }
     
     public BasicBlock<T> removePredecessor(int pos) {
@@ -165,15 +169,7 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
     public void removeSuccessorAll() {
         mSucc.clear();
     }
-    
-    public Iterator<BasicBlock<T>> iterPredecessor() {
-        return mPred.iterator();
-    }
 
-    public Iterator<BasicBlock<T>> iterSuccessor() {
-        return mSucc.iterator();
-    }
-    
     public int numOfPredecessor() {
         return mPred.size();
     }
@@ -189,7 +185,6 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
     public void setLable(Label label) {
         mLabel = label;
     }
-
     
     public static <I extends Entry> ArrayList<BasicBlock<I>> split(Procedure<I> unit,
             final List<I> entries, Integer[] pivots) {
@@ -244,30 +239,24 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
         }
 
         for (int i = 0; i < bbs.size() - 1; ++i) {
-            Iterator<BasicBlock<T>> iterSucc = bbs.get(i + 1).iterPredecessor();
-            while (iterSucc.hasNext()) {
-                bbs.get(i).addSuccessor(iterSucc.next());
-            }
+            final int j = i;
+            bbs.get(j + 1).allPredecessor().forEach(
+                    pred -> bbs.get(j).addSuccessor(pred));
         }
 
         for (int i = 1; i < bbs.size(); ++i) {
-            Iterator<BasicBlock<T>> iterPred = bbs.get(i - 1).iterSuccessor();
-            while (iterPred.hasNext()) {
-                bbs.get(i).addPredecessor(iterPred.next());
-            }
+            final int j = i;
+            bbs.get(j - 1).allSuccessor().forEach(
+                    succ -> bbs.get(j).addPredecessor(succ));
         }
 
         BasicBlock<T> first = bbs.get(0), last = bbs.get(bbs.size() - 1);
-        Iterator<BasicBlock<T>> iterPred = iterPredecessor();
-        while (iterPred.hasNext()) {
-            BasicBlock<T> pred = iterPred.next();
+        for (BasicBlock<T> pred : allPredecessor()) {
             first.addPredecessor(pred);
             pred.removeSuccessor(this);
             pred.addSuccessor(first);
         }
-        Iterator<BasicBlock<T>> iterSucc = iterSuccessor();
-        while (iterSucc.hasNext()) {
-            BasicBlock<T> succ = iterSucc.next();
+        for (BasicBlock<T> succ : allSuccessor()) {
             last.addPredecessor(succ);
             succ.removePredecessor(this);
             succ.addPredecessor(last);

@@ -43,7 +43,7 @@ public class Context extends Procedure<Stmt> {
         }
         for (BasicBlock<Instruction> bb : asmCFG) {
             BasicBlock<Stmt> irbb = map.get(bb);
-            bb.allPredecessor().forEach(pred -> irbb.addPredecessor(map.get(pred)));
+            bb.allPredecessor().forEach(pred -> {edu.psu.ist.plato.kaiming.x86.Printer.err.printBasicBlock(pred);irbb.addPredecessor(map.get(pred));});
             bb.allSuccessor().forEach(succ -> irbb.addSuccessor(map.get(succ)));
         }
         // Set indices for IR statements

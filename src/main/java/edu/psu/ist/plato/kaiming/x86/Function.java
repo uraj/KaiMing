@@ -104,7 +104,6 @@ public class Function extends Procedure<Instruction> {
             if (in.isJumpInst()) {
                 JumpInst bin = (JumpInst)in;
                 if (!bin.isIndirect() && bin.isTargetConcrete()) {
-
                     long targetAddr = bin.target().displacement();
                     BasicBlock<Instruction> targetBB = BasicBlock.searchContainingBlock(bbs, targetAddr);
                     if (targetBB == null)
@@ -131,13 +130,16 @@ public class Function extends Procedure<Instruction> {
         if (!mHasIndirectJump) {
             cfg.add(bbs.get(0));
             for (int i = 1; i < bbs.size(); ++i) {
-                if (bbs.get(i).hasPredecessor())
-                    cfg.add(bbs.get(i));
+                BasicBlock<Instruction> inspect = bbs.get(i);
+                if (inspect.hasPredecessor())
+                    cfg.add(inspect);
+                else {
+                    inspect.allSuccessor().forEach(
+                            succ -> succ.removePredecessor(inspect));
+                }
             }
         } else {
-            for (int i = 0; i < bbs.size(); ++i) {
-                cfg.add(bbs.get(i));
-            }
+            cfg.addAll(bbs);
         }
 
         return createCFGObject(cfg, bbs.get(0));

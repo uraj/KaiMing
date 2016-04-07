@@ -108,7 +108,7 @@ public abstract class Expr {
     }
 
     @Override
-    public String toString() {
+    public final String toString() {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Printer p = new Printer(new PrintStream(baos));
         p.printExpr(this);

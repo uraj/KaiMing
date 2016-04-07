@@ -96,18 +96,14 @@ public abstract class PathInsensitiveProblem<E extends Entry, T> extends Problem
                 HashSet<T> confluenceSet = new HashSet<T>();
                 switch (mDirection) {
                     case FORWARD: {
-                        Iterator<BasicBlock<E>> i = bb.iterPredecessor();
-                        while (i.hasNext()) {
-                            BasicBlock<E> p = i.next();
+                        for (BasicBlock<E> p : bb.allPredecessor()) {
                             T value = exitMap.get(p);
                             Assert.test(value != null);
                             confluenceSet.add(value);
                         }
                     }
                     case BACKWARD: {
-                        Iterator<BasicBlock<E>> i = bb.iterSuccessor();
-                        while (i.hasNext()) {
-                            BasicBlock<E> s = i.next();
+                        for (BasicBlock<E> s : bb.allSuccessor()) {
                             T value = exitMap.get(s);
                             Assert.test(value != null);
                             confluenceSet.add(value);

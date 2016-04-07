@@ -36,4 +36,8 @@ public class Assert {
     public static void debug(boolean condition) {
         test(condition);
     }
+    
+    public static void debug(boolean condition, String msg) {
+        test(condition, msg);
+    }
 }

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedList;
 
@@ -15,6 +16,7 @@ import org.junit.Test;
 import edu.psu.ist.plato.kaiming.x86.Function;
 import edu.psu.ist.plato.kaiming.x86.ir.Printer;
 import edu.psu.ist.plato.kaiming.x86.ir.Context;
+import edu.psu.ist.plato.kaiming.x86.ir.Unit;
 import edu.psu.ist.plato.kaiming.x86.parsing.GASParser;
 import edu.psu.ist.plato.kaiming.x86.parsing.ParsingException;
 
@@ -60,7 +62,10 @@ public class TestIRLifting {
     
     @Test
     public void lift() {
-        funs.forEach(f -> Printer.out.printContext(new Context(f)));
+        List<Context> ctxs = new ArrayList<Context>(funs.size());
+        funs.forEach(f -> ctxs.add(new Context(f)));
+        ctxs.forEach(c -> Printer.out.printContext(c));
+        ctxs.forEach(c -> Unit.UDAnalysis(c));
     }
     
     @After

@@ -36,7 +36,7 @@ public class Unit {
             PathInsensitiveProblem<Stmt, Map<Lval, Set<DefStmt>>> {
             
             public ReachingDefinition(Context ctx) {
-                super(ctx, ctx.cfg(), PathInsensitiveProblem.Direction.FORWARD);
+                super(ctx, ctx.cfg(), Direction.FORWARD);
             }
             
             @Override
@@ -47,7 +47,7 @@ public class Unit {
                 // are defined externally 
                 if (mCfg.entries() == bb) {
                     Set<DefStmt> set = new HashSet<DefStmt>();
-                    set.add(DefStmt.External);
+                    set.add(DefStmt.EXTERNAL);
                     for (Id id : Register.Id.values()) {
                         ret.put(Reg.getReg(Register.getRegister(id)), set);
                     }
@@ -62,7 +62,12 @@ public class Unit {
                 Map<Lval, Set<DefStmt>> out = new HashMap<Lval, Set<DefStmt>>(in);
                 for (Stmt s : bb) {
                     for (Lval lv : s.usedLvals()) {
-                        s.updateDefFor(lv, new HashSet<DefStmt>(out.get(lv)));
+                        if (!out.containsKey(lv)) {
+                            Set<DefStmt> toAdd = new HashSet<DefStmt>();
+                            toAdd.add(DefStmt.EXTERNAL);
+                            out.put(lv, toAdd);
+                        }
+                        s.updateDefFor(lv, out.get(lv));
                     }
                     
                     if (s instanceof DefStmt) {

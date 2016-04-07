@@ -1,5 +1,6 @@
 package edu.psu.ist.plato.kaiming.x86.ir;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import edu.psu.ist.plato.kaiming.x86.Instruction;
@@ -10,6 +11,7 @@ abstract public class DefStmt extends Stmt {
 	
 	protected DefStmt(Kind kind, Instruction inst, Expr[] usedExpr) {
 		super(kind, inst, usedExpr);
+		mDUChain = new HashSet<Stmt>();
 	}
 	
 	abstract public Lval definedLval();
@@ -34,7 +36,7 @@ abstract public class DefStmt extends Stmt {
      * A special DefStmt object that indicates the initial definition
      * of all Lval values in a Context.
      */
-    static public DefStmt External = new DefStmt(null, null, new Expr[] {}) {
+    static final public DefStmt EXTERNAL = new DefStmt(null, null, new Expr[] {}) {
         @Override
         public Lval definedLval() {
             return null;
@@ -42,6 +44,6 @@ abstract public class DefStmt extends Stmt {
     };
     
     final public boolean isExternal() {
-        return this == External;
+        return this == EXTERNAL;
     }
 }
