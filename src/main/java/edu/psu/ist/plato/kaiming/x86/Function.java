@@ -15,31 +15,39 @@ import edu.psu.ist.plato.kaiming.Label;
 import edu.psu.ist.plato.kaiming.Procedure;
 import edu.psu.ist.plato.kaiming.util.Assert;
 
-public class Function extends Procedure {
+public class Function extends Procedure<Instruction> {
 
+    private Label mLabel;
+    private CFG<Instruction> mCFG;
     private int mSubLabelCount;
     private boolean mHasIndirectJump;
     private static final String sSubLabelSuffix = "_sub";
     
-    public Function(AsmLabel label, List<Instruction> insts) {
-        super(label, insts);
+    public Function(Label label, List<Instruction> insts) {
+        mLabel = label;
+        mCFG = buildCFG(insts);
         mSubLabelCount = 0;
     }
 
-    public AsmLabel getLabel() {
-        return (AsmLabel)mLabel;
+    public Label label() {
+        return mLabel;
+    }
+    
+    @Override
+    public CFG<Instruction> cfg() {
+        return mCFG;
+    }
+    
+    public void setEntries(List<Instruction> entries) {
+        mCFG = buildCFG(entries);
     }
 
-    @SuppressWarnings("unchecked")
-    public List<Instruction> getInstructions() {
-        return (List<Instruction>) getEntries();
-    }
-
-    public static BasicBlock searchContainingBlock(Collection<BasicBlock> bbs,
+    public static BasicBlock<Instruction>
+    searchContainingBlock(Collection<BasicBlock<Instruction>> bbs,
             long addr) {
-        for (BasicBlock bb : bbs) {
-            if (bb.getLastEntry().compareTo(addr) >= 0
-                    && bb.getFirstEntry().compareTo(addr) <= 0) {
+        for (BasicBlock<Instruction> bb : bbs) {
+            if (bb.lastEntry().compareTo(addr) >= 0
+                    && bb.firstEntry().compareTo(addr) <= 0) {
                 return bb;
             }
         }
@@ -50,12 +58,12 @@ public class Function extends Procedure {
         return mHasIndirectJump;
     }
 
-    @Override
-    protected CFG buildCFGInternal(List<? extends Entry> entries) {
+    // TODO: Take conditional move into consideration
+    private CFG<Instruction> buildCFG(List<Instruction> entries) {
         Instruction[] inst = entries.toArray(new Instruction[0]);
         Arrays.sort(inst, Instruction.comparator);
         if (inst.length == 0) {
-            return createCFGObject(new ArrayList<BasicBlock>(), null);
+            return createCFGObject(new ArrayList<BasicBlock<Instruction>>(), null);
         }
 
         Set<Integer> pivots = new TreeSet<Integer>();
@@ -66,41 +74,45 @@ public class Function extends Procedure {
             if (inst[i].isBranchInst() && !inst[i].isCallInst()) {
                 BranchInst bin = (BranchInst)inst[i];
                 if (!bin.isIndirect() && bin.isTargetConcrete()) {
-                    long target = bin.getTarget().getDisplacement();
+                    long target = bin.target().displacement();
                     int idx = Entry.searchIndex(inst, target);
-                    if (idx != -1)
+                    if (idx != -1) {
                         pivots.add(idx);
+                    }
                 }
             }
         }
 
         if (pivots.isEmpty()) {
-            BasicBlock init = new BasicBlock(this, Arrays.asList(inst), mLabel);
-            List<BasicBlock> bbs = new LinkedList<BasicBlock>();
+            BasicBlock<Instruction> init =
+                    new BasicBlock<Instruction>(this, Arrays.asList(inst), mLabel);
+            List<BasicBlock<Instruction>> bbs = new LinkedList<BasicBlock<Instruction>>();
             bbs.add(init);
             return createCFGObject(bbs, init);
         }
 
         Integer[] pa = pivots.toArray(new Integer[0]);
-        BasicBlock[] bbs = BasicBlock.split(this, entries, pa);
-        bbs[0].setLable(mLabel);
-        for (int i = 1; i < bbs.length; ++i) {
-            bbs[i].setLable(deriveSubLabel(bbs[i]));
+        ArrayList<BasicBlock<Instruction>> bbs = BasicBlock.split(this, entries, pa);
+        bbs.get(0).setLable(mLabel);
+        for (int i = 1; i < bbs.size(); ++i) {
+            bbs.get(i).setLable(deriveSubLabel(bbs.get(i)));
         }
         
         mHasIndirectJump = false;
-        for (int i = 0; i < bbs.length; ++i) {
-            Instruction in = (Instruction)bbs[i].getLastEntry();
+        for (int i = 0; i < bbs.size(); ++i) {
+            Instruction in = bbs.get(i).lastEntry();
             if (in.isJumpInst()) {
                 JumpInst bin = (JumpInst)in;
                 if (!bin.isIndirect() && bin.isTargetConcrete()) {
-                    long targetAddr = bin.getTarget().getDisplacement();
-                    BasicBlock targetBB = BasicBlock.searchContainingBlock(bbs, targetAddr);
+                    long targetAddr = bin.target().displacement();
+                    BasicBlock<Instruction> targetBB = BasicBlock.searchContainingBlock(bbs, targetAddr);
                     if (targetBB == null)
                         continue;
-                    Assert.test(targetBB.getFirstEntry().getIndex() == targetAddr, mLabel.getName());
-                    bbs[i].addSuccessor(targetBB);
-                    targetBB.addPredecessor(bbs[i]);
+                    Assert.test(targetBB.firstEntry().index() == targetAddr, mLabel.name());
+                    // relocate target
+                    bin.relocateTarget(targetBB.label());
+                    bbs.get(i).addSuccessor(targetBB);
+                    targetBB.addPredecessor(bbs.get(i));
                     if (!bin.isCondJumpInst()) {
                         continue;
                     }
@@ -108,41 +120,43 @@ public class Function extends Procedure {
                     mHasIndirectJump = true;
                 }
             }
-            if (!in.isReturnInst() && i + 1 < bbs.length) {
-                bbs[i].addSuccessor(bbs[i + 1]);
-                bbs[i + 1].addPredecessor(bbs[i]);
+            if (!in.isReturnInst() && i + 1 < bbs.size()) {
+                bbs.get(i).addSuccessor(bbs.get(i + 1));
+                bbs.get(i + 1).addPredecessor(bbs.get(i));
             }
         }
         
-        List<BasicBlock> cfg = new ArrayList<BasicBlock>();
+        List<BasicBlock<Instruction>> cfg = new ArrayList<BasicBlock<Instruction>>();
         if (!mHasIndirectJump) {
-            cfg.add(bbs[0]);
-            for (int i = 1; i < bbs.length; ++i) {
-                if (bbs[i].hasPredecessor())
-                    cfg.add(bbs[i]);
+            cfg.add(bbs.get(0));
+            for (int i = 1; i < bbs.size(); ++i) {
+                BasicBlock<Instruction> inspect = bbs.get(i);
+                if (inspect.hasPredecessor())
+                    cfg.add(inspect);
+                else {
+                    inspect.allSuccessor().forEach(
+                            succ -> succ.removePredecessor(inspect));
+                }
             }
         } else {
-            for (int i = 0; i < bbs.length; ++i) {
-                cfg.add(bbs[i]);
-            }
+            cfg.addAll(bbs);
         }
 
-        return createCFGObject(cfg, bbs[0]);
+        return createCFGObject(cfg, bbs.get(0));
     }
 
     @Override
-    public String getName() {
-        return mLabel.getName();
+    public String name() {
+        return mLabel.name();
     }
 
-    @Override
-    public Label deriveSubLabel(BasicBlock bb) {
+    public Label deriveSubLabel(BasicBlock<Instruction> bb) {
         Assert.test(mLabel != null);
-        Assert.test(mLabel.getName() != null);
-        String name = mLabel.getName() + sSubLabelSuffix
+        Assert.test(mLabel.name() != null);
+        String name = mLabel.name() + sSubLabelSuffix
                 + String.valueOf(mSubLabelCount++);
-        AsmLabel ret = new AsmLabel(name, 0);
-        bb.getFirstEntry().fillLabelInformation(ret);
+        Label ret = new Label(name, 0);
+        bb.firstEntry().fillLabelInformation(ret);
         return ret;
     }
 }

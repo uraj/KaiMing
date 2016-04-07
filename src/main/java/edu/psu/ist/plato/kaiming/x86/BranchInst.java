@@ -1,21 +1,23 @@
 package edu.psu.ist.plato.kaiming.x86;
 
+import edu.psu.ist.plato.kaiming.Label;
+
 public abstract class BranchInst extends Instruction {
 
     private final boolean mIndirect;
     
-    protected BranchInst(long addr, Opcode op, Memory target, boolean isIndirect) {
-        super(addr, op, new Operand[] { target });
+    protected BranchInst(Kind kind, long addr, Opcode op, Memory target, boolean isIndirect) {
+        super(kind, addr, op, new Operand[] { target });
         mIndirect = isIndirect;
     }
     
-    protected BranchInst(long addr, Opcode op, Register target, boolean isIndirect) {
-        super(addr, op, new Operand[] { new Memory(0, target, null, 0) });
+    protected BranchInst(Kind kind, long addr, Opcode op, Register target, boolean isIndirect) {
+        super(kind, addr, op, new Operand[] { new Memory(0, target, null, 0) });
         mIndirect = isIndirect;
     }
     
-    public final Memory getTarget() {
-        return (Memory)getOperand(0);
+    public final Memory target() {
+        return operand(0).asMemory();
     }
     
     public final boolean isIndirect() {
@@ -23,13 +25,26 @@ public abstract class BranchInst extends Instruction {
     }
     
     public final boolean isTargetConcrete() {
-        return !mIndirect && getTarget().isImmeidate();
+        if (mIndirect)
+            return false;
+        Memory target = target();
+        return target.baseRegister() == null && target.offsetRegister() == null;
     }
 
-    public final boolean relocateTarget(AsmLabel l) {
+    public final boolean relocateTarget(Label l) {
         if (l == null || isIndirect() || !isTargetConcrete())
             return false;
-        setOperand(0, new Relocation(getTarget(), l));
+        setOperand(0, new Relocation(target(), l));
         return true;
+    }
+    
+    public final boolean isTargetRelocated() {
+        return target().isRelocation();
+    }
+
+    public final Label targetLabel() {
+        if (isTargetRelocated())
+            return target().asRelocation().label();
+        return null;
     }
 }

@@ -20,12 +20,12 @@ public class CallInst extends BranchInst {
     
     private Function mCalled;
     protected CallInst(long addr, Opcode op, Memory target, boolean isIndirect) {
-        super(addr, op, target, isIndirect);
+        super(Kind.CALL, addr, op, target, isIndirect);
         mCalled = null;
     }
     
     protected CallInst(long addr, Opcode op, Register target, boolean isIndirect) {
-        super(addr, op, target, isIndirect);
+        super(Kind.CALL, addr, op, target, isIndirect);
         mCalled = null;
     }
 
@@ -33,11 +33,11 @@ public class CallInst extends BranchInst {
         mCalled = f;
     }
     
-    public Function getCalledFunction() {
+    public Function calledFunction() {
         return mCalled;
     }
     
-    public static final Set<Register.Id> getCallerSavedRegister() {
+    public static final Set<Register.Id> callerSavedRegister() {
         return sCallerSavedRegs;
     }
 }

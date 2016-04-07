@@ -1,13 +1,20 @@
 package edu.psu.ist.plato.kaiming.x86;
 
+import edu.psu.ist.plato.kaiming.Label;
+
 public class Relocation extends Memory {
 
-    private AsmLabel mLabel;
-    public Relocation(Memory m, AsmLabel l) {
-        super(m.getDisplacement(), m.getBaseRegister(),
-                m.getOffsetRegister(), m.getMultiplier());
+    private Label mLabel;
+    public Relocation(Memory m, Label l) {
+        super(m.displacement(), m.baseRegister(),
+                m.offsetRegister(), m.multiplier());
         mLabel = l;
     }
 
-    public AsmLabel getLabel() { return mLabel; }
+    public Label label() { return mLabel; }
+    
+    @Override
+    public boolean isRelocation() {
+        return true;
+    }
 }

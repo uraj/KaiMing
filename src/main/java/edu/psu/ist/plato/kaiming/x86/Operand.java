@@ -1,11 +1,14 @@
 package edu.psu.ist.plato.kaiming.x86;
 
-public class Operand {
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+
+abstract public class Operand {
 	
 	public enum Type {
-		Register,
-		Memory,
-		Immediate,
+		REGISTER,
+		MEMORY,
+		IMMEDIATE,
 	}
 	
 	private final Type mType;
@@ -15,18 +18,18 @@ public class Operand {
 	}
 	
 	public final boolean isRegister() { 
-	    return mType == Type.Register;
+	    return mType == Type.REGISTER;
 	}
 	
 	public final boolean isMemory() {
-	    return mType == Type.Memory;
+	    return mType == Type.MEMORY;
 	}
 
 	public final boolean isImmeidate() { 
-	    return mType == Type.Immediate; 
+	    return mType == Type.IMMEDIATE; 
 	}
 	
-	public final Type getType() { 
+	public final Type type() { 
 	    return mType;
 	}
 	
@@ -41,4 +44,13 @@ public class Operand {
 	public final Register asRegister() {
 	    return (Register)this;
 	}
+	
+	@Override
+    public String toString() {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Printer p = new Printer(new PrintStream(baos));
+        p.printOperand(this);
+        p.close();
+        return baos.toString();
+    }
 }

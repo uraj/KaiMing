@@ -16,4 +16,28 @@ public class Assert {
         if (!condition)
             throw new AssertionFailException(Long.toHexString(info));
     }
+    
+    public static void unreachable() {
+        test(false, "Uncreachable code");
+    }
+    
+    public static void unreachable(String msg) {
+        test(false, "Uncreachable code: " + msg);
+    }
+    
+    public static void verify(boolean condition) {
+        if (!condition)
+            throw new IllegalArgumentException();
+    }
+    
+    /**
+     * A debug-use wrapper of @Assert.test 
+     */
+    public static void debug(boolean condition) {
+        test(condition);
+    }
+    
+    public static void debug(boolean condition, String msg) {
+        test(condition, msg);
+    }
 }

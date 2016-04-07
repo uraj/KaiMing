@@ -15,17 +15,44 @@ import edu.psu.ist.plato.kaiming.util.Assert;
 
 public abstract class Instruction extends Entry implements Iterable<Operand> {
 
+	public enum Kind {
+		BIN_ARITH,
+		UN_ARITH,
+		CALL,
+		RETURN,
+		COMPARE,
+		DIVIDE,
+		MULTIPLY,
+		BIT_TEST,
+		COND_SET,
+		EXCHANGE,
+		JUMP,
+		LEA,
+		MOVE,
+		MOVE_STR,
+		NOP,
+		POP,
+		PUSH,
+		OTHER,
+	};
+	
+	private final Kind mKind;
     protected long mAddr;
     protected final Opcode mOpcode;
     private Operand[] mOperands;
     
     private final static Set<Flag> sModifiedFlags;
     
+    public final Kind kind() {
+    	return mKind;
+    }
+    
     static {
         sModifiedFlags = Collections.unmodifiableSet(new HashSet<Flag>());
     }
 
-    protected Instruction(long addr, Opcode op, Operand[] operands) {
+    protected Instruction(Kind kind, long addr, Opcode op, Operand[] operands) {
+    	mKind = kind;
         mAddr = addr;
         mOpcode = op;
         mOperands = operands;
@@ -40,7 +67,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
         return baos.toString();
     }
 
-    public final long getAddr() {
+    public final long addr() {
         return mAddr;
     }
 
@@ -48,100 +75,100 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
         mAddr = addr;
     }
 
-    public final Opcode getOpcode() {
+    public final Opcode opcode() {
         return mOpcode;
     }
 
-    public final void setOperand(int index, Operand operand) {
+    protected final void setOperand(int index, Operand operand) {
         mOperands[index] = operand;
     }
 
-    public final Operand getOperand(int index) {
+    public final Operand operand(int index) {
         return mOperands[index];
     }
     
-    public final Operand[] getOperands() {
+    public final Operand[] operands() {
         return Arrays.copyOf(mOperands, mOperands.length);
     }
 
-    public final int getNumOperands() {
+    public final int numOfOperands() {
         return mOperands.length;
     }
 
     public final boolean isJumpInst() {
-        return this instanceof JumpInst;
+        return mKind.equals(Kind.JUMP);
     }
     
     public final boolean isUncondJumpInst() {
-        return this instanceof JumpInst && !isConditional();
+        return mKind.equals(Kind.JUMP) && !isConditional();
     }
 
     public final boolean isCondJumpInst() {
-        return this instanceof CondJumpInst;
+        return mKind.equals(Kind.JUMP) && isConditional();
     }
 
     public final boolean isCondSetInst() {
-        return this instanceof CondSetInst;
-    }
-    
-    public final boolean isCondMoveInst() {
-        return this instanceof CondMoveInst;
+        return mKind.equals(Kind.COND_SET);
     }
     
     public final boolean isMoveInst() {
-        return this instanceof MoveInst;
+    	return mKind.equals(Kind.MOVE);
+    }
+    
+    public final boolean isCondMoveInst() {
+        return isMoveInst() && isConditional();
     }
     
     public final boolean isLeaInst() {
-        return this instanceof LeaInst;
+        return mKind.equals(Kind.LEA);
     }
     
     public final boolean isUncondMoveInst() {
-        return this instanceof MoveInst && !isConditional();
+        return isMoveInst() && !isConditional();
     }
 
     public final boolean isBinaryArithInst() {
-        return this instanceof BinaryArithInst;
+        return mKind.equals(Kind.BIN_ARITH);
     }
     
     public final boolean isMultiplyInst() {
-        return this instanceof MultiplyInst;
+        return mKind.equals(Kind.MULTIPLY);
     }
     
     public final boolean isDivideInst() {
-        return this instanceof DivideInst;
+        return mKind.equals(Kind.DIVIDE);
     }
     
     public final boolean isBitTestInst() {
-        return this instanceof BitTestInst;
+        return mKind.equals(Kind.BIT_TEST);
     }
     
     public final boolean isExchangeInst() {
-        return this instanceof ExchangeInst;
+        return mKind.equals(Kind.EXCHANGE);
     }
 
     public final boolean isCompareInst() {
-        return this instanceof CompareInst;
+        return mKind.equals(Kind.COMPARE);
     }
 
     public final boolean isUnaryArithInst() {
-        return this instanceof UnaryArithInst;
+        return mKind.equals(Kind.UN_ARITH);
     }
 
     public final boolean isPopInst() {
-        return this instanceof PopInst;
+        return mKind.equals(Kind.POP);
     }
 
     public final boolean isPushInst() {
-        return this instanceof PushInst;
+        return mKind.equals(Kind.PUSH);
     }
 
     public final boolean isCallInst() {
-        return this instanceof CallInst;
+        return mKind.equals(Kind.CALL);
     }
 
     public final boolean isReturnInst() {
-        return this instanceof ReturnInst;
+        return mKind.equals(Kind.RETURN);
     }
 
     public final boolean isBranchInst() {
@@ -149,11 +176,11 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
     }
     
     public final boolean isOtherInst() {
-        return this instanceof OtherInst;
+        return mKind.equals(Kind.OTHER);
     }
     
     public final boolean isNopInst() {
-        return this instanceof NopInst;
+        return mKind.equals(Kind.NOP);
     }
     
     public final boolean isTerminator() {
@@ -172,7 +199,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
     public static Instruction createInstruction(long addr, Opcode opcode,
             Operand[] operands, boolean isIndirect) {
         Instruction ret = null;
-        switch (opcode.getOpcodeClass()) {
+        switch (opcode.opcodeClass()) {
             case ADD:
             case ADC:
             case SUB:
@@ -270,6 +297,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
                 break;
             case MOV:
                 Assert.test(operands.length == 2);
+                Assert.test(!(operands[0].isMemory() && operands[1].isMemory()));
                 ret = new MoveInst(addr, opcode, operands[0], operands[1]);
                 break;
             case CMOV:
@@ -285,37 +313,34 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
                 Assert.test(operands[0] instanceof Register);
                 ret = new PopInst(addr, opcode, (Register) operands[0]);
                 break;
+            case MOVS:
+                ret = new MoveStrInst(addr, opcode,
+                        new Memory(null, 0, Register.getRegister(Register.Id.ESI), null, 1),
+                        new Memory(null, 0, Register.getRegister(Register.Id.EDI), null, 1));
+                break;
             default:
                 ret = new OtherInst(addr, opcode, operands);
                 break;
         }
         return ret;
     }
-
-    @Override
+    
     public int fillLabelInformation(Label l) {
-        Assert.test(l instanceof AsmLabel);
-        AsmLabel nl = (AsmLabel) l;
-        nl.setAddr(mAddr);
+        l.setAddr(mAddr);
         return 0;
     }
 
     @Override
-    public int fillLabelInformation(Label l, Entry e) {
-        return 0;
-    }
-
-    @Override
-    public long getIndex() {
+    public long index() {
         return mAddr;
     }
     
-    public Set<Flag> getModifiedFlags() {
+    public Set<Flag> modifiedFlags() {
         return sModifiedFlags;
     }
     
-    public final boolean modifyFlags() {
-        return getModifiedFlags().size() != 0;
+    public final boolean modifyAnyFlag() {
+        return modifiedFlags().size() != 0;
     }
     
     public final boolean isRepeated() {

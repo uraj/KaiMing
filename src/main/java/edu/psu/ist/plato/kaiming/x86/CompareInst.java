@@ -20,19 +20,19 @@ public class CompareInst extends Instruction {
     }
 
     protected CompareInst(long addr, Opcode op, Operand cmp1, Operand cmp2) {
-        super(addr, op, new Operand[] {cmp1, cmp2});
+        super(Kind.COMPARE, addr, op, new Operand[] {cmp1, cmp2});
     }
     
     public boolean isTest() {
-        return getOpcode().getOpcodeClass() == Opcode.Class.TEST;
+        return opcode().opcodeClass() == Opcode.Class.TEST;
     }
     
     public boolean isCompare() {
-        return getOpcode().getOpcodeClass() == Opcode.Class.CMP;
+        return opcode().opcodeClass() == Opcode.Class.CMP;
     }
     
     @Override
-    public Set<Flag> getModifiedFlags() {
+    public Set<Flag> modifiedFlags() {
         return sCompareFlagSet;
     }
 }

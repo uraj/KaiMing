@@ -9,28 +9,29 @@ import java.util.Set;
 
 import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.CFG;
+import edu.psu.ist.plato.kaiming.Entry;
 import edu.psu.ist.plato.kaiming.Procedure;
 import edu.psu.ist.plato.kaiming.util.Assert;
 
-public abstract class PathInsensitiveProblem<T> extends Problem<Map<BasicBlock, T>> {
+public abstract class PathInsensitiveProblem<E extends Entry, T> extends Problem<Map<BasicBlock<E>, T>> {
     public enum Direction {
         FORWARD, BACKWARD
     };
 
-    protected Procedure mP;
-    protected final CFG mCfg;
+    protected Procedure<E> mP;
+    protected final CFG<E> mCfg;
     private boolean mSolved;
     private Direction mDirection;
     private static final int sMaxIterMultiplier = 10;
     private int mMaxIter;
 
-    public PathInsensitiveProblem(Procedure p, CFG cfg, Direction direction) {
+    public PathInsensitiveProblem(Procedure<E> p, CFG<E> cfg, Direction direction) {
         super(null);
         mSolved = false;
         mP = p;
         mCfg = cfg;
         mDirection = direction;
-        mMaxIter = sMaxIterMultiplier * mCfg.getSize(); 
+        mMaxIter = sMaxIterMultiplier * mCfg.size(); 
     }
     
     public void setMaxIteration(int max) {
@@ -41,9 +42,9 @@ public abstract class PathInsensitiveProblem<T> extends Problem<Map<BasicBlock, 
         return mMaxIter;
     }
 
-    protected abstract T getInitialEntryState(BasicBlock bb);
+    protected abstract T getInitialEntryState(BasicBlock<E> bb);
 
-    protected abstract T transfer(BasicBlock bb, T in) throws UnsolvableException;
+    protected abstract T transfer(BasicBlock<E> bb, T in) throws UnsolvableException;
 
     protected abstract T confluence(Set<T> dataset);
 
@@ -76,12 +77,12 @@ public abstract class PathInsensitiveProblem<T> extends Problem<Map<BasicBlock, 
                     UnsolvableException.Reason.SOLVED);
         }
 
-        int size = mCfg.getSize();
-        Map<BasicBlock, T> entryMap = new HashMap<BasicBlock, T>(size);
-        Map<BasicBlock, T> exitMap = new HashMap<BasicBlock, T>(size);
+        int size = mCfg.size();
+        Map<BasicBlock<E>, T> entryMap = new HashMap<BasicBlock<E>, T>(size);
+        Map<BasicBlock<E>, T> exitMap = new HashMap<BasicBlock<E>, T>(size);
         
         boolean dirty;
-        for (BasicBlock bb : mCfg) {
+        for (BasicBlock<E> bb : mCfg) {
             T init = getInitialEntryState(bb);
             entryMap.put(bb, init);
             T exit = transfer(bb, init);
@@ -91,22 +92,18 @@ public abstract class PathInsensitiveProblem<T> extends Problem<Map<BasicBlock, 
         int roundLeft = mMaxIter;
         do {
             dirty = false;
-            for (BasicBlock bb : mCfg) {
+            for (BasicBlock<E> bb : mCfg) {
                 HashSet<T> confluenceSet = new HashSet<T>();
                 switch (mDirection) {
                     case FORWARD: {
-                        Iterator<BasicBlock> i = bb.iterPredecessor();
-                        while (i.hasNext()) {
-                            BasicBlock p = i.next();
+                        for (BasicBlock<E> p : bb.allPredecessor()) {
                             T value = exitMap.get(p);
                             Assert.test(value != null);
                             confluenceSet.add(value);
                         }
                     }
                     case BACKWARD: {
-                        Iterator<BasicBlock> i = bb.iterSuccessor();
-                        while (i.hasNext()) {
-                            BasicBlock s = i.next();
+                        for (BasicBlock<E> s : bb.allSuccessor()) {
                             T value = exitMap.get(s);
                             Assert.test(value != null);
                             confluenceSet.add(value);

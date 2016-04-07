@@ -252,7 +252,7 @@ public class Opcode {
             mClass = Class.UD;
     }
 
-    public String getRawOpcode() {
+    public String rawOpcode() {
         return mCode;
     }
     
@@ -268,7 +268,7 @@ public class Opcode {
     	return mIsRep;
     }
     
-    public RepCond getRepCond() {
+    public RepCond repeatCond() {
     	return mRepCond;
     }
     
@@ -276,7 +276,7 @@ public class Opcode {
         mCode = newRawOpcode;
     }
 
-    public Class getOpcodeClass() {
+    public Class opcodeClass() {
         return mClass;
     }
 

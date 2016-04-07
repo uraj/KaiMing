@@ -3,42 +3,24 @@ package edu.psu.ist.plato.kaiming;
 import java.util.Collection;
 import java.util.List;
 
-public abstract class Procedure {
+public abstract class Procedure<T extends Entry> {
+    
     /**
      * A procedure is required to have a CFG, even if it is only a trivial one.
      */
-    protected CFG mCfg;
-    protected Label mLabel;
-
-    public Procedure(Label l, List<? extends Entry> entries) {
-        mLabel = l;
-        mCfg = buildCFGInternal(entries);
+    public abstract CFG<T> cfg();
+    
+    public List<T> entries() {
+        return cfg().entries();
     }
 
-    public void setEntries(List<? extends Entry> entries) {
-        mCfg = buildCFGInternal(entries);
-    }
-
-    public List<? extends Entry> getEntries() {
-        return mCfg.getEntries();
-    }
-
-    protected abstract CFG buildCFGInternal(List<? extends Entry> entries);
-
-    public CFG getCFG() {
-        return mCfg;
-    }
-
-    public abstract String getName();
-
-    public abstract Label deriveSubLabel(BasicBlock bb);
-
-    protected CFG createCFGObject(Collection<BasicBlock> bbs,
-            BasicBlock entry) {
-        return new CFG(bbs, entry);
+    protected CFG<T> createCFGObject(Collection<BasicBlock<T>> bbs,
+            BasicBlock<T> entry) {
+        return new CFG<T>(bbs, entry);
     }
     
-    public int getSize() {
-        return mCfg.getNumEntries();
-    }
+    public abstract String name();
+    
+    public abstract Label deriveSubLabel(BasicBlock<T> bb);
+
 }

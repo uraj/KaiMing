@@ -1,24 +1,27 @@
 package edu.psu.ist.plato.kaiming.x86;
 
+import edu.psu.ist.plato.kaiming.util.Assert;
+
 public class MoveInst extends Instruction {
 
     protected MoveInst(long addr, Opcode op, Operand from, Operand to) {
-        super(addr, op, new Operand[] { from, to });
+        super(Kind.MOVE, addr, op, new Operand[] { from, to });
+        Assert.verify(!(from.isMemory() && to.isMemory()));
     }
 
-    public Operand getFrom() {
-        return getOperand(0);
+    public Operand from() {
+        return operand(0);
     }
 
-    public Operand getTo() {
-        return getOperand(1);
+    public Operand to() {
+        return operand(1);
     }
 
     public boolean isLoad() {
-        return getFrom() instanceof Memory;
+        return from() instanceof Memory;
     }
 
     public boolean isStore() {
-        return getTo() instanceof Memory;
+        return to() instanceof Memory;
     }
 }

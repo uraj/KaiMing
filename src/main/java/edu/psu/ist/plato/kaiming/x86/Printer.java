@@ -7,6 +7,7 @@ import java.util.Iterator;
 import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.CFG;
 import edu.psu.ist.plato.kaiming.Entry;
+import edu.psu.ist.plato.kaiming.Label;
 
 // TODO: We should re-implement this once we have the  
 // visitor infrastructure ready.
@@ -41,39 +42,39 @@ public class Printer extends PrintWriter {
     public static Printer err = new Printer(System.err);
     
     public void printOpMemory(Memory mem) {
-        if (!mIsParseMode && mem instanceof Relocation) {
-            print(((Relocation) mem).getLabel().getName());
+        if (!mIsParseMode && mem.isRelocation()) {
+            print(mem.asRelocation().label().name());
             return;
         }
-        if (mem.getBaseRegister() != null
-                && mem.getBaseRegister().isSegmentRegister()) {
-            printOpRegister(mem.getBaseRegister());
+        if (mem.baseRegister() != null
+                && mem.baseRegister().isSegmentRegister()) {
+            printOpRegister(mem.baseRegister());
             print(':');
-            if (mem.getOffsetRegister() != null) {
+            if (mem.offsetRegister() != null) {
                 print('(');
-                printOpRegister(mem.getOffsetRegister());
+                printOpRegister(mem.offsetRegister());
                 print(')');
             } else
-                printSignedHex(mem.getDisplacement());
+                printSignedHex(mem.displacement());
             return;
         }
         
-        long disp = mem.getDisplacement();
+        long disp = mem.displacement();
         printSignedHex(disp);
-        if (mem.getBaseRegister() == null && mem.getOffsetRegister() == null)
+        if (mem.baseRegister() == null && mem.offsetRegister() == null)
             return;
         print('(');
-        if (mem.getBaseRegister() != null
-                && !mem.getBaseRegister().isSegmentRegister()) {
-            printOpRegister(mem.getBaseRegister());
+        if (mem.baseRegister() != null
+                && !mem.baseRegister().isSegmentRegister()) {
+            printOpRegister(mem.baseRegister());
         }
-        if (mem.getOffsetRegister() != null) {
+        if (mem.offsetRegister() != null) {
             print(',');
-            printOpRegister(mem.getOffsetRegister());
+            printOpRegister(mem.offsetRegister());
         }
-        if (mem.getMultiplier() != 1) {
+        if (mem.multiplier() != 1) {
             print(',');
-            print(mem.getMultiplier());
+            print(mem.multiplier());
         }
         print(')');
     }
@@ -84,14 +85,14 @@ public class Printer extends PrintWriter {
     }
 
     public void printOperand(Operand op) {
-        switch (op.getType()) {
-            case Immediate:
+        switch (op.type()) {
+            case IMMEDIATE:
                 printOpImmediate((Immediate) op);
                 break;
-            case Memory:
+            case MEMORY:
                 printOpMemory((Memory) op);
                 break;
-            case Register:
+            case REGISTER:
                 printOpRegister((Register) op);
                 break;
         }
@@ -99,9 +100,9 @@ public class Printer extends PrintWriter {
 
     public void printInstruction(Instruction i) {
         if (mIsParseMode)
-            printSignedHex(i.getAddr());
+            printSignedHex(i.addr());
         print('\t');
-        print(i.getOpcode().getRawOpcode());
+        print(i.opcode().rawOpcode());
         print('\t');
         if (i.isBranchInst()) {
             BranchInst bi = (BranchInst)i;
@@ -120,26 +121,26 @@ public class Printer extends PrintWriter {
         }
     }
 
-    public void printAsmLabel(AsmLabel label) {
+    public void printLabel(Label label) {
         if (mIsParseMode) {
-            printSignedHex(label.getAddr());
+            printSignedHex(label.addr());
             print('\t');
         }
-        print(label.getName());
+        print(label.name());
     }
 
     public void printFunction(Function f) {
-        printAsmLabel(f.getLabel());
+        printLabel(f.label());
         println(':');
-        for (Instruction i : f.getInstructions()) {
+        for (Instruction i : f.entries()) {
             printInstruction(i);
             println();
         }
     }
     
-    public void printBasicBlock(BasicBlock bb) {
+    public void printBasicBlock(BasicBlock<Instruction> bb) {
         if (!mIsParseMode) {
-            printAsmLabel((AsmLabel)bb.getLabel());
+            printLabel(bb.label());
             println(':');
         }
         for (Entry e : bb) {
@@ -148,12 +149,12 @@ public class Printer extends PrintWriter {
         }
     }
     
-    public void printCFG(CFG f) {
+    public void printCFG(CFG<Instruction> f) {
         if (mIsParseMode) {
-            printAsmLabel((AsmLabel)f.getEntryBlock().getLabel());
+            printLabel((Label)f.entryBlock().label());
             println(':');
         }
-        for (BasicBlock bb : f) {
+        for (BasicBlock<Instruction> bb : f) {
             printBasicBlock(bb);
         }
     }

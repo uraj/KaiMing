@@ -10,7 +10,7 @@ public class Memory extends Operand {
 
     public Memory(Register seg, long disp, Register base, Register off,
             int multiplier) {
-        super(Type.Memory);
+        super(Type.MEMORY);
         mSeg = seg;
         mDisp = disp;
         mBase = base != null && base.id == Register.Id.EIZ ? null : base;
@@ -20,7 +20,7 @@ public class Memory extends Operand {
     
     public Memory(long disp, Register base, Register off,
             int multiplier) {
-        super(Type.Memory);
+        super(Type.MEMORY);
         mSeg = null;
         mDisp = disp;
         mBase = base != null && base.id == Register.Id.EIZ ? null : base;
@@ -28,23 +28,32 @@ public class Memory extends Operand {
         mMulti = multiplier;
     }
 
-    public long getDisplacement() {
+    public long displacement() {
         return mDisp;
     }
 
-    public Register getBaseRegister() {
+    public Register baseRegister() {
         return mBase;
     }
 
-    public Register getOffsetRegister() {
+    public Register offsetRegister() {
         return mOff;
     }
 
-    public int getMultiplier() {
+    public int multiplier() {
         return mMulti;
     }
 
     public boolean isConcrete() {
         return mBase == null && mOff == null;
     }
+    
+    public boolean isRelocation() {
+        return false;
+    }
+    
+    public Relocation asRelocation() {
+        return (Relocation)this;
+    }
+    
 }
