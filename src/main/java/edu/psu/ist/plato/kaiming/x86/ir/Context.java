@@ -308,7 +308,7 @@ public class Context extends Procedure<Stmt> {
         }
         
         // FIXME: The order of e1 and e2 here is critical. Make sure
-        // the current ordering reflects the current semantics of all
+        // the current ordering reflects the correct semantics of all
         // instructions translated here.
         BExpr bexp = new BExpr(op, e2, e1);
         Operand dest = inst.dest();
