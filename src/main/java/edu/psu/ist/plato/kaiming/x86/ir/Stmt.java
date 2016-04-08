@@ -55,6 +55,7 @@ abstract public class Stmt extends Entry {
         for (Expr e : mUsedExpr) {
             prob.visit(e);
         }
+        prob.probedLvals().remove(Reg.eip); // EIP is always self defined
         for (Lval lv : prob.probedLvals()) {
             mUDChain.put(lv, null);
         }

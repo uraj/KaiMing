@@ -49,8 +49,6 @@ public abstract class PathInsensitiveProblem<E extends Entry, T> extends Problem
     protected abstract T confluence(Set<T> dataset);
 
     protected static final BitSet finiteUnion(Set<BitSet> all) {
-        Assert.test(all.size() > 0);
-
         BitSet ret = new BitSet();
         for (BitSet next : all) {
             ret.or(next);
@@ -59,8 +57,6 @@ public abstract class PathInsensitiveProblem<E extends Entry, T> extends Problem
     }
 
     protected static final BitSet finiteIntersect(Set<BitSet> all) {
-        assert all.size() > 0;
-
         BitSet ret = new BitSet();
         Iterator<BitSet> i = all.iterator();
         ret.or(i.next());
@@ -101,6 +97,7 @@ public abstract class PathInsensitiveProblem<E extends Entry, T> extends Problem
                             Assert.test(value != null);
                             confluenceSet.add(value);
                         }
+                        break;
                     }
                     case BACKWARD: {
                         for (BasicBlock<E> s : bb.allSuccessor()) {
@@ -108,10 +105,11 @@ public abstract class PathInsensitiveProblem<E extends Entry, T> extends Problem
                             Assert.test(value != null);
                             confluenceSet.add(value);
                         }
+                        break;
                     }
                 }
                 if (confluenceSet.size() > 0) {
-                    T entryNew = confluence(confluenceSet);
+                     T entryNew = confluence(confluenceSet);
                     if (!entryNew.equals(entryMap.get(bb))) {
                         entryMap.put(bb, entryNew);
                         dirty = true;

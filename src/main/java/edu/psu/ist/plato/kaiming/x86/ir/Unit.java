@@ -45,7 +45,7 @@ public class Unit {
                 Map<Lval, Set<DefStmt>> ret = new HashMap<Lval, Set<DefStmt>>();
                 // If a block is the entry, all registers used at the starting point
                 // are defined externally 
-                if (mCfg.entries() == bb) {
+                if (mCfg.entryBlock() == bb) {
                     Set<DefStmt> set = new HashSet<DefStmt>();
                     set.add(DefStmt.EXTERNAL);
                     for (Id id : Register.Id.values()) {
@@ -62,12 +62,18 @@ public class Unit {
                 Map<Lval, Set<DefStmt>> out = new HashMap<Lval, Set<DefStmt>>(in);
                 for (Stmt s : bb) {
                     for (Lval lv : s.usedLvals()) {
-                        if (!out.containsKey(lv)) {
+                        Lval key;
+                        if (lv instanceof Reg && !out.containsKey(lv)) {
+                            key = ((Reg)lv).containingReg();
+                        } else {
+                            key = lv;
+                        }
+                        if (!out.containsKey(key)) {
                             Set<DefStmt> toAdd = new HashSet<DefStmt>();
                             toAdd.add(DefStmt.EXTERNAL);
-                            out.put(lv, toAdd);
+                            out.put(key, toAdd);
                         }
-                        s.updateDefFor(lv, out.get(lv));
+                        s.updateDefFor(lv, out.get(key));
                     }
                     
                     if (s instanceof DefStmt) {

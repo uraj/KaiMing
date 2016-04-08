@@ -70,7 +70,6 @@ public class Context extends Procedure<Stmt> {
                 }
             }
         }
-        
         return createCFGObject(bbs, map.get(asmCFG.entryBlock()));
     }
 

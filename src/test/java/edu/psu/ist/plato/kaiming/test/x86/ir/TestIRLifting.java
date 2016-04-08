@@ -64,8 +64,8 @@ public class TestIRLifting {
     public void lift() {
         List<Context> ctxs = new ArrayList<Context>(funs.size());
         funs.forEach(f -> ctxs.add(new Context(f)));
-        ctxs.forEach(c -> Printer.out.printContext(c));
         ctxs.forEach(c -> Unit.UDAnalysis(c));
+        ctxs.forEach(c -> Printer.out.printContextWithUDInfo(c));
     }
     
     @After

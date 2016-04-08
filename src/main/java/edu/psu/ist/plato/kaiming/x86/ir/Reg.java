@@ -21,6 +21,7 @@ public class Reg extends Lval {
     public static Reg edx = new Reg(Register.getRegister(Register.Id.EDX));
     public static Reg edi = new Reg(Register.getRegister(Register.Id.EDI));
     public static Reg esi = new Reg(Register.getRegister(Register.Id.ESI));
+    public static Reg eip = new Reg(Register.getRegister(Register.Id.EIP));
     
     public static Reg getReg(Register register) {
         switch (register.id) {
@@ -57,5 +58,9 @@ public class Reg extends Lval {
     @Override
     public int sizeInBits() {
         return mReg.sizeInBits();
+    }
+    
+    public Reg containingReg() {
+        return getReg(mReg.containingRegister());
     }
 }

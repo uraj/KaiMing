@@ -219,6 +219,32 @@ public class Printer extends PrintWriter {
         bb.forEach(s -> { print("\t\t"); printStmt(s); println(); });
     }
     
+    public void printContextWithUDInfo(Context ctx) {
+        print(ctx.name());
+        println(" {");
+        ctx.cfg().forEach(bb -> {
+            print(bb.label());
+            println(":");
+            bb.forEach(s -> {
+                print('\t');
+                printStmt(s);
+                print(" # ");
+                println(s.index());
+                s.usedLvals().forEach(lv -> {
+                    print("\t\t# ");
+                    printLval(lv);
+                    print(" -- ");
+                    s.searchDefFor(lv).forEach(def -> {
+                        print(def.index());
+                        print(", ");
+                    });
+                    println();
+                });
+            });
+        });
+        println('}');
+    }
+    
     public void printContext(Context ctx) {
         print(ctx.name());
         println(" {");
