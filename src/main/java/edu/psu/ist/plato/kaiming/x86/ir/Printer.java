@@ -228,7 +228,7 @@ public class Printer extends PrintWriter {
             bb.forEach(s -> {
                 print('\t');
                 printStmt(s);
-                print(" # ");
+                print("\t# ");
                 println(s.index());
                 s.usedLvals().forEach(lv -> {
                     print("\t\t# ");

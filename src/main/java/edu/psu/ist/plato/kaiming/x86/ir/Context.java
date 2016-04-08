@@ -274,6 +274,8 @@ public class Context extends Procedure<Stmt> {
 
     private void toIR(BinaryArithInst inst, List<Stmt> ret) {
         BExpr.Op op = null;
+        Expr e1 = readOperand(inst, inst.src(), ret);
+        Expr e2 = readOperand(inst, inst.dest(), ret);
         switch(inst.opcode().opcodeClass()) {
             case ADD:
             case ADC:
@@ -304,9 +306,11 @@ public class Context extends Procedure<Stmt> {
             default:
                 Assert.unreachable();
         }
-        Expr e1 = readOperand(inst, inst.src(), ret);
-        Expr e2 = readOperand(inst, inst.dest(), ret);
-        BExpr bexp = new BExpr(op, e1, e2);
+        
+        // FIXME: The order of e1 and e2 here is critical. Make sure
+        // the current ordering reflects the current semantics of all
+        // instructions translated here.
+        BExpr bexp = new BExpr(op, e2, e1);
         Operand dest = inst.dest();
         ret.add(updateOperand(inst, dest, bexp));
     }
