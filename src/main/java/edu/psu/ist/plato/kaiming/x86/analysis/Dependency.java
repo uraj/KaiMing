@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.x86.semantic;
+package edu.psu.ist.plato.kaiming.x86.analysis;
 
 import java.util.BitSet;
 import java.util.HashSet;
