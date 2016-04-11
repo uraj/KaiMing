@@ -1,3 +1,7 @@
+# KaiMing
+KaiMing is a binary analysis framework. The goal is to provide an open source
+implementation of various static analysis algorithms for COTS x86 binaries. 
+
 The dependencies of this project is managed by Maven. In detail, the project
 requires the following components:
 
@@ -7,4 +11,4 @@ requires the following components:
 + JUnit 4.11
 
 The project can be directly imported into Eclipse, but you may need a few
-plugins to work with the imported code.
+Eclipse plug-ins to work with the imported code.

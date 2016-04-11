@@ -30,7 +30,7 @@ public class TestIRLifting {
     public static String readFile(File path) 
             throws IOException 
     {
-        byte[] encoded = Files.readAllBytes(path.toPath());//Paths.get(path));
+        byte[] encoded = Files.readAllBytes(path.toPath());
         return new String(encoded,     
                 java.nio.charset.StandardCharsets.UTF_8);
     }

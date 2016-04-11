@@ -6,7 +6,7 @@
 
 	<groupId>edu.psu.ist.plato.kaiming</groupId>
 	<artifactId>KaiMing</artifactId>
-	<version>1.0-SNAPSHOT</version>
+	<version>0.1-SNAPSHOT</version>
 	<name>The Kaiming x86 Binary Analysis Framework</name>
 	<description>The Kaiming x86 Binary Analysis Framework</description>
 	<packaging>jar</packaging>
@@ -45,6 +45,11 @@
 			<groupId>org.scodec</groupId>
 			<artifactId>scodec-bits_${scalaBinaryVersion}</artifactId>
 			<version>1.0.12</version>
+		</dependency>
+		<dependency>
+			<groupId>org.choco-solver</groupId>
+			<artifactId>choco-solver</artifactId>
+			<version>3.3.0</version>
 		</dependency>
 	</dependencies>
 	<build>
@@ -142,5 +147,4 @@
 			</plugin>
 		</plugins>
 	</build>
-
 </project>
