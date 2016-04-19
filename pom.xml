@@ -47,9 +47,9 @@
 			<version>1.0.12</version>
 		</dependency>
 		<dependency>
-			<groupId>org.choco-solver</groupId>
-			<artifactId>choco-solver</artifactId>
-			<version>3.3.0</version>
+			<groupId>com.assembla.scala-incubator</groupId>
+			<artifactId>graph-core_2.11</artifactId>
+			<version>1.11.0</version>
 		</dependency>
 	</dependencies>
 	<build>
