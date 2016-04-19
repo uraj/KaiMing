@@ -10,6 +10,16 @@ public abstract class Entry implements Comparable<Long> {
         return Long.signum(index() - l);
     }
     
+    @Override
+    public final boolean equals(Object that) {
+        return this.getClass().equals(that.getClass()) && ((Entry)that).index() == index();
+    }
+    
+    @Override
+    public final int hashCode() {
+        return Long.hashCode(index());
+    }
+    
     public final static Comparator<Entry> comparator = new Comparator<Entry> () {
         @Override
         public final int compare(Entry e1, Entry e2) {
