@@ -19,11 +19,11 @@ import edu.psu.ist.plato.kaiming.x86.Register.Id;
  * binary. Unit should be responsible for resolving the target of  
  * inter-procedural calls. 
  */
-public class Unit {
+public class AssemblyUnit {
     
     private Elf mElf;
     
-    public Unit(Elf elf) {
+    public AssemblyUnit(Elf elf) {
         mElf = elf;
     }
     
