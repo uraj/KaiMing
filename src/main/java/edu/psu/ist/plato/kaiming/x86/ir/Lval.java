@@ -18,11 +18,7 @@ public abstract class Lval extends Expr {
     }
     
     @Override
-    public abstract boolean equals(Object lv);
-    
-    @Override
     public abstract int hashCode();
     
     public abstract int sizeInBits();
-
 }

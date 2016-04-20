@@ -2,7 +2,7 @@ package edu.psu.ist.plato.kaiming.x86.ir;
 
 import edu.psu.ist.plato.kaiming.x86.Immediate;
 
-public class Const extends Expr {
+public final class Const extends Expr {
 
 	private final long mValue;
 	
@@ -64,5 +64,18 @@ public class Const extends Expr {
 	public Expr subExpr(int index) {
 		return null;
 	}
+
+    @Override
+    public boolean equals(Object that) {
+        if (that instanceof Const) {
+            return mValue == ((Const)that).mValue;
+        }
+        return false;
+    }
+    
+    @Override
+    public int hashCode() {
+        return (int)mValue;
+    }
 
 }

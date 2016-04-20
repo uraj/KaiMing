@@ -1,6 +1,6 @@
 package edu.psu.ist.plato.kaiming.x86.ir;
 
-public class UExpr extends Expr {
+public final class UExpr extends Expr {
     public enum Op {
         NOT,
         LOW,
@@ -34,5 +34,25 @@ public class UExpr extends Expr {
     @Override
     public int numOfSubExpr() {
         return 1;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result
+                + ((mOperator == null) ? 0 : mOperator.hashCode());
+        result = prime * result
+                + ((mSubExpr == null) ? 0 : mSubExpr.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object that) {
+        if (!(that instanceof UExpr)) {
+            return false;            
+        }
+        UExpr t = (UExpr)that;
+        return mOperator.equals(t.mOperator) && mSubExpr.equals(t.mSubExpr);
     }
 }

@@ -26,7 +26,7 @@ public class Var extends Lval {
     }
 
     @Override
-    public boolean equals(Object lv) {
+    public final boolean equals(Object lv) {
         if (lv instanceof Var) {
             return ((Var)lv).mName.equals(mName);
         }
@@ -34,12 +34,12 @@ public class Var extends Lval {
     }
 
     @Override
-    public int hashCode() {
+    public final int hashCode() {
         return mName.hashCode();
     }
 
     @Override
-    public int sizeInBits() {
+    public final int sizeInBits() {
         return mSize;
     }
 }

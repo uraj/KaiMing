@@ -120,4 +120,10 @@ public abstract class Expr {
     public Target asTarget(BasicBlock<Stmt> bb) {
         return new Target(this, bb);
     }
+    
+    @Override
+    public abstract boolean equals(Object that);
+    
+    @Override
+    public abstract int hashCode();
 }

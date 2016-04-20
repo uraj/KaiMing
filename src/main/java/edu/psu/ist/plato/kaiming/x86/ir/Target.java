@@ -3,7 +3,7 @@ package edu.psu.ist.plato.kaiming.x86.ir;
 import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.Label;
 
-public class Target extends Expr {
+public final class Target extends Expr {
 
     Expr mExpr;
     BasicBlock<Stmt> mBB;
@@ -39,4 +39,16 @@ public class Target extends Expr {
         return mBB.label();
     }
 
+    @Override
+    public boolean equals(Object that) {
+        if (that instanceof Target) {
+            return mExpr.equals(((Target)that).mExpr);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return mExpr.hashCode();
+    }
 }

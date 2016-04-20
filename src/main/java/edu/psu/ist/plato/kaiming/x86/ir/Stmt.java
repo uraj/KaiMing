@@ -90,4 +90,36 @@ abstract public class Stmt extends Entry {
         return mUDChain.keySet();
     }
     
+    public Set<Expr> enumerateAllExpr() {
+        class Enumerator extends Expr.Visitor {
+            
+            private Set<Expr> mExprs;
+            
+            public Enumerator(Set<Expr> init) {
+                mExprs = init;
+            }
+            
+            private boolean recordExpr(Expr e) {
+                int size = mExprs.size();
+                mExprs.add(e);
+                return mExprs.size() != size;
+            }
+            
+            @Override
+            protected boolean visitUExpr(UExpr expr) {
+                return recordExpr(expr);
+            }
+            
+            public Set<Expr> enumeratedExprs() {
+                return mExprs;
+            }
+        }
+        
+        Enumerator enumerator = new Enumerator(new HashSet<Expr>());
+        for (Expr expr : mUsedExpr) {
+            enumerator.visit(expr);
+        }
+        
+        return enumerator.enumeratedExprs();
+    }
 }
