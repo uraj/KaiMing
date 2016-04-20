@@ -18,11 +18,11 @@ public class Assert {
     }
     
     public static void unreachable() {
-        test(false, "Uncreachable code");
+        throw new UnreachableCodeException();
     }
     
     public static void unreachable(String msg) {
-        test(false, "Uncreachable code: " + msg);
+        throw new UnreachableCodeException(msg);
     }
     
     public static void verify(boolean condition) {

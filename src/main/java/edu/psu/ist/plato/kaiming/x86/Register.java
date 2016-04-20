@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import edu.psu.ist.plato.kaiming.util.AssertionFailException;
+import edu.psu.ist.plato.kaiming.util.UnsupportedLanguageException;
 
 public class Register extends Operand {
     
@@ -156,8 +156,7 @@ public class Register extends Operand {
     public static Register getRegister(String name) {
         Id id = sNameMap.get(name);
         if (id == null)
-            throw new AssertionFailException(name, 
-                    AssertionFailException.Cause.UNSUPPORTED_LANGUAGE);
+            throw new UnsupportedLanguageException("Unknown register name: " + name);
         return getRegister(sNameMap.get(name));
     }
     
