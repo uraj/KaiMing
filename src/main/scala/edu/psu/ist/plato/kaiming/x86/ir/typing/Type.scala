@@ -14,10 +14,21 @@ sealed abstract class Type(code : Int) {
   def \/(that : Type) = get(encoding | that.encoding)
 }
 
-object Bot extends Type(0)
-object Int extends Type(1)
-object Ptr extends Type(2)
-object Top extends Type(3)
+object Bot extends Type(0) {
+  override def toString() = "Bot"
+}
+
+object Int extends Type(1) {
+  override def toString() = "Int"
+}
+
+object Ptr extends Type(2) {
+  override def toString() = "Ptr"
+}
+
+object Top extends Type(3) {
+  override def toString() = "Top"
+}
 
 class TypeVar(varid : Int) {
   val id = varid
@@ -32,4 +43,6 @@ class TypeVar(varid : Int) {
   }
   
   def sameRange(that : TypeVar) = that.upper == upper && that.lower == lower
+  
+  override def toString() = id + ":" + upper + "->" + lower
 }

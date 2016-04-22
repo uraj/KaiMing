@@ -1,6 +1,5 @@
 package edu.psu.ist.plato.kaiming.test.x86.parsing
 
-
 import scala.io.Source
 
 import java.io.File
@@ -9,6 +8,7 @@ import java.io.ByteArrayOutputStream
 import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfter
 import org.scalatest.junit.JUnitRunner
+
 import org.junit.runner.RunWith
 
 import edu.psu.ist.plato.kaiming.x86.parsing.GASParser
