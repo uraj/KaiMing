@@ -90,7 +90,7 @@ abstract public class Stmt extends Entry {
         return mUDChain.keySet();
     }
     
-    public Set<Expr> enumerateAllExpr() {
+    public Set<Expr> enumerateRval() {
         class Enumerator extends Expr.Visitor {
             
             private Set<Expr> mExprs;
