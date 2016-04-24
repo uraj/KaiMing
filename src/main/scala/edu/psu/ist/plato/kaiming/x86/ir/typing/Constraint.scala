@@ -10,9 +10,11 @@ import scala.collection.JavaConverters._
 import edu.psu.ist.plato.kaiming.x86.ir._
 import edu.psu.ist.plato.kaiming.util.UnreachableCodeException
 
+import edu.psu.ist.plato.kaiming.elf.Elf
+
 case class Constraint(t1 : TypeVar, t2 : TypeVar)
 
-class ConstraintSolver {
+class ConstraintSolver(elf : Elf) {
   private var workList : List[Constraint] = Nil
   
   def add(c : Constraint) : Unit = { workList = c :: workList }
@@ -23,10 +25,23 @@ class ConstraintSolver {
     case Nil =>
   }
   
+  // TODO: An immediate value can be rejected as pointer at the first
+  // glance
+  def simpleInferConst(c : Const, id : Int) : TypeVar = 
+    if (elf.withinValidRange(c.value()))
+      RangedTypeVar(id)
+    else
+      IntVar
+  
   private def getRvalTypeVarMap(irl : Buffer[Stmt]) : Map[(Stmt, Expr), TypeVar] = {
     def add(start : Int, s : Stmt, l : Set[Expr]) : List[((Stmt, Expr), TypeVar)] = 
       l.foldLeft(List[((Stmt, Expr), TypeVar)]())(
-          (list, expr) => ((s, expr), new TypeVar(start + list.size))::list)
+          (list, expr) => ((s, expr), 
+              expr match {
+                case c : Const => simpleInferConst(c, start + list.size) 
+                case _ => RangedTypeVar(start + list.size)
+              }
+           )::list)
     irl.foldLeft(Map[(Stmt, Expr), TypeVar]())(
         (map, y) => map ++ add(map.size, y, y.enumerateRval().asScala))
   }
@@ -34,7 +49,7 @@ class ConstraintSolver {
   private def getLvalTypeVarMap(start : Int, irl : Buffer[Stmt]) : Map[DefStmt, TypeVar] = {
     irl.foldLeft(Map[DefStmt, TypeVar]())(
         (map, stmt) => stmt match {
-          case stmt : DefStmt => map + ((stmt, new TypeVar(start + map.size)))
+          case stmt : DefStmt => map + ((stmt, RangedTypeVar(start + map.size)))
           case _ => map
         })
   }
@@ -58,32 +73,62 @@ class ConstraintSolver {
     rdConstraints    
   }
   
-  
   private def exprToConstraint(s : Stmt, e : Expr,
       rvalMap : Map[(Stmt, Expr), TypeVar]) : List[Constraint] = {
     class ConstraintGen extends Expr.Visitor {
       var ret = List[Constraint]()
+
+      override protected def visitUExpr(e : UExpr) : Boolean = {
+        val tau = rvalMap.get((s, e)).orNull
+        val tau1 = rvalMap.get((s, e.subExpr())).orNull
+        ret =
+          Constraint(tau, ConstTypeVar(TInt))::
+          Constraint(tau1, ConstTypeVar(TInt))::ret
+        true
+      }
       
       override protected def visitBExpr(e : BExpr) : Boolean = {
         val tau = rvalMap.get((s, e)).orNull
         val tau1 = rvalMap.get((s, e.leftSubExpr())).orNull
         val tau2 = rvalMap.get((s, e.rightSubExpr())).orNull
         e.operator() match {
-          case BExpr.Op.ADD =>
-          case BExpr.Op.AND =>
           case BExpr.Op.CONCAT =>
+            ret = 
+              Constraint(tau, ConstTypeVar(TInt))::
+              Constraint(tau1, ConstTypeVar(TInt))::
+              Constraint(tau2, ConstTypeVar(TInt))::ret
           case BExpr.Op.DIV =>
+            ret = 
+              Constraint(tau, ConstTypeVar(TInt))::
+              Constraint(tau1, ConstTypeVar(TInt))::
+              Constraint(tau2, ConstTypeVar(TInt))::ret
           case BExpr.Op.MUL =>
-          case BExpr.Op.OR =>
+            ret = 
+              Constraint(tau, ConstTypeVar(TInt))::
+              Constraint(tau1, ConstTypeVar(TInt))::
+              Constraint(tau2, ConstTypeVar(TInt))::ret
           case BExpr.Op.SAR =>
-          case BExpr.Op.SHL =>
-          case BExpr.Op.SHR =>
+            ret = 
+              Constraint(tau, ConstTypeVar(TInt))::
+              Constraint(tau1, ConstTypeVar(TInt))::
+              Constraint(tau2, ConstTypeVar(TInt))::ret
+          case BExpr.Op.SHL | BExpr.Op.SHR =>
+            ret = 
+              Constraint(tau, ConstTypeVar(TTop))::
+              Constraint(tau1, ConstTypeVar(TTop))::
+              Constraint(tau2, ConstTypeVar(TInt))::ret
+          case BExpr.Op.ADD =>
           case BExpr.Op.SUB =>
           case BExpr.Op.UADD =>
           case BExpr.Op.UMUL =>
           case BExpr.Op.USUB =>
-          case BExpr.Op.XOR =>
+          case BExpr.Op.XOR | BExpr.Op.OR | BExpr.Op.AND =>
+            // Intentionally left blank
         }
+        true
+      }
+      
+      override protected def visitConst(c : Const) : Boolean = {
         true
       }
     }

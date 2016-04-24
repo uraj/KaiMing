@@ -229,6 +229,21 @@ final class Elf(input: ByteVector) {
       uint32_t ~ // sh_info
       uint32_t ~ // ash_addralign
       uint32_t   // sh_entsize
+      
+    val (((((((((
+        sh_name,
+        sh_type),
+        sh_flags),
+        sh_addr),
+        sh_offset),
+        sh_size),
+        sh_link),
+        sh_info),
+        sh_addralign),
+        sh_entsize) = codec.decode(bytes.bits) match {
+      case Attempt.Successful(DecodeResult(list, _)) => list
+      case Attempt.Failure(cause) => throw new IllegalArgumentException(cause.messageWithContext)
+    }
   }
      
   val stream = input
@@ -250,13 +265,20 @@ final class Elf(input: ByteVector) {
             constructor, result :+ constructor(bytes.slice(start, start + step)))
       }
     
-  val progHaders : Vector[ProgramHeader] =
+  val progHeaders : Vector[ProgramHeader] =
     parseMany(stream, header.e_phoff.toInt, progHeaderSize, header.e_phnum, 
         bytes => new ProgramHeader(bytes), Vector.empty)
   
-  
-  val secHaders : Vector[SectionHeader] = 
+  val secHeaders : Vector[SectionHeader] = 
     parseMany(stream, header.e_shoff.toInt, secHeaderSize, header.e_shnum,
         bytes => new SectionHeader(bytes), Vector.empty)
+
+  def withinValidRange(imm : Long) : Boolean = {
+    def eachSec(headers : Vector[SectionHeader]) : Boolean = headers match {
+      case xs :+ x => (x.sh_addr <= imm && x.sh_addr + x.size >= imm) || eachSec(xs)
+      case _ => false
+    }
+    eachSec(secHeaders)
+  }
 
 }

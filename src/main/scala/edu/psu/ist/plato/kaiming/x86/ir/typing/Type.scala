@@ -1,9 +1,9 @@
 package edu.psu.ist.plato.kaiming.x86.ir.typing
 
 sealed abstract class Type(code : Int) {
-  private val encoding = code
+  val encoding = code
   
-  private var mapping = Map[Int, Type]((0, Bot), (1, Int), (2, Ptr), (3, Top))
+  private var mapping = Map[Int, Type]((0, TBot), (1, TInt), (2, TPtr), (3, TTop))
 
   private def get(x : Int) : Type = mapping.get(x).orNull
   
@@ -14,35 +14,41 @@ sealed abstract class Type(code : Int) {
   def \/(that : Type) = get(encoding | that.encoding)
 }
 
-object Bot extends Type(0) {
+object TBot extends Type(0) {
   override def toString() = "Bot"
 }
 
-object Int extends Type(1) {
+object TInt extends Type(1) {
   override def toString() = "Int"
 }
 
-object Ptr extends Type(2) {
+object TPtr extends Type(2) {
   override def toString() = "Ptr"
 }
 
-object Top extends Type(3) {
+object TTop extends Type(3) {
   override def toString() = "Top"
 }
 
-class TypeVar(varid : Int) {
+abstract class TypeVar(varid : Int) {
   val id = varid
-  var upper : Type = Top
-  var lower : Type = Bot
-  
-  def isDetermined = upper == lower
     
   override def equals(that : Any) = that match {
     case that : TypeVar => that.id == id 
     case _ => false
   }
+}
+
+case class RangedTypeVar(varid : Int, upper : Type = TTop, lower : Type = TBot)
+  extends TypeVar(varid) {
+  def isDetermined = upper == lower
   
-  def sameRange(that : TypeVar) = that.upper == upper && that.lower == lower
+  def sameRange(that : RangedTypeVar) = that.upper == upper && that.lower == lower
   
   override def toString() = id + ":" + upper + "->" + lower
 }
+
+sealed case class ConstTypeVar(t : Type) extends TypeVar(-t.encoding)
+
+object IntVar extends ConstTypeVar(TInt)
+object PtrVar extends ConstTypeVar(TPtr)
