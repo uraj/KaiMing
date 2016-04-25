@@ -183,13 +183,13 @@ public class Context extends Procedure<Stmt> {
     	ret.add(load);
     	
     	Const size = Const.getConstant(inst.sizeInBits() / 8);
-    	BExpr incEsp = new BExpr(BExpr.Op.UADD, Reg.esp, size);
+    	BExpr incEsp = new BExpr(BExpr.Op.ADD, Reg.esp, size);
     	ret.add(new AssignStmt(inst, Reg.esp, incEsp));
     }
     
     private void toIR(PushInst inst, List<Stmt> ret) {
     	Const size = Const.getConstant(inst.sizeInBits() / 8);
-    	BExpr decEsp = new BExpr(BExpr.Op.USUB, Reg.esp, size);
+    	BExpr decEsp = new BExpr(BExpr.Op.SUB, Reg.esp, size);
     	ret.add(new AssignStmt(inst, Reg.esp, decEsp));
     	
     	Expr toPush = null;

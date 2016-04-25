@@ -4,15 +4,12 @@ public final class BExpr extends Expr {
    
     public enum Op {
         ADD,
-        UADD,
         SUB,
-        USUB,
         OR,
         AND,
         XOR,
         MUL,
         DIV,
-        UMUL,
         CONCAT,
         SHL,
         SHR,

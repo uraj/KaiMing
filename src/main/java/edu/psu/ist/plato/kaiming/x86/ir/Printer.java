@@ -66,9 +66,6 @@ public class Printer extends PrintWriter {
             case SHL:    print("<<"); break;
             case SHR:    print(">>"); break;
             case SUB:    print('-'); break;
-            case UADD:   print("!+"); break;
-            case UMUL:   print("!*"); break;
-            case USUB:   print("!-"); break;
             case XOR:    print('^'); break;
         }
     }

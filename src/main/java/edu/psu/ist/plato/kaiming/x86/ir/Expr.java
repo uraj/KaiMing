@@ -36,21 +36,21 @@ public abstract class Expr {
         if (mem.offsetRegister() != null) {
             ret = toExpr(mem.offsetRegister());
             if (mem.multiplier() != 1) {
-                ret = new BExpr(BExpr.Op.UMUL, ret, Const.getConstant(mem.multiplier()));
+                ret = new BExpr(BExpr.Op.MUL, ret, Const.getConstant(mem.multiplier()));
             }
         }
         if (mem.baseRegister() != null) {
             if (ret == null) {
                 ret = toExpr(mem.baseRegister());
             } else {
-                ret = new BExpr(BExpr.Op.UADD, toExpr(mem.baseRegister()), ret);
+                ret = new BExpr(BExpr.Op.ADD, toExpr(mem.baseRegister()), ret);
             }
         }
         if (mem.displacement() != 0) {
             if (ret == null) {
                 ret = Const.getConstant(mem.displacement());
             } else {
-                ret = new BExpr(BExpr.Op.UADD, Const.getConstant(mem.displacement()), ret);
+                ret = new BExpr(BExpr.Op.ADD, Const.getConstant(mem.displacement()), ret);
             }
         }
         if (ret == null)

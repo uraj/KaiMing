@@ -12,19 +12,29 @@ import edu.psu.ist.plato.kaiming.util.UnreachableCodeException
 
 import edu.psu.ist.plato.kaiming.elf.Elf
 
-case class Constraint(t1 : TypeVar, t2 : TypeVar)
+sealed abstract class Constraint
+
+sealed abstract class GraphicConstraint extends Constraint
+case class Subtype(t1 : TypeVar, t2 : TypeVar) extends GraphicConstraint {
+  if (t1 == null || t2 == null)
+    throw new UnreachableCodeException
+}
+case class Eqtype(t1 : TypeVar, t2 : TypeVar) extends GraphicConstraint {
+  if (t1 == null || t2 == null)
+    throw new UnreachableCodeException
+}
+
+sealed abstract class NonGraphicConstraint extends Constraint
+case class Add(t : TypeVar, t1: TypeVar, t2 : TypeVar) extends NonGraphicConstraint {
+  if (t == null || t1 == null || t2 == null)
+    throw new UnreachableCodeException
+}
+case class Sub(t : TypeVar, t1: TypeVar, t2 : TypeVar) extends NonGraphicConstraint {
+  if (t == null || t1 == null || t2 == null)
+    throw new UnreachableCodeException
+}
 
 class ConstraintSolver(elf : Elf) {
-  private var workList : List[Constraint] = Nil
-  
-  def add(c : Constraint) : Unit = { workList = c :: workList }
-  def add(l : List[Constraint]) : Unit = l match {
-    case x :: xs =>
-      add(x)
-      add(xs)
-    case Nil =>
-  }
-  
   // TODO: An immediate value can be rejected as pointer at the first
   // glance
   def simpleInferConst(c : Const, id : Int) : TypeVar = 
@@ -33,7 +43,7 @@ class ConstraintSolver(elf : Elf) {
     else
       IntVar
   
-  private def getRvalTypeVarMap(irl : Buffer[Stmt]) : Map[(Stmt, Expr), TypeVar] = {
+  private def getRvalTypeVarMap(start : Int, irl : Buffer[Stmt]) : Map[(Stmt, Expr), TypeVar] = {
     def add(start : Int, s : Stmt, l : Set[Expr]) : List[((Stmt, Expr), TypeVar)] = 
       l.foldLeft(List[((Stmt, Expr), TypeVar)]())(
           (list, expr) => ((s, expr), 
@@ -43,7 +53,7 @@ class ConstraintSolver(elf : Elf) {
               }
            )::list)
     irl.foldLeft(Map[(Stmt, Expr), TypeVar]())(
-        (map, y) => map ++ add(map.size, y, y.enumerateRval().asScala))
+        (map, y) => map ++ add(start + map.size, y, y.enumerateRval().asScala))
   }
   
   private def getLvalTypeVarMap(start : Int, irl : Buffer[Stmt]) : Map[DefStmt, TypeVar] = {
@@ -56,24 +66,45 @@ class ConstraintSolver(elf : Elf) {
   
   def toConstraints(ctx : Context) : List[Constraint] = {
     val irl = ctx.entries().asScala
-    val rvalMap = getRvalTypeVarMap(irl)
+    val rvalMap = getRvalTypeVarMap(0, irl)
     val lvalMap = getLvalTypeVarMap(rvalMap.size, irl)
     val rdConstraints = rvalMap.foldLeft(List[Constraint]())(
         (list, keyvalue) => keyvalue match {
           case ((s, e), tv) => 
             if (e.isLval())
-              s.searchDefFor(e.asInstanceOf[Lval]).asScala.toList.map(
-                defs => lvalMap.get(defs) match {
-                  case Some(tv2) => Constraint(tv, tv2)
-                  case None => throw new UnreachableCodeException
-                })
+              s.searchDefFor(e.asInstanceOf[Lval]).asScala.toList.map {
+                defs => Eqtype(lvalMap.get(defs).orNull, tv)
+                }
             else
               list
         })
-    rdConstraints    
+    val stmtConstraints = irl.map({ 
+      case s : AssignStmt =>
+        Subtype(lvalMap.get(s).orNull, rvalMap.get((s, s.usedRval())).orNull)::
+        exprToConstraints(s, s.usedRval(), rvalMap)
+      case s : CmpStmt =>
+        Nil
+      case s : CallStmt =>
+        Eqtype(rvalMap.get((s, s.target())).orNull, PtrVar)::
+        exprToConstraints(s, s.target(), rvalMap)
+      case s : JmpStmt =>
+        Eqtype(rvalMap.get((s, s.target())).orNull, PtrVar)::
+        exprToConstraints(s, s.target(), rvalMap)
+      case s : LdStmt =>
+        Eqtype(rvalMap.get((s, s.loadFrom())).orNull, PtrVar)::
+        exprToConstraints(s, s.loadFrom(), rvalMap)
+      case s : StStmt =>
+        Eqtype(rvalMap.get((s, s.storeTo())).orNull, PtrVar)::
+        exprToConstraints(s, s.storeTo(), rvalMap)
+      case s : RetStmt =>
+        Nil
+      case s : SetFlagStmt =>
+        Nil
+    }).flatten
+    rdConstraints ++ stmtConstraints
   }
   
-  private def exprToConstraint(s : Stmt, e : Expr,
+  private def exprToConstraints(s : Stmt, e : Expr,
       rvalMap : Map[(Stmt, Expr), TypeVar]) : List[Constraint] = {
     class ConstraintGen extends Expr.Visitor {
       var ret = List[Constraint]()
@@ -82,8 +113,8 @@ class ConstraintSolver(elf : Elf) {
         val tau = rvalMap.get((s, e)).orNull
         val tau1 = rvalMap.get((s, e.subExpr())).orNull
         ret =
-          Constraint(tau, ConstTypeVar(TInt))::
-          Constraint(tau1, ConstTypeVar(TInt))::ret
+          Subtype(tau, ConstTypeVar(TInt))::
+          Subtype(tau1, ConstTypeVar(TInt))::ret
         true
       }
       
@@ -94,51 +125,48 @@ class ConstraintSolver(elf : Elf) {
         e.operator() match {
           case BExpr.Op.CONCAT =>
             ret = 
-              Constraint(tau, ConstTypeVar(TInt))::
-              Constraint(tau1, ConstTypeVar(TInt))::
-              Constraint(tau2, ConstTypeVar(TInt))::ret
+              Subtype(tau, ConstTypeVar(TInt))::
+              Subtype(tau1, ConstTypeVar(TInt))::
+              Subtype(tau2, ConstTypeVar(TInt))::ret
           case BExpr.Op.DIV =>
-            ret = 
-              Constraint(tau, ConstTypeVar(TInt))::
-              Constraint(tau1, ConstTypeVar(TInt))::
-              Constraint(tau2, ConstTypeVar(TInt))::ret
+            ret =
+              Subtype(tau, ConstTypeVar(TInt))::
+              Subtype(tau1, ConstTypeVar(TInt))::
+              Subtype(tau2, ConstTypeVar(TInt))::ret
           case BExpr.Op.MUL =>
             ret = 
-              Constraint(tau, ConstTypeVar(TInt))::
-              Constraint(tau1, ConstTypeVar(TInt))::
-              Constraint(tau2, ConstTypeVar(TInt))::ret
+              Subtype(tau, ConstTypeVar(TInt))::
+              Subtype(tau1, ConstTypeVar(TInt))::
+              Subtype(tau2, ConstTypeVar(TInt))::ret
           case BExpr.Op.SAR =>
-            ret = 
-              Constraint(tau, ConstTypeVar(TInt))::
-              Constraint(tau1, ConstTypeVar(TInt))::
-              Constraint(tau2, ConstTypeVar(TInt))::ret
+            ret =
+              Subtype(tau, ConstTypeVar(TInt))::
+              Subtype(tau1, ConstTypeVar(TInt))::
+              Subtype(tau2, ConstTypeVar(TInt))::ret
           case BExpr.Op.SHL | BExpr.Op.SHR =>
             ret = 
-              Constraint(tau, ConstTypeVar(TTop))::
-              Constraint(tau1, ConstTypeVar(TTop))::
-              Constraint(tau2, ConstTypeVar(TInt))::ret
+              Subtype(tau2, ConstTypeVar(TInt))::ret
           case BExpr.Op.ADD =>
+            ret = Add(tau, tau1, tau2)::ret
           case BExpr.Op.SUB =>
-          case BExpr.Op.UADD =>
-          case BExpr.Op.UMUL =>
-          case BExpr.Op.USUB =>
+            ret = Sub(tau, tau1, tau2)::ret
           case BExpr.Op.XOR | BExpr.Op.OR | BExpr.Op.AND =>
             // Intentionally left blank
         }
         true
       }
       
-      override protected def visitConst(c : Const) : Boolean = {
-        true
-      }
     }
     val gen = new ConstraintGen
     gen.visit(e)
     gen.ret
   }
   
-  private def constraintsToGraph(l : List[Constraint]) = {
-     Graph() ++ workList.map({ case Constraint(tv, ty) => Set(ty) ~> Set(tv) })
+  private def constraintsToGraph(l : List[GraphicConstraint]) = {
+    Graph() ++ l.map({
+      case Subtype(tv, ty) => List(Set(ty) ~> Set(tv))
+      case Eqtype(tv, ty) => List(Set(ty) ~> Set(tv), Set(ty) ~> Set(tv))
+    }).flatten
   }
   
   // TODO: This algorithm potentially has performance issue. An optimal solution should be
@@ -156,5 +184,6 @@ class ConstraintSolver(elf : Elf) {
     }
   }
   
-  def solve() = solveImpl(constraintsToGraph(workList))
+  def solveGraphicConstraints(workList : List[GraphicConstraint]) = 
+    solveImpl(constraintsToGraph(workList))
 }
