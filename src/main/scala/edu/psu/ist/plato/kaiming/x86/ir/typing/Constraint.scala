@@ -35,8 +35,7 @@ case class Sub(t : TypeVar, t1: TypeVar, t2 : TypeVar) extends NonGraphicConstra
 }
 
 class ConstraintSolver(elf : Elf) {
-  // TODO: An immediate value can be rejected as pointer at the first
-  // glance
+
   def simpleInferConst(c : Const, id : Int) : TypeVar = 
     if (elf.withinValidRange(c.value()))
       RangedTypeVar(id)
@@ -163,13 +162,15 @@ class ConstraintSolver(elf : Elf) {
   }
   
   private def constraintsToGraph(l : List[GraphicConstraint]) = {
-    Graph() ++ l.map({
-      case Subtype(tv, ty) => List(Set(ty) ~> Set(tv))
-      case Eqtype(tv, ty) => List(Set(ty) ~> Set(tv), Set(ty) ~> Set(tv))
-    }).flatten
+    Graph() ++ l.foldLeft(List[DiEdge[Set[TypeVar]]]())({
+      (l, c) => c match { 
+        case Subtype(tv, ty) => (Set(ty) ~> Set(tv))::l
+        case Eqtype(tv, ty) => (Set(ty) ~> Set(tv))::(Set(ty) ~> Set(tv))::l
+      }
+    })
   }
   
-  // TODO: This algorithm potentially has performance issue. An optimal solution should be
+  // TODO: This algorithm may have a performance issue. An optimal solution should be
   // Tarjan's strongly connected component detection algorithm
   private def solveImpl(g : Graph[Set[TypeVar], DiEdge]) : Graph[Set[TypeVar], DiEdge] = {
     g.findCycle match {
