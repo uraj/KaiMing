@@ -18,6 +18,8 @@ object TBot extends Type(0) {
   override def toString() = "Bot"
 }
 
+
+
 object TInt extends Type(1) {
   override def toString() = "Int"
 }
@@ -39,13 +41,11 @@ abstract class TypeVar(varid : Int) {
   }
 }
 
-case class RangedTypeVar(varid : Int, upper : Type = TTop, lower : Type = TBot)
-  extends TypeVar(varid) {
-  def isDetermined = upper == lower
+class MutableTypeVar(varid : Int) extends TypeVar(varid) {
+  var upper : Type = TTop
+  var lower : Type = TBot
   
-  def sameRange(that : RangedTypeVar) = that.upper == upper && that.lower == lower
-  
-  override def toString() = id + ":" + upper + "->" + lower
+  override def toString() = id + ":" + upper + " -> " + lower
 }
 
 sealed case class ConstTypeVar(t : Type) extends TypeVar(-t.encoding)

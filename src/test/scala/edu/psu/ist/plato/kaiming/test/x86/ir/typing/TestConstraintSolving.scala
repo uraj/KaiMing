@@ -46,13 +46,13 @@ class TestConstraintSolving extends FunSuite with BeforeAndAfter {
             2000000002020000"""
     val elf = new Elf(elfbin)
     val solver = new ConstraintSolver(elf)
-    val t1 = RangedTypeVar(1)
-    val t2 = RangedTypeVar(2)
-    val t3 = RangedTypeVar(3)
-    val t4 = RangedTypeVar(4)
-    val t5 = RangedTypeVar(5)
+    val t1 = new MutableTypeVar(1)
+    val t2 = new MutableTypeVar(2)
+    val t3 = new MutableTypeVar(3)
+    val t4 = new MutableTypeVar(4)
+    val t5 = new MutableTypeVar(5)
     val workList : List[GraphicConstraint] = 
-      List(Subtype(t1, t2), Subtype(t2, t3), Subtype(t3, t2), Subtype(t3, t4),
+      List[GraphicConstraint](Subtype(t1, t2), Subtype(t2, t3), Subtype(t3, t2), Subtype(t3, t4),
            Subtype(t4, t3), Subtype(t3, t5), Subtype(t3, t1))
     println(solver.solveGraphicConstraints(workList))
   }

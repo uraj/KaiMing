@@ -38,7 +38,7 @@ class ConstraintSolver(elf : Elf) {
 
   def simpleInferConst(c : Const, id : Int) : TypeVar = 
     if (elf.withinValidRange(c.value()))
-      RangedTypeVar(id)
+      new MutableTypeVar(id)
     else
       IntVar
   
@@ -48,7 +48,7 @@ class ConstraintSolver(elf : Elf) {
           (list, expr) => ((s, expr), 
               expr match {
                 case c : Const => simpleInferConst(c, start + list.size) 
-                case _ => RangedTypeVar(start + list.size)
+                case _ => new MutableTypeVar(start + list.size)
               }
            )::list)
     irl.foldLeft(Map[(Stmt, Expr), TypeVar]())(
@@ -58,7 +58,7 @@ class ConstraintSolver(elf : Elf) {
   private def getLvalTypeVarMap(start : Int, irl : Buffer[Stmt]) : Map[DefStmt, TypeVar] = {
     irl.foldLeft(Map[DefStmt, TypeVar]())(
         (map, stmt) => stmt match {
-          case stmt : DefStmt => map + ((stmt, RangedTypeVar(start + map.size)))
+          case stmt : DefStmt => map + ((stmt, new MutableTypeVar(start + map.size)))
           case _ => map
         })
   }
@@ -181,6 +181,20 @@ class ConstraintSolver(elf : Elf) {
         val succs = cycle.nodes.map(_~>|).reduce(_|_).map(_.value) -- toCoalesce
         val coalesced = toCoalesce.flatten
         solveImpl(g -- cycle.nodes + coalesced ++ preds.map(_~>coalesced) ++ succs.map(coalesced~>_))
+      }
+    }
+  }
+  
+  private def refineTypeVarGraph(g : Graph[Set[TypeVar], DiEdge]) : Unit = {
+    g.nodes.map(_.value).foreach {
+      x => {
+        val inter = x & Set(IntVar, PtrVar)
+        if (inter.size > 0) {
+          val t = inter.foldLeft(TTop.asInstanceOf[Type]) {
+            (a, b) => b match { case ConstTypeVar(t) => a /\ t }
+          }
+          x.foreach { case v : MutableTypeVar => v.upper = t; v.lower = t }
+        }
       }
     }
   }
