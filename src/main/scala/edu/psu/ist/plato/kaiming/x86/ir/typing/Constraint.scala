@@ -35,6 +35,11 @@ case class Sub(t : TypeVar, t1: TypeVar, t2 : TypeVar) extends NonGraphicConstra
 }
 
 class ConstraintSolver(elf : Elf) {
+  
+  private val IntVar = new ConstTypeVar(-1, TInt)
+  private val PtrVar = new ConstTypeVar(-2, TPtr)
+  private val TopVar = new ConstTypeVar(-3, TTop)
+  private val BotVar = new ConstTypeVar(-4, TBot)
 
   def simpleInferConst(c : Const, id : Int) : TypeVar = 
     if (elf.withinValidRange(c.value()))
@@ -112,8 +117,7 @@ class ConstraintSolver(elf : Elf) {
         val tau = rvalMap.get((s, e)).orNull
         val tau1 = rvalMap.get((s, e.subExpr())).orNull
         ret =
-          Subtype(tau, ConstTypeVar(TInt))::
-          Subtype(tau1, ConstTypeVar(TInt))::ret
+          Subtype(tau, IntVar)::Subtype(tau1, IntVar)::ret
         true
       }
       
@@ -122,29 +126,14 @@ class ConstraintSolver(elf : Elf) {
         val tau1 = rvalMap.get((s, e.leftSubExpr())).orNull
         val tau2 = rvalMap.get((s, e.rightSubExpr())).orNull
         e.operator() match {
-          case BExpr.Op.CONCAT =>
+          case BExpr.Op.CONCAT | BExpr.Op.MUL | BExpr.Op.DIV | BExpr.Op.SAR =>
             ret = 
-              Subtype(tau, ConstTypeVar(TInt))::
-              Subtype(tau1, ConstTypeVar(TInt))::
-              Subtype(tau2, ConstTypeVar(TInt))::ret
-          case BExpr.Op.DIV =>
-            ret =
-              Subtype(tau, ConstTypeVar(TInt))::
-              Subtype(tau1, ConstTypeVar(TInt))::
-              Subtype(tau2, ConstTypeVar(TInt))::ret
-          case BExpr.Op.MUL =>
-            ret = 
-              Subtype(tau, ConstTypeVar(TInt))::
-              Subtype(tau1, ConstTypeVar(TInt))::
-              Subtype(tau2, ConstTypeVar(TInt))::ret
-          case BExpr.Op.SAR =>
-            ret =
-              Subtype(tau, ConstTypeVar(TInt))::
-              Subtype(tau1, ConstTypeVar(TInt))::
-              Subtype(tau2, ConstTypeVar(TInt))::ret
+              Subtype(tau, IntVar)::
+              Subtype(tau1, IntVar)::
+              Subtype(tau2, IntVar)::ret
           case BExpr.Op.SHL | BExpr.Op.SHR =>
             ret = 
-              Subtype(tau2, ConstTypeVar(TInt))::ret
+              Subtype(tau2, IntVar)::ret
           case BExpr.Op.ADD =>
             ret = Add(tau, tau1, tau2)::ret
           case BExpr.Op.SUB =>
@@ -174,7 +163,7 @@ class ConstraintSolver(elf : Elf) {
   // Tarjan's strongly connected component detection algorithm
   private def solveImpl(g : Graph[Set[TypeVar], DiEdge]) : Graph[Set[TypeVar], DiEdge] = {
     g.findCycle match {
-      case None => g
+      case None => refineTypeVarGraph(g)
       case Some(cycle) => {
         val toCoalesce = cycle.nodes.map(_.value).toSet
         val preds = cycle.nodes.map(_<~|).reduce(_|_).map(_.value) -- toCoalesce
@@ -185,18 +174,41 @@ class ConstraintSolver(elf : Elf) {
     }
   }
   
-  private def refineTypeVarGraph(g : Graph[Set[TypeVar], DiEdge]) : Unit = {
+  private def upperOfTypeVarSet(s : Set[TypeVar]) =
+    s.foldLeft(TTop : Type)((last, v) => last /\ v.upper)
+  
+  private def lowerOfTypeVarSet(s : Set[TypeVar]) =
+    s.foldLeft(TTop : Type)((last, v) => last \/ v.lower)
+  
+  private def refineTypeVarGraph(g : Graph[Set[TypeVar], DiEdge]) = {
     g.nodes.map(_.value).foreach {
-      x => {
-        val inter = x & Set(IntVar, PtrVar)
-        if (inter.size > 0) {
-          val t = inter.foldLeft(TTop.asInstanceOf[Type]) {
-            (a, b) => b match { case ConstTypeVar(t) => a /\ t }
-          }
-          x.foreach { case v : MutableTypeVar => v.upper = t; v.lower = t }
+      inner => {
+        val upper = upperOfTypeVarSet(inner.map(_.value))
+        val lower = lowerOfTypeVarSet(inner.map(_.value))
+        inner.foreach(_.setUpperLower(upper, lower))
+      }
+    }
+    val torder = (g.topologicalSort match {
+      case Right(order) => order
+      case Left(_) => throw new UnreachableCodeException
+    }).toBuffer
+    torder.iterator.foreach {
+      inner => {
+        if (!inner.head.isDetermined) {
+          val lower = lowerOfTypeVarSet(inner.diPredecessors.map(_.head.value))
+          inner.foreach(_.setUpper(lower))
         }
       }
     }
+    torder.reverseIterator.foreach {
+      inner => {
+        if (!inner.head.isDetermined) {
+          val upper = upperOfTypeVarSet(inner.diSuccessors.map(_.head.value))
+          inner.foreach(_.setLower(upper))
+        }
+      }
+    }
+    g
   }
   
   def solveGraphicConstraints(workList : List[GraphicConstraint]) = 
