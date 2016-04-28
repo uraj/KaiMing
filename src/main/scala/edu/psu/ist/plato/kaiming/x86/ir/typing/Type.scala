@@ -1,35 +1,57 @@
 package edu.psu.ist.plato.kaiming.x86.ir.typing
 
-sealed abstract class Type(code : Int) {
-  val encoding = code
-  
-  private var mapping = Map[Int, Type]((0, TBot), (1, TInt), (2, TPtr), (3, TTop))
-
-  private def get(x : Int) : Type = mapping.get(x).orNull
-  
+sealed abstract class Type {
   /* Meet */
-  def /\(that : Type) = get(encoding & that.encoding)
+  def /\(that : Type) : Type
   
   /* Join */
-  def \/(that : Type) = get(encoding | that.encoding)
+  def \/(that : Type) : Type
 }
 
-object TBot extends Type(0) {
+case object TBot extends Type {
   override def toString() = "Bot"
+  
+  override def /\(that : Type) = this
+  override def \/(that : Type) = that
 }
 
-
-
-object TInt extends Type(1) {
+case object TInt extends Type {
   override def toString() = "Int"
+  
+  override def /\(that : Type) : Type = that match {
+    case TInt => this
+    case TPtr => TBot
+    case TTop | TBot => that /\ this 
+  }
+  
+  override def \/(that : Type) : Type = that match {
+    case TInt => this
+    case TPtr => TTop
+    case TTop | TBot => that /\ this 
+  }
 }
 
-object TPtr extends Type(2) {
+case object TPtr extends Type {
   override def toString() = "Ptr"
+  
+  override def /\(that : Type) : Type = that match {
+    case TPtr => this
+    case TInt => TBot
+    case TTop | TBot => that /\ this 
+  }
+  
+  override def \/(that : Type) : Type = that match {
+    case TPtr => this
+    case TInt => TTop
+    case TTop | TBot => that /\ this 
+  }
 }
 
-object TTop extends Type(3) {
+case object TTop extends Type {
   override def toString() = "Top"
+  
+  override def /\(that : Type) = that
+  override def \/(that : Type) = this
 }
 
 abstract class TypeVar(varid : Int) {
@@ -39,16 +61,33 @@ abstract class TypeVar(varid : Int) {
     case that : TypeVar => that.id == id 
     case _ => false
   }
-}
-
-class MutableTypeVar(varid : Int) extends TypeVar(varid) {
-  var upper : Type = TTop
-  var lower : Type = TBot
+  
+  protected var upper_ : Type = TTop
+  protected var lower_ : Type = TBot
+  
+  def setUpper(t : Type) : Unit
+  def setLower(t : Type) : Unit
+  def setUpperLower(t1 : Type, t2 : Type) = { setUpper(t1); setLower(t2) }
+  
+  def upper = upper_
+  def lower = lower_
+  
+  def isDetermined = upper.equals(lower)
   
   override def toString() = id + ":" + upper + " -> " + lower
 }
 
-sealed case class ConstTypeVar(t : Type) extends TypeVar(-t.encoding)
-
-object IntVar extends ConstTypeVar(TInt)
-object PtrVar extends ConstTypeVar(TPtr)
+class MutableTypeVar(varid : Int) extends TypeVar(varid) {
+  require(varid > 0)
+  override def setUpper(t : Type) = { upper_ = TTop }
+  override def setLower(t : Type) = { lower_ = TBot }
+}
+ 
+class ConstTypeVar(varid : Int, t : Type) extends TypeVar(varid) {
+  require(varid < 0)
+  val ty = t
+  upper_ = ty
+  lower_ = ty
+  override def setUpper(t : Type) = Unit
+  override def setLower(t : Type) = Unit
+}
