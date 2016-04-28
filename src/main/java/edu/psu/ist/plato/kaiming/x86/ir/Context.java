@@ -315,6 +315,15 @@ public class Context extends Procedure<Stmt> {
         ret.add(updateOperand(inst, dest, bexp));
     }
     
+    private void toIR(LeaveInst inst, List<Stmt> ret) {
+        ret.add(new AssignStmt(inst, Reg.esp, Reg.ebp));
+        LdStmt load = new LdStmt(inst, Reg.ebp, Reg.esp); 
+        ret.add(load);
+        Const size = Const.getConstant(4);
+        BExpr incEsp = new BExpr(BExpr.Op.ADD, Reg.esp, size);
+        ret.add(new AssignStmt(inst, Reg.esp, incEsp));
+    }
+    
     private void toIR(MultiplyInst inst, List<Stmt> ret) {
         Tuple<Operand, Operand> src = inst.src();
         Expr e1 = readOperand(inst, src.first, ret);
@@ -377,6 +386,8 @@ public class Context extends Procedure<Stmt> {
             case RETURN:
                 ret.add(new RetStmt(inst));
                 break;
+            case LEAVE:
+                toIR((LeaveInst)inst, ret);
             case NOP:
                 break;
             case COND_SET:

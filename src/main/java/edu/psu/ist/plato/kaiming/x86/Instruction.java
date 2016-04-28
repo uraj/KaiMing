@@ -33,6 +33,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
 		NOP,
 		POP,
 		PUSH,
+		LEAVE,
 		OTHER,
 	};
 	
@@ -183,6 +184,10 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
         return mKind.equals(Kind.NOP);
     }
     
+    public final boolean isLeaveInst() {
+        return mKind.equals(Kind.LEAVE);
+    }
+    
     public final boolean isTerminator() {
         return isReturnInst() || isJumpInst() || isCondJumpInst();
     }
@@ -318,9 +323,21 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
                         new Memory(null, 0, Register.getRegister(Register.Id.ESI), null, 1),
                         new Memory(null, 0, Register.getRegister(Register.Id.EDI), null, 1));
                 break;
-            default:
+            case LEAVE:
+                ret = new LeaveInst(addr);
+                break;
+            case CMPS:
+            case CPUID:
+            case EXT:
+            case INT:
+            case LODS:
+            case SCAS:
+            case STOS:
+            case HALT:
                 ret = new OtherInst(addr, opcode, operands);
                 break;
+            case UD:
+                Assert.unreachable();
         }
         return ret;
     }
