@@ -24,7 +24,7 @@ public class MultiplyInst extends Instruction {
                 break;
             case 2:
                 mDest = new Operand[] {operands[1]};
-                mSrc = new Operand[] {operands[0]};
+                mSrc = new Operand[] {operands[0], operands[1]};
                 break;
             case 3:
                 mDest = new Operand[] {operands[2]};

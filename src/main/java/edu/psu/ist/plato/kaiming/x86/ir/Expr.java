@@ -64,7 +64,7 @@ public abstract class Expr {
             if (expr instanceof BExpr) {
                 return visitBExpr((BExpr)expr);
             } else if (expr instanceof UExpr) {
-                return visitBExpr((BExpr)expr);
+                return visitUExpr((UExpr)expr);
             } else if (expr instanceof Lval) {
                 if (!visitLval((Lval)expr))
                     return false;
