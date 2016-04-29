@@ -16,22 +16,24 @@ sealed abstract class Constraint
 
 sealed abstract class GraphicConstraint extends Constraint
 case class Subtype(t1 : TypeVar, t2 : TypeVar) extends GraphicConstraint {
-  if (t1 == null || t2 == null)
-    throw new UnreachableCodeException
+  require(t1 != null)
+  require(t2 != null)
 }
 case class Eqtype(t1 : TypeVar, t2 : TypeVar) extends GraphicConstraint {
-  if (t1 == null || t2 == null)
-    throw new UnreachableCodeException
+  require(t1 != null)
+  require(t2 != null)
 }
 
 sealed abstract class NonGraphicConstraint extends Constraint
 case class Add(t : TypeVar, t1: TypeVar, t2 : TypeVar) extends NonGraphicConstraint {
-  if (t == null || t1 == null || t2 == null)
-    throw new UnreachableCodeException
+  require(t != null)
+  require(t1 != null)
+  require(t2 != null)
 }
 case class Sub(t : TypeVar, t1: TypeVar, t2 : TypeVar) extends NonGraphicConstraint {
-  if (t == null || t1 == null || t2 == null)
-    throw new UnreachableCodeException
+  require(t != null)
+  require(t1 != null)
+  require(t2 != null)
 }
 
 class ConstraintSolver(elf : Elf) {
@@ -44,15 +46,17 @@ class ConstraintSolver(elf : Elf) {
   def simpleInferConst(c : Const, id : Int) : TypeVar = 
     if (elf.withinValidRange(c.value()))
       new MutableTypeVar(id)
-    else
+    else {
+      println(c.value().toHexString) 
       IntVar
+    }
   
   private def getRvalTypeVarMap(start : Int, irl : Buffer[Stmt]) : Map[(Stmt, Expr), TypeVar] = {
     def add(start : Int, s : Stmt, l : Set[Expr]) : List[((Stmt, Expr), TypeVar)] = 
       l.foldLeft(List[((Stmt, Expr), TypeVar)]())(
           (list, expr) => ((s, expr), 
               expr match {
-                case c : Const => simpleInferConst(c, start + list.size) 
+                case c : Const => simpleInferConst(c, start + list.size)
                 case _ => new MutableTypeVar(start + list.size)
               }
            )::list)
@@ -68,19 +72,18 @@ class ConstraintSolver(elf : Elf) {
         })
   }
   
-  def toConstraints(ctx : Context) : List[Constraint] = {
+  def toConstraints(ctx : Context) : (Result, List[Constraint]) = {
     val irl = ctx.entries().asScala
     val rvalMap = getRvalTypeVarMap(0, irl)
     val lvalMap = getLvalTypeVarMap(rvalMap.size, irl)
     val rdConstraints = rvalMap.foldLeft(List[Constraint]())(
         (list, keyvalue) => keyvalue match {
-          case ((s, e), tv) => 
-            if (e.isLval())
-              s.searchDefFor(e.asInstanceOf[Lval]).asScala.toList.map {
-                defs => Eqtype(lvalMap.get(defs).orNull, tv)
-                }
-            else
-              list
+          case ((s, e : Lval), tv) => 
+              s.searchDefFor(e).asScala.toList.map({
+                defs => if (defs.isExternal()) None 
+                  else Some(Subtype(lvalMap.get(defs).orNull, tv))
+              }).flatten
+          case _ => list
         })
     val stmtConstraints = irl.map({ 
       case s : AssignStmt =>
@@ -91,9 +94,10 @@ class ConstraintSolver(elf : Elf) {
       case s : CallStmt =>
         Eqtype(rvalMap.get((s, s.target())).orNull, PtrVar)::
         exprToConstraints(s, s.target(), rvalMap)
-      case s : JmpStmt =>
+      case s : JmpStmt => {
         Eqtype(rvalMap.get((s, s.target())).orNull, PtrVar)::
         exprToConstraints(s, s.target(), rvalMap)
+      }
       case s : LdStmt =>
         Eqtype(rvalMap.get((s, s.loadFrom())).orNull, PtrVar)::
         exprToConstraints(s, s.loadFrom(), rvalMap)
@@ -105,7 +109,7 @@ class ConstraintSolver(elf : Elf) {
       case s : SetFlagStmt =>
         Nil
     }).flatten
-    rdConstraints ++ stmtConstraints
+    (new Result(rvalMap, lvalMap), rdConstraints ++ stmtConstraints)
   }
   
   private def exprToConstraints(s : Stmt, e : Expr,
@@ -143,7 +147,6 @@ class ConstraintSolver(elf : Elf) {
         }
         true
       }
-      
     }
     val gen = new ConstraintGen
     gen.visit(e)
@@ -163,7 +166,7 @@ class ConstraintSolver(elf : Elf) {
   // Tarjan's strongly connected component detection algorithm
   private def solveImpl(g : Graph[Set[TypeVar], DiEdge]) : Graph[Set[TypeVar], DiEdge] = {
     g.findCycle match {
-      case None => refineTypeVarGraph(g)
+      case None => refineConstraints(g)
       case Some(cycle) => {
         val toCoalesce = cycle.nodes.map(_.value).toSet
         val preds = cycle.nodes.map(_<~|).reduce(_|_).map(_.value) -- toCoalesce
@@ -174,17 +177,23 @@ class ConstraintSolver(elf : Elf) {
     }
   }
   
-  private def upperOfTypeVarSet(s : Set[TypeVar]) =
-    s.foldLeft(TTop : Type)((last, v) => last /\ v.upper)
+  private def joinOfTypeVarSet(s : Set[TypeVar], useUpper : Boolean) =
+    if (useUpper)
+      s.foldLeft(TBot : Type)((last, v) => last \/ v.upper)
+    else
+      s.foldLeft(TBot : Type)((last, v) => last \/ v.lower)
+      
+  private def meetOfTypeVarSet(s : Set[TypeVar], useUpper : Boolean) =
+    if (useUpper)
+      s.foldLeft(TTop : Type)((last, v) => last /\ v.upper)
+    else
+      s.foldLeft(TTop : Type)((last, v) => last /\ v.lower)
   
-  private def lowerOfTypeVarSet(s : Set[TypeVar]) =
-    s.foldLeft(TTop : Type)((last, v) => last \/ v.lower)
-  
-  private def refineTypeVarGraph(g : Graph[Set[TypeVar], DiEdge]) = {
+  private def refineConstraints(g : Graph[Set[TypeVar], DiEdge]) = {
     g.nodes.map(_.value).foreach {
       inner => {
-        val upper = upperOfTypeVarSet(inner.map(_.value))
-        val lower = lowerOfTypeVarSet(inner.map(_.value))
+        val upper = meetOfTypeVarSet(inner.map(_.value), true)
+        val lower = joinOfTypeVarSet(inner.map(_.value), false)
         inner.foreach(_.setUpperLower(upper, lower))
       }
     }
@@ -195,7 +204,7 @@ class ConstraintSolver(elf : Elf) {
     torder.iterator.foreach {
       inner => {
         if (!inner.head.isDetermined) {
-          val lower = lowerOfTypeVarSet(inner.diPredecessors.map(_.head.value))
+          val lower = meetOfTypeVarSet(inner.diPredecessors.map(_.head.value), true)
           inner.foreach(_.setUpper(lower))
         }
       }
@@ -203,7 +212,7 @@ class ConstraintSolver(elf : Elf) {
     torder.reverseIterator.foreach {
       inner => {
         if (!inner.head.isDetermined) {
-          val upper = upperOfTypeVarSet(inner.diSuccessors.map(_.head.value))
+          val upper = joinOfTypeVarSet(inner.diSuccessors.map(_.head.value), false)
           inner.foreach(_.setLower(upper))
         }
       }
@@ -211,6 +220,25 @@ class ConstraintSolver(elf : Elf) {
     g
   }
   
-  def solveGraphicConstraints(workList : List[GraphicConstraint]) = 
+  def solveGraphicConstraints(workList : List[GraphicConstraint]) = {
     solveImpl(constraintsToGraph(workList))
+  }
+    
+  class Result(rvalMap : Map[(Stmt, Expr), TypeVar], lvalMap : Map[DefStmt, TypeVar]) {
+    def queryRvalType(s : Stmt, e : Expr) : Option[TypeVar] = rvalMap.get(s, e) 
+    def queryLvalType(s : DefStmt) : Option[TypeVar] = lvalMap.get(s)
+    override def toString() = {
+      val builder = new StringBuilder
+      builder ++= "Lvalue types:\n"
+      lvalMap.iterator.toBuffer.sortWith(_._1.index() < _._1.index()).foreach {
+        case (s, v) => builder ++= s.toString ++= " : " ++= v.toString += '\n'
+      }
+      builder ++= "Rvalue types:\n"
+      rvalMap.iterator.toBuffer.sortWith(_._1._1.index() < _._1._1.index()).foreach {
+        case ((s, e), v) =>
+          builder ++= s.toString() += ' ' ++= e.toString() ++= " : " ++= v.toString() += '\n' 
+      }
+      builder.toString
+    }
+  }
 }

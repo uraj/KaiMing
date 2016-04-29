@@ -1,5 +1,7 @@
 package edu.psu.ist.plato.kaiming.x86.ir;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -27,7 +29,13 @@ abstract public class Stmt extends Entry {
         private Set<Lval> mLvals = new HashSet<Lval>(); 
         
         @Override
-        protected boolean visitLval(Lval lval) {
+        protected boolean visitReg(Reg lval) {
+            mLvals.add(lval);
+            return true;
+        }
+        
+        @Override
+        protected boolean visitVar(Var lval) {
             mLvals.add(lval);
             return true;
         }
@@ -57,7 +65,7 @@ abstract public class Stmt extends Entry {
         }
         prob.probedLvals().remove(Reg.eip); // EIP is always self defined
         for (Lval lv : prob.probedLvals()) {
-            mUDChain.put(lv, null);
+            mUDChain.put(lv, new HashSet<DefStmt>());
         }
     }
     
@@ -99,15 +107,9 @@ abstract public class Stmt extends Entry {
                 mExprs = init;
             }
             
-            private boolean recordExpr(Expr e) {
-                int size = mExprs.size();
-                mExprs.add(e);
-                return mExprs.size() != size;
-            }
-            
             @Override
-            protected boolean visitUExpr(UExpr expr) {
-                return recordExpr(expr);
+            protected boolean prologue(Expr expr) {
+                return mExprs.add(expr);
             }
             
             public Set<Expr> enumeratedExprs() {
@@ -121,5 +123,14 @@ abstract public class Stmt extends Entry {
         }
         
         return enumerator.enumeratedExprs();
+    }
+    
+    @Override
+    public final String toString() {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Printer p = new Printer(new PrintStream(baos));
+        p.printStmt(this);
+        p.close();
+        return baos.toString();
     }
 }

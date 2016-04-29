@@ -1,5 +1,7 @@
 package edu.psu.ist.plato.kaiming.x86.ir;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -96,12 +98,16 @@ public class Context extends Procedure<Stmt> {
     }
     
     private Stmt updateOperand(Instruction inst, Operand operand, Expr value) {
-        Assert.test(!operand.isImmeidate());
         if (operand.isRegister()) {
             return new AssignStmt(inst, Reg.getReg(operand.asRegister()), value);
+        } else if (operand.isMemory()){
+            Expr addr = Expr.toExpr(operand.asMemory());
+            return new StStmt(inst, addr, value);
         } else {
-            return new StStmt(inst, getNewTempVariable(), value);
+            Assert.unreachable();
+            return null;
         }
+        
     }
     
     private Stmt updateLval(Instruction inst, Lval lv, Expr value) {
@@ -402,4 +408,13 @@ public class Context extends Procedure<Stmt> {
 	protected Label deriveSubLabel(BasicBlock<Stmt> bb) {
 		return null;
 	}
+	
+	@Override
+    public final String toString() {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Printer p = new Printer(new PrintStream(baos));
+        p.printContext(this);
+        p.close();
+        return baos.toString();
+    }
 }

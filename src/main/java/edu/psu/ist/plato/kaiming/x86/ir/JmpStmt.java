@@ -9,14 +9,24 @@ import edu.psu.ist.plato.kaiming.x86.JumpInst;
 public class JmpStmt extends Stmt {
 
     private Expr mTarget;
+    private Target mResolvedTarget;
     
     public JmpStmt(JumpInst inst, Expr target) {
         super(Kind.JMP, inst, new Expr[] {target});
         mTarget = target;
+        mResolvedTarget = null;
     }
     
     public Expr target() {
         return mTarget;
+    }
+    
+    public Target resolvedTarget() {
+        return mResolvedTarget;
+    }
+    
+    public boolean hasResolvedTarget() {
+        return mResolvedTarget != null;
     }
     
     public boolean isConditional() {
@@ -28,6 +38,6 @@ public class JmpStmt extends Stmt {
     }
     
     public void resolveTarget(BasicBlock<Stmt> bb) {
-        mTarget = mTarget.asTarget(bb);
+        mResolvedTarget = mTarget.asTarget(bb);
     }
 }

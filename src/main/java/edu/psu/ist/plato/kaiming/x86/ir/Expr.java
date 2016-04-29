@@ -61,32 +61,27 @@ public abstract class Expr {
     public static abstract class Visitor {
 
         private boolean action(Expr expr) {
+            if (!prologue(expr))
+                return false;
+            
             if (expr instanceof BExpr) {
                 return visitBExpr((BExpr)expr);
             } else if (expr instanceof UExpr) {
                 return visitUExpr((UExpr)expr);
-            } else if (expr instanceof Lval) {
-                if (!visitLval((Lval)expr))
-                    return false;
-                if (expr instanceof Reg) {
-                    return visitReg((Reg)expr);
-                } else if (expr instanceof Var) {
-                    return visitVar((Var)expr);
-                } else {
-                    Assert.unreachable();
-                    return false;
-                }
-            } else if (expr instanceof Const) {
+            } else if (expr instanceof Reg) {
+                return visitReg((Reg)expr);
+            } else if (expr instanceof Var) {
+                return visitVar((Var)expr);
+            } else if (expr instanceof Flg) {
+                return visitFlg((Flg)expr);
+            }  else if (expr instanceof Const) {
                 return visitConst((Const)expr);
-            } else if (expr instanceof Target) {
-                return action(((Target)expr).underlyingExpr());
             } else {
-                System.err.println(expr);
                 Assert.unreachable();
                 return false;
             }
         }
-
+        
         public void visit(Expr toVisit) {
             doVisit(toVisit);
         }
@@ -99,12 +94,13 @@ public abstract class Expr {
             }
             return true;
         }
-        
+
+        protected boolean prologue(Expr expr) { return true; }
         protected boolean visitBExpr(BExpr expr) { return true; };
         protected boolean visitUExpr(UExpr expr) { return true; };
-        protected boolean visitLval(Lval lval) { return true; };
         protected boolean visitVar(Var lval) { return true; };
         protected boolean visitReg(Reg lval) { return true; };
+        protected boolean visitFlg(Flg lval) { return true; };
         protected boolean visitConst(Const c) { return true; };
     }
 

@@ -275,7 +275,9 @@ final class Elf(input: ByteVector) {
 
   def withinValidRange(imm : Long) : Boolean = {
     def eachSec(headers : Vector[SectionHeader]) : Boolean = headers match {
-      case xs :+ x => (x.sh_addr <= imm && x.sh_addr + x.size >= imm) || eachSec(xs)
+      case xs :+ x => {
+        (x.sh_addr <= imm && x.sh_addr + x.sh_size >= imm) || eachSec(xs)
+      }
       case _ => false
     }
     eachSec(secHeaders)

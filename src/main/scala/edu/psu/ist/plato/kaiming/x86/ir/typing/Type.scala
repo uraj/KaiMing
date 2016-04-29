@@ -27,7 +27,7 @@ case object TInt extends Type {
   override def \/(that : Type) : Type = that match {
     case TInt => this
     case TPtr => TTop
-    case TTop | TBot => that /\ this 
+    case TTop | TBot => that \/ this 
   }
 }
 
@@ -43,7 +43,7 @@ case object TPtr extends Type {
   override def \/(that : Type) : Type = that match {
     case TPtr => this
     case TInt => TTop
-    case TTop | TBot => that /\ this 
+    case TTop | TBot => that \/ this 
   }
 }
 
@@ -73,14 +73,13 @@ abstract class TypeVar(varid : Int) {
   def lower = lower_
   
   def isDetermined = upper.equals(lower)
-  
-  override def toString() = id + ":" + upper + " -> " + lower
 }
 
 class MutableTypeVar(varid : Int) extends TypeVar(varid) {
-  require(varid > 0)
-  override def setUpper(t : Type) = { upper_ = TTop }
-  override def setLower(t : Type) = { lower_ = TBot }
+  require(varid >= 0)
+  override def setUpper(t : Type) = { upper_ = t }
+  override def setLower(t : Type) = { lower_ = t }
+  override def toString() = id + ":" + upper + " -> " + lower
 }
  
 class ConstTypeVar(varid : Int, t : Type) extends TypeVar(varid) {
@@ -90,4 +89,5 @@ class ConstTypeVar(varid : Int, t : Type) extends TypeVar(varid) {
   lower_ = ty
   override def setUpper(t : Type) = Unit
   override def setLower(t : Type) = Unit
+  override def toString() = ty.toString()
 }

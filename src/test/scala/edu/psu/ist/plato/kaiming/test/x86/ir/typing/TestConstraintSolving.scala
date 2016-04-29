@@ -1,11 +1,18 @@
 package edu.psu.ist.plato.kaiming.test.x86.ir.typing
 
+import java.io.File
+import java.io.FileInputStream
+
+import scala.io.Source
+
 import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfter
 import org.scalatest.junit.JUnitRunner
 
+import edu.psu.ist.plato.kaiming.x86.ir._
 import edu.psu.ist.plato.kaiming.x86.ir.typing._
 import edu.psu.ist.plato.kaiming.elf.Elf
+import edu.psu.ist.plato.kaiming.x86.parsing.GASParser
 
 import org.junit.runner.RunWith
 
@@ -13,38 +20,23 @@ import scodec.bits._
 
 @RunWith(classOf[JUnitRunner])
 class TestConstraintSolving extends FunSuite with BeforeAndAfter {
+  var elf : Elf = null;
+  var ctx : Context = null; 
+  
+  before {
+    val file = new File(getClass.getResource("/TestTI/fact").getFile)
+    val in = new FileInputStream(file)
+    val bytes = new Array[Byte](file.length.toInt)
+    in.read(bytes)
+    in.close()
+    elf = new Elf(ByteVector(bytes))
+    val asm = Source.fromFile(getClass.getResource("/TestTI/fact.s").toURI())
+    ctx = new Context(GASParser.parseBinaryUnit(asm.mkString).head)
+    asm.close()
+    AssemblyUnit.UDAnalysis(ctx)
+  }
+  
   test("Testing cycle elimination") {
-    val elfbin =
-      hex"""7f454c460101010000000000000000000100030001000000000000000000
-            0000f80000000000000034000000000028000b0008005589e58b450883c0
-            015dc3004743433a20285562756e747520342e382e342d327562756e7475
-            317e31342e30342920342e382e34000000001400000000000000017a5200
-            017c08011b0c0404880100001c0000001c000000000000000b0000000041
-            0e088502420d0547c50c04040000002e73796d746162002e737472746162
-            002e7368737472746162002e74657874002e64617461002e627373002e63
-            6f6d6d656e74002e6e6f74652e474e552d737461636b002e72656c2e6568
-            5f6672616d65000000000000000000000000000000000000000000000000
-            0000000000000000000000000000000000001b0000000100000006000000
-            00000000340000000b000000000000000000000001000000000000002100
-            00000100000003000000000000003f000000000000000000000000000000
-            0100000000000000270000000800000003000000000000003f0000000000
-            0000000000000000000001000000000000002c0000000100000030000000
-            000000003f0000002a000000000000000000000001000000010000003500
-            000001000000000000000000000069000000000000000000000000000000
-            0100000000000000490000000100000002000000000000006c0000003800
-            000000000000000000000400000000000000450000000900000000000000
-            000000004803000008000000090000000600000004000000080000001100
-            0000030000000000000000000000a4000000530000000000000000000000
-            010000000000000001000000020000000000000000000000b00200009000
-            00000a000000080000000400000010000000090000000300000000000000
-            000000004003000007000000000000000000000001000000000000000000
-            00000000000000000000000000000100000000000000000000000400f1ff
-            000000000000000000000000030001000000000000000000000000000300
-            020000000000000000000000000003000300000000000000000000000000
-            030005000000000000000000000000000300060000000000000000000000
-            00000300040005000000000000000b0000001200010000612e63006d0000
-            2000000002020000"""
-    val elf = new Elf(elfbin)
     val solver = new ConstraintSolver(elf)
     val t1 = new MutableTypeVar(1)
     val t2 = new MutableTypeVar(2)
@@ -55,5 +47,17 @@ class TestConstraintSolving extends FunSuite with BeforeAndAfter {
       List[GraphicConstraint](Subtype(t1, t2), Subtype(t2, t3), Subtype(t3, t2), Subtype(t3, t4),
            Subtype(t4, t3), Subtype(t3, t5), Subtype(t3, t1))
     println(solver.solveGraphicConstraints(workList))
+  }
+  
+  test("Testing type inference") {
+    val solver = new ConstraintSolver(elf)
+    val instance = solver.toConstraints(ctx)
+    val workList = instance._2.map({
+      case c : GraphicConstraint => Some(c)
+      case _ => None
+    }).flatten
+    Printer.out.printContextWithUDInfo(ctx)
+    println(solver.solveGraphicConstraints(workList))
+    println(instance._1)
   }
 }

@@ -122,8 +122,6 @@ public class Printer extends PrintWriter {
             printBExpr((BExpr) e);
         } else if (e instanceof UExpr) {
             printUExpr((UExpr) e);
-        } else if (e instanceof Target) {
-            printTarget((Target)e);
         } else {
             Assert.unreachable();
         }
@@ -158,7 +156,10 @@ public class Printer extends PrintWriter {
             print(']');
         }
         print(" ");
-        printExpr(s.target());
+        if (s.hasResolvedTarget())
+            printTarget(s.resolvedTarget());
+        else
+            printExpr(s.target());
         print(";");
     }
     
