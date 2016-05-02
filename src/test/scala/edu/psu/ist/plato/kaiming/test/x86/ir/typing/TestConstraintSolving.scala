@@ -36,28 +36,9 @@ class TestConstraintSolving extends FunSuite with BeforeAndAfter {
     AssemblyUnit.UDAnalysis(ctx)
   }
   
-  test("Testing cycle elimination") {
-    val solver = new ConstraintSolver(elf)
-    val t1 = new MutableTypeVar(1)
-    val t2 = new MutableTypeVar(2)
-    val t3 = new MutableTypeVar(3)
-    val t4 = new MutableTypeVar(4)
-    val t5 = new MutableTypeVar(5)
-    val workList : List[GraphicConstraint] = 
-      List[GraphicConstraint](Subtype(t1, t2), Subtype(t2, t3), Subtype(t3, t2), Subtype(t3, t4),
-           Subtype(t4, t3), Subtype(t3, t5), Subtype(t3, t1))
-    println(solver.solveGraphicConstraints(workList))
-  }
-  
   test("Testing type inference") {
-    val solver = new ConstraintSolver(elf)
-    val instance = solver.toConstraints(ctx)
-    val workList = instance._2.map({
-      case c : GraphicConstraint => Some(c)
-      case _ => None
-    }).flatten
+    val solver = new TypeInferer(elf)
     Printer.out.printContextWithUDInfo(ctx)
-    println(solver.solveGraphicConstraints(workList))
-    println(instance._1)
+    println(solver.infer(ctx))
   }
 }

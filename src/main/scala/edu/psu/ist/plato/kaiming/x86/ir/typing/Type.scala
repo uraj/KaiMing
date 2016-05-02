@@ -65,8 +65,8 @@ abstract class TypeVar(varid : Int) {
   protected var upper_ : Type = TTop
   protected var lower_ : Type = TBot
   
-  def setUpper(t : Type) : Unit
-  def setLower(t : Type) : Unit
+  def setUpper(t : Type) : Boolean
+  def setLower(t : Type) : Boolean
   def setUpperLower(t1 : Type, t2 : Type) = { setUpper(t1); setLower(t2) }
   
   def upper = upper_
@@ -77,9 +77,9 @@ abstract class TypeVar(varid : Int) {
 
 class MutableTypeVar(varid : Int) extends TypeVar(varid) {
   require(varid >= 0)
-  override def setUpper(t : Type) = { upper_ = t }
-  override def setLower(t : Type) = { lower_ = t }
-  override def toString() = id + ":" + upper + " -> " + lower
+  override def setUpper(t : Type) = { val ret = !upper.equals(t); upper_ = t; ret }
+  override def setLower(t : Type) = { val ret = !lower.equals(t); lower_ = t; ret }
+  override def toString() = "[" + upper + "->" + lower + "]"
 }
  
 class ConstTypeVar(varid : Int, t : Type) extends TypeVar(varid) {
@@ -87,7 +87,7 @@ class ConstTypeVar(varid : Int, t : Type) extends TypeVar(varid) {
   val ty = t
   upper_ = ty
   lower_ = ty
-  override def setUpper(t : Type) = Unit
-  override def setLower(t : Type) = Unit
+  override def setUpper(t : Type) = false
+  override def setLower(t : Type) = false
   override def toString() = ty.toString()
 }

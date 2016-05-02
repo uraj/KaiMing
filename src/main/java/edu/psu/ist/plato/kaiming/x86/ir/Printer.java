@@ -95,8 +95,8 @@ public class Printer extends PrintWriter {
     private void printUExprOperator(UExpr.Op op) {
         switch (op) {
             case BSWAP: print("<>"); break;
-            case HIGH:  print("{"); break;
-            case LOW:   print("}"); break;
+            case HIGH:  print("high"); break;
+            case LOW:   print("low"); break;
             case NOT:   print("~"); break;
         }
     }
