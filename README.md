@@ -12,3 +12,9 @@ requires the following components:
 
 The project can be directly imported into Eclipse, but you may need a few
 Eclipse plug-ins to work with the imported code.
+
+Since the project is managed by Maven, you can type the following commands
+in the project directory to execute test cases. The dependencies should be
+resolved by Maven automatically.
+
+`$ mvn test`
