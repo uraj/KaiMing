@@ -49,7 +49,7 @@ class TypeInferer(elf : Elf) {
       new MutableTypeVar(id)
     else
       IntVar
-
+  
   private def getRvalTypeVarMap(start : Int, irl : Buffer[Stmt]) : Map[(Stmt, Expr), TypeVar] = {
     def add(start : Int, s : Stmt, l : Set[Expr]) : List[((Stmt, Expr), TypeVar)] = 
       l.foldLeft(List[((Stmt, Expr), TypeVar)]())(
@@ -277,15 +277,33 @@ class TypeInferer(elf : Elf) {
     def queryRvalType(s : Stmt, e : Expr) : Option[TypeVar] = rvalMap.get(s, e) 
     def queryLvalType(s : DefStmt) : Option[TypeVar] = lvalMap.get(s)
     override def toString() = {
+      var instIndex = -1L
       val builder = new StringBuilder
       builder ++= "Lvalue types:\n"
       lvalMap.iterator.toBuffer.sortWith(_._1.index() < _._1.index()).foreach {
-        case (s, v) => builder ++= s.toString ++= " : " ++= v.toString += '\n'
+        case (s, v) => {
+          if (instIndex != s.hostInstruction().index()) {
+            instIndex = s.hostInstruction().index()
+            builder ++= s.hostInstruction().toString() ++= "\n"
+          }
+          builder ++= "  " ++= s.toString ++= " : " ++= v.toString += '\n'
+        }
       }
-      builder ++= "Rvalue types:\n"
+      instIndex = -1L
+      var stmtIndex = -1L
+      builder ++= "\nRvalue types:\n"
       rvalMap.iterator.toBuffer.sortWith(_._1._1.index() < _._1._1.index()).foreach {
-        case ((s, e), v) =>
-          builder ++= s.toString() += ' ' ++= e.toString() ++= " : " ++= v.toString() += '\n' 
+        case ((s, e), v) => {
+          if (instIndex != s.hostInstruction().index()) {
+            instIndex = s.hostInstruction().index()
+            builder ++= s.hostInstruction().toString() ++= "\n"
+          }
+          if (stmtIndex != s.index()) {
+            stmtIndex = s.index()
+            builder ++= "  " ++= s.toString() ++ "\n"
+          }
+          builder ++= "    " ++= e.toString() ++= " : " ++= v.toString() += '\n'
+        }
       }
       builder.toString
     }

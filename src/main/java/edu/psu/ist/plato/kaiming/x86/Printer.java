@@ -97,9 +97,10 @@ public class Printer extends PrintWriter {
     }
 
     public void printInstruction(Instruction i) {
-        if (mIsParseMode)
+        if (mIsParseMode) {
             printSignedHex(i.addr());
-        print('\t');
+            print('\t');
+        }
         print(i.opcode().rawOpcode());
         print('\t');
         if (i.isBranchInst()) {
