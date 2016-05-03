@@ -11,7 +11,7 @@ import java.util.LinkedList;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.After;
-import org.junit.Test;
+//import org.junit.Test;
 
 import edu.psu.ist.plato.kaiming.x86.Function;
 import edu.psu.ist.plato.kaiming.x86.ir.Printer;
@@ -22,7 +22,6 @@ import edu.psu.ist.plato.kaiming.x86.parsing.ParsingException;
 
 
 public class TestIRLifting {
-
     
     private List<Function> funs;
     private File testdir;
@@ -60,7 +59,7 @@ public class TestIRLifting {
         }
     }
     
-    @Test
+    //@Test
     public void lift() {
         List<Context> ctxs = new ArrayList<Context>(funs.size());
         funs.forEach(f -> ctxs.add(new Context(f)));

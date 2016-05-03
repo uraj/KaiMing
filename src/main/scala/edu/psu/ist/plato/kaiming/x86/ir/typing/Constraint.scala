@@ -47,11 +47,9 @@ class TypeInferer(elf : Elf) {
   def simpleInferConst(c : Const, id : Int) : TypeVar = 
     if (elf.withinValidRange(c.value()))
       new MutableTypeVar(id)
-    else {
-      println(c.value().toHexString) 
+    else
       IntVar
-    }
-  
+
   private def getRvalTypeVarMap(start : Int, irl : Buffer[Stmt]) : Map[(Stmt, Expr), TypeVar] = {
     def add(start : Int, s : Stmt, l : Set[Expr]) : List[((Stmt, Expr), TypeVar)] = 
       l.foldLeft(List[((Stmt, Expr), TypeVar)]())(

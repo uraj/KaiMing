@@ -15,7 +15,7 @@ import edu.psu.ist.plato.kaiming.x86.parsing.GASParser
 import edu.psu.ist.plato.kaiming.x86.Function
 import edu.psu.ist.plato.kaiming.x86.Printer
 
-@RunWith(classOf[JUnitRunner])
+//@RunWith(classOf[JUnitRunner])
 class TestParser extends FunSuite with BeforeAndAfter {
   
   var testdir : File = null

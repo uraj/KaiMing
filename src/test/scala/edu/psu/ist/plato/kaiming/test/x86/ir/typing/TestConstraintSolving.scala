@@ -20,23 +20,34 @@ import scodec.bits._
 
 @RunWith(classOf[JUnitRunner])
 class TestConstraintSolving extends FunSuite with BeforeAndAfter {
-  var elf : Elf = null;
-  var ctx : Context = null; 
-  
-  before {
+
+  test("Testing type inference: fact.s") {
     val file = new File(getClass.getResource("/TestTI/fact").getFile)
     val in = new FileInputStream(file)
     val bytes = new Array[Byte](file.length.toInt)
     in.read(bytes)
     in.close()
-    elf = new Elf(ByteVector(bytes))
+    val elf = new Elf(ByteVector(bytes))
     val asm = Source.fromFile(getClass.getResource("/TestTI/fact.s").toURI())
-    ctx = new Context(GASParser.parseBinaryUnit(asm.mkString).head)
+    val ctx = new Context(GASParser.parseBinaryUnit(asm.mkString).head)
     asm.close()
     AssemblyUnit.UDAnalysis(ctx)
+    val solver = new TypeInferer(elf)
+    Printer.out.printContextWithUDInfo(ctx)
+    println(solver.infer(ctx))
   }
   
-  test("Testing type inference") {
+  test("Testing type inference: bubble.s") {
+    val file = new File(getClass.getResource("/TestTI/bubble").getFile)
+    val in = new FileInputStream(file)
+    val bytes = new Array[Byte](file.length.toInt)
+    in.read(bytes)
+    in.close()
+    val elf = new Elf(ByteVector(bytes))
+    val asm = Source.fromFile(getClass.getResource("/TestTI/bubble.s").toURI())
+    val ctx = new Context(GASParser.parseBinaryUnit(asm.mkString).head)
+    asm.close()
+    AssemblyUnit.UDAnalysis(ctx)
     val solver = new TypeInferer(elf)
     Printer.out.printContextWithUDInfo(ctx)
     println(solver.infer(ctx))
