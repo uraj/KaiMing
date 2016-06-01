@@ -15,4 +15,25 @@ public class JumpInst extends BranchInst {
     public SortedSet<Flag> dependentFlags() {
         return Flag.getDependentFlagsByCondition("");
     }
+
+	@Override
+	public boolean isIntraprocedural() {
+		return true;
+	}
+
+	@Override
+	public boolean isInterprocedural() {
+		return false;
+	}
+
+	@Override
+	public boolean isReturn() {
+		return false;
+	}
+
+	@Override
+	public boolean isCall() {
+		return false;
+	}
+
 }

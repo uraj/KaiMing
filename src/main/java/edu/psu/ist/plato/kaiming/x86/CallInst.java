@@ -40,4 +40,24 @@ public class CallInst extends BranchInst {
     public static final Set<Register.Id> callerSavedRegister() {
         return sCallerSavedRegs;
     }
+
+	@Override
+	public boolean isIntraprocedural() {
+		return false;
+	}
+
+	@Override
+	public boolean isInterprocedural() {
+		return true;
+	}
+
+	@Override
+	public boolean isReturn() {
+		return false;
+	}
+
+	@Override
+	public boolean isCall() {
+		return true;
+	}
 }
