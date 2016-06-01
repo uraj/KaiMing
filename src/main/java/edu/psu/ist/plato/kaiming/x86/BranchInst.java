@@ -1,9 +1,10 @@
 package edu.psu.ist.plato.kaiming.x86;
 
+import edu.psu.ist.plato.kaiming.Entry;
 import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.Label;
 
-public abstract class BranchInst extends Instruction {
+public abstract class BranchInst extends Instruction implements Entry.Terminator<Instruction> {
 
     private final boolean mIndirect;
     
@@ -21,10 +22,20 @@ public abstract class BranchInst extends Instruction {
         return operand(0).asMemory();
     }
     
+    @Override
+    public final long targetIndex() {
+    	if (!isIndirect() && isTargetConcrete())
+    		return target().displacement();
+    	else
+    		throw new UnsupportedOperationException();
+    }
+    
+    @Override
     public final boolean isIndirect() {
         return mIndirect;
     }
     
+    @Override
     public final boolean isTargetConcrete() {
         if (mIndirect)
             return false;
@@ -32,11 +43,11 @@ public abstract class BranchInst extends Instruction {
         return target.baseRegister() == null && target.offsetRegister() == null;
     }
 
-    public final boolean relocateTarget(BasicBlock<Instruction> target) {
+    @Override
+    public final void relocateTarget(BasicBlock<Instruction> target) {
         if (target == null || isIndirect() || !isTargetConcrete())
-            return false;
+            throw new UnsupportedOperationException();
         setOperand(0, new Relocation(target(), target));
-        return true;
     }
     
     public final boolean isTargetRelocated() {

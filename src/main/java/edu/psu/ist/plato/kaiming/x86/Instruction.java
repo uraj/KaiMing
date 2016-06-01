@@ -183,10 +183,6 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
         return mKind.equals(Kind.NOP);
     }
     
-    public final boolean isTerminator() {
-        return isReturnInst() || isJumpInst() || isCondJumpInst();
-    }
-    
     public boolean isConditional() {
         return false;
     }

@@ -50,4 +50,20 @@ public abstract class Entry implements Comparable<Long> {
         }
         return null;
     }
+    
+    public final boolean isTerminator() {
+    	return this instanceof Terminator<?>;
+    }
+    
+    public interface Terminator<T extends Entry> {
+    	public boolean isIntraprocedural();
+    	public boolean isInterprocedural();
+    	public boolean isIndirect();
+    	public boolean isTargetConcrete();
+    	public boolean isReturn();
+    	public boolean isCall();
+    	public boolean isConditional();
+		public long targetIndex();
+		public void relocateTarget(BasicBlock<T> target);
+    }
 }

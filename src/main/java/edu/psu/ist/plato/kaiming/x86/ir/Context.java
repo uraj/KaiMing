@@ -27,6 +27,11 @@ public class Context extends Procedure<Stmt> {
         return mFun;
     }
     
+    @Override
+    protected CFG<Stmt> buildCFG(List<Stmt> entries) {
+    	throw new UnsupportedOperationException();
+    }
+    
     private CFG<Stmt> buildCFG(Function fun) {
         CFG<Instruction> asmCFG = fun.cfg();
         List<BasicBlock<Stmt>> bbs = 

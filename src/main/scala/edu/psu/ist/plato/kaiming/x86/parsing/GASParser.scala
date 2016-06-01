@@ -73,7 +73,7 @@ object GASParser extends RegexParsers() {
   
   
   def reg : Parser[Register] = 
-    """%(e?(ax|bx|cx|dx|si|di|sp|bp|ip|iz)|[abcd][hl])""".r ^^ {
+    ("(?i)%" + "(" + Register.Id.values().map(_.name()).mkString("|") + ")").r ^^ {
       x => Register.getRegister(x.substring(1))
     }
   
