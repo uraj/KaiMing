@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.x86.ir;
+package edu.psu.ist.plato.kaiming.ir;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -6,13 +6,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 import edu.psu.ist.plato.kaiming.BasicBlock;
+import edu.psu.ist.plato.kaiming.Machine;
+import edu.psu.ist.plato.kaiming.Machine.MachRegister;
 import edu.psu.ist.plato.kaiming.elf.Elf;
 import edu.psu.ist.plato.kaiming.problem.PathInsensitiveProblem;
 import edu.psu.ist.plato.kaiming.problem.UnsolvableException;
 import edu.psu.ist.plato.kaiming.util.Assert;
 import edu.psu.ist.plato.kaiming.util.SetUtil;
-import edu.psu.ist.plato.kaiming.x86.Register;
-import edu.psu.ist.plato.kaiming.x86.Register.Id;
+//import edu.psu.ist.plato.kaiming.x86.Register;
+//import edu.psu.ist.plato.kaiming.x86.Register.Id;
 
 /**
  * A Unit is an object that holds the information of the disassembled
@@ -35,8 +37,11 @@ public class AssemblyUnit {
         class ReachingDefinition extends
             PathInsensitiveProblem<Stmt, Map<Lval, Set<DefStmt>>> {
             
+            private Machine mMach;
+            
             public ReachingDefinition(Context ctx) {
                 super(ctx, ctx.cfg(), Direction.FORWARD);
+                mMach = ctx.mach();
             }
             
             @Override
@@ -48,8 +53,8 @@ public class AssemblyUnit {
                 if (mCfg.entryBlock() == bb) {
                     Set<DefStmt> set = new HashSet<DefStmt>();
                     set.add(DefStmt.EXTERNAL);
-                    for (Id id : Register.Id.values()) {
-                        ret.put(Reg.getReg(Register.getRegister(id)), set);
+                    for (MachRegister mreg : mMach.registers()) {
+                        ret.put(Reg.getReg(mreg), set);
                     }
                 }
                 return ret;

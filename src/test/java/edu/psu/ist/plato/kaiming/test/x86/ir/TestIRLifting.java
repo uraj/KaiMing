@@ -11,12 +11,12 @@ import java.util.LinkedList;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.After;
-//import org.junit.Test;
+import org.junit.Test;
 
+import edu.psu.ist.plato.kaiming.ir.AssemblyUnit;
+import edu.psu.ist.plato.kaiming.ir.Context;
+import edu.psu.ist.plato.kaiming.ir.Printer;
 import edu.psu.ist.plato.kaiming.x86.Function;
-import edu.psu.ist.plato.kaiming.x86.ir.Printer;
-import edu.psu.ist.plato.kaiming.x86.ir.Context;
-import edu.psu.ist.plato.kaiming.x86.ir.AssemblyUnit;
 import edu.psu.ist.plato.kaiming.x86.parsing.GASParser;
 import edu.psu.ist.plato.kaiming.x86.parsing.ParsingException;
 
@@ -59,7 +59,7 @@ public class TestIRLifting {
         }
     }
     
-    //@Test
+    @Test
     public void lift() {
         List<Context> ctxs = new ArrayList<Context>(funs.size());
         funs.forEach(f -> ctxs.add(new Context(f)));

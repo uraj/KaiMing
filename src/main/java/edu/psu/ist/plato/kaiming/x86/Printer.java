@@ -6,7 +6,6 @@ import java.util.Iterator;
 
 import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.CFG;
-import edu.psu.ist.plato.kaiming.Entry;
 import edu.psu.ist.plato.kaiming.Label;
 
 public class Printer extends PrintWriter {
@@ -142,8 +141,8 @@ public class Printer extends PrintWriter {
             printLabel(bb.label());
             println(':');
         }
-        for (Entry e : bb) {
-            printInstruction((Instruction)e);
+        for (Instruction i : bb) {
+            printInstruction(i);
             println();
         }
     }

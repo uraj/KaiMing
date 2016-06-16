@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.x86.ir;
+package edu.psu.ist.plato.kaiming.ir;
 
 import edu.psu.ist.plato.kaiming.x86.CallInst;
 import edu.psu.ist.plato.kaiming.x86.Register;

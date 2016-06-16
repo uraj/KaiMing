@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.x86.ir;
+package edu.psu.ist.plato.kaiming.ir;
 
 import java.util.Set;
 
@@ -30,11 +30,11 @@ public class JmpStmt extends Stmt {
     }
     
     public boolean isConditional() {
-    	return ((JumpInst)mInst).isConditional();
+    	return ((JumpInst)mHost).isConditional();
     }
     
     public Set<Flag> dependentFlags() {
-        return ((JumpInst)mInst).dependentFlags();
+        return ((JumpInst)mHost).dependentFlags();
     }
     
     public void resolveTarget(BasicBlock<Stmt> bb) {

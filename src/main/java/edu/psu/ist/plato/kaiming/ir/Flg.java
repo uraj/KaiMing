@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.x86.ir;
+package edu.psu.ist.plato.kaiming.ir;
 
 import edu.psu.ist.plato.kaiming.x86.Flag;
 
@@ -36,4 +36,5 @@ public final class Flg extends Lval {
     public int sizeInBits() {
         return 1;
     }
+
 }

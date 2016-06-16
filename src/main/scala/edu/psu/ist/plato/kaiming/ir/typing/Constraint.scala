@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.x86.ir.typing
+package edu.psu.ist.plato.kaiming.ir.typing
 
 import scalax.collection.Graph
 import scalax.collection.GraphPredef._
@@ -8,10 +8,12 @@ import scala.collection.mutable.Buffer
 import scala.collection.Set
 import scala.collection.JavaConverters._
 
-import edu.psu.ist.plato.kaiming.x86.ir._
+import edu.psu.ist.plato.kaiming.ir._
 import edu.psu.ist.plato.kaiming.util.UnreachableCodeException
 
 import edu.psu.ist.plato.kaiming.elf.Elf
+import edu.psu.ist.plato.kaiming.ir.BExpr;
+import edu.psu.ist.plato.kaiming.ir.Expr;
 
 sealed abstract class Constraint
 
@@ -282,9 +284,9 @@ class TypeInferer(elf : Elf) {
       builder ++= "Lvalue types:\n"
       lvalMap.iterator.toBuffer.sortWith(_._1.index() < _._1.index()).foreach {
         case (s, v) => {
-          if (instIndex != s.hostInstruction().index()) {
-            instIndex = s.hostInstruction().index()
-            builder ++= s.hostInstruction().toString() ++= "\n"
+          if (instIndex != s.hostEntry().index()) {
+            instIndex = s.hostEntry().index()
+            builder ++= s.hostEntry().toString() ++= "\n"
           }
           builder ++= "  " ++= s.toString ++= " : " ++= v.toString += '\n'
         }
@@ -294,9 +296,9 @@ class TypeInferer(elf : Elf) {
       builder ++= "\nRvalue types:\n"
       rvalMap.iterator.toBuffer.sortWith(_._1._1.index() < _._1._1.index()).foreach {
         case ((s, e), v) => {
-          if (instIndex != s.hostInstruction().index()) {
-            instIndex = s.hostInstruction().index()
-            builder ++= s.hostInstruction().toString() ++= "\n"
+          if (instIndex != s.hostEntry().index()) {
+            instIndex = s.hostEntry().index()
+            builder ++= s.hostEntry().toString() ++= "\n"
           }
           if (stmtIndex != s.index()) {
             stmtIndex = s.index()

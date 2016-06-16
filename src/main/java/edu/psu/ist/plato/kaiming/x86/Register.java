@@ -6,9 +6,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import edu.psu.ist.plato.kaiming.Machine;
+import edu.psu.ist.plato.kaiming.Machine.Arch;
+import edu.psu.ist.plato.kaiming.Machine.MachRegister;
 import edu.psu.ist.plato.kaiming.util.UnsupportedLanguageException;
 
-public class Register extends Operand {
+public class Register extends Operand implements MachRegister {
     
     public enum Id {
         EAX, EBX, ECX, EDX, ESP, EBP, ESI, EDI,
@@ -220,5 +223,15 @@ public class Register extends Operand {
     
     public static Set<Register.Id> general32BitRegs () {
         return s32BitGeneralRegs;
+    }
+
+    @Override
+    public String name() {
+        return id.name().toLowerCase();
+    }
+
+    @Override
+    public Arch arch() {
+        return Machine.Arch.X86;
     }
 }

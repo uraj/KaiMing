@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.x86.ir;
+package edu.psu.ist.plato.kaiming.ir;
 
 public final class UExpr extends Expr {
     public enum Op {
@@ -11,7 +11,7 @@ public final class UExpr extends Expr {
     private Op mOperator;
     private Expr mSubExpr;
     
-    UExpr(Op op, Expr subexpr) {
+    public UExpr(Op op, Expr subexpr) {
         mOperator = op;
         mSubExpr = subexpr;
     }

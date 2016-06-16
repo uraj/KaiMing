@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.x86.ir;
+package edu.psu.ist.plato.kaiming.ir;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -8,8 +8,6 @@ import java.util.Map;
 import java.util.Set;
 
 import edu.psu.ist.plato.kaiming.Entry;
-import edu.psu.ist.plato.kaiming.x86.Instruction;
-
 
 abstract public class Stmt extends Entry {
     
@@ -45,7 +43,7 @@ abstract public class Stmt extends Entry {
         }
     }
     
-    protected final Instruction mInst;
+    protected final Entry mHost;
     protected long mIndex;
     
     private Expr[] mUsedExpr;
@@ -53,9 +51,9 @@ abstract public class Stmt extends Entry {
     private Map<Lval, Set<DefStmt>> mUDChain;
     private final Kind mKind;
     
-    protected Stmt(Kind kind, Instruction inst, Expr[] usedExpr) {
+    protected Stmt(Kind kind, Entry inst, Expr[] usedExpr) {
         mKind = kind;
-        mInst = inst;
+        mHost = inst;
         mIndex = -1;
         mUsedExpr = usedExpr;
         mUDChain = new HashMap<Lval, Set<DefStmt>>();
@@ -63,7 +61,12 @@ abstract public class Stmt extends Entry {
         for (Expr e : mUsedExpr) {
             prob.visit(e);
         }
-        prob.probedLvals().remove(Reg.eip); // EIP is always self defined
+        // FIXME: Program counter is self defined most of the time,
+        // but certain architectures allow explicit assignment to
+        // to PC register. How would this affect the design of out
+        // UD analysis algorithm?
+        //
+        //prob.probedLvals().remove(Reg.eip);
         for (Lval lv : prob.probedLvals()) {
             mUDChain.put(lv, new HashSet<DefStmt>());
         }
@@ -73,8 +76,8 @@ abstract public class Stmt extends Entry {
         return mKind;
     }
     
-    final public Instruction hostInstruction() {
-        return mInst;
+    final public Entry hostEntry() {
+        return mHost;
     }
     
     @Override

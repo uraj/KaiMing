@@ -1,15 +1,15 @@
-package edu.psu.ist.plato.kaiming.x86.ir;
+package edu.psu.ist.plato.kaiming.ir;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import edu.psu.ist.plato.kaiming.x86.Instruction;
+import edu.psu.ist.plato.kaiming.Entry;
 
 abstract public class DefStmt extends Stmt {
 	
 	private Set<Stmt> mDUChain;
 	
-	protected DefStmt(Kind kind, Instruction inst, Expr[] usedExpr) {
+	protected DefStmt(Kind kind, Entry inst, Expr[] usedExpr) {
 		super(kind, inst, usedExpr);
 		mDUChain = new HashSet<Stmt>();
 	}

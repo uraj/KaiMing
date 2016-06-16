@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.x86.ir;
+package edu.psu.ist.plato.kaiming.ir;
 
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -26,7 +26,7 @@ public class Printer extends PrintWriter {
     
     public void printReg(Reg r) {
         print('%');
-        print(r.x86Register().id.name().toLowerCase());
+        print(r.machRegister().name());
     }
     
     public void printVar(Var v) {

@@ -1,13 +1,13 @@
-package edu.psu.ist.plato.kaiming.x86.ir;
+package edu.psu.ist.plato.kaiming.ir;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
 import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.util.Assert;
-import edu.psu.ist.plato.kaiming.x86.Immediate;
-import edu.psu.ist.plato.kaiming.x86.Memory;
-import edu.psu.ist.plato.kaiming.x86.Register;
+//import edu.psu.ist.plato.kaiming.x86.Immediate;
+//import edu.psu.ist.plato.kaiming.x86.Memory;
+//import edu.psu.ist.plato.kaiming.x86.Register;
 
 public abstract class Expr {
     
@@ -18,45 +18,6 @@ public abstract class Expr {
     public abstract Expr subExpr(int index);
     
     public abstract int numOfSubExpr();
-    
-    public static Const toExpr(Immediate imm) {
-        return Const.getConstant(imm);
-    }
-    
-    public static Const toExpr(int imm) {
-        return Const.getConstant(imm);
-    }
-    
-    public static Expr toExpr(Register reg) {
-        return Reg.getReg(reg);
-    }
-    
-    public static Expr toExpr(Memory mem) {
-        Expr ret = null;
-        if (mem.offsetRegister() != null) {
-            ret = toExpr(mem.offsetRegister());
-            if (mem.multiplier() != 1) {
-                ret = new BExpr(BExpr.Op.MUL, ret, Const.getConstant(mem.multiplier()));
-            }
-        }
-        if (mem.baseRegister() != null) {
-            if (ret == null) {
-                ret = toExpr(mem.baseRegister());
-            } else {
-                ret = new BExpr(BExpr.Op.ADD, toExpr(mem.baseRegister()), ret);
-            }
-        }
-        if (mem.displacement() != 0) {
-            if (ret == null) {
-                ret = Const.getConstant(mem.displacement());
-            } else {
-                ret = new BExpr(BExpr.Op.ADD, Const.getConstant(mem.displacement()), ret);
-            }
-        }
-        if (ret == null)
-            ret = Const.getConstant(mem.displacement());
-        return ret;
-    }
     
     public static abstract class Visitor {
 

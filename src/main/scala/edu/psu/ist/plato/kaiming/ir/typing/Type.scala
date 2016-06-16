@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.x86.ir.typing
+package edu.psu.ist.plato.kaiming.ir.typing
 
 sealed abstract class Type {
   /* Meet */

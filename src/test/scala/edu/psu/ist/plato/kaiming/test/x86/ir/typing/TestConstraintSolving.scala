@@ -9,9 +9,11 @@ import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfter
 import org.scalatest.junit.JUnitRunner
 
-import edu.psu.ist.plato.kaiming.x86.ir._
-import edu.psu.ist.plato.kaiming.x86.ir.typing._
+import edu.psu.ist.plato.kaiming.ir._
+import edu.psu.ist.plato.kaiming.ir.typing._
 import edu.psu.ist.plato.kaiming.elf.Elf
+import edu.psu.ist.plato.kaiming.ir.AssemblyUnit;
+import edu.psu.ist.plato.kaiming.ir.Printer;
 import edu.psu.ist.plato.kaiming.x86.parsing.GASParser
 
 import org.junit.runner.RunWith
