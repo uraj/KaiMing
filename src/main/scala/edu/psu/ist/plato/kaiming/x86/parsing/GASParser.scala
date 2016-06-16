@@ -21,39 +21,17 @@ object GASParser extends RegexParsers() {
   
   def nl : Parser[String] = """\n+""".r 
   
-  private def str2int(str : String, radix : Int) : Int = {
-    var ret = 0
-    var base = 1
-    for (i <- str.reverse) {
-      if ('0' <= i && i <= '9') {
-        val digit = i - '0'
-        if (digit >= radix)
-          throw new NumberFormatException(str)
-        ret += digit * base
-      } else if ('a' <= i && i <= 'z') {
-        val digit = i - 'a' + 10
-        if (digit >= radix)
-          throw new NumberFormatException(str)
-        ret += digit * base
-      } else {
-        throw new NumberFormatException(str)
-      }
-      base *= radix
-    }
-    return ret
-  }
+  def dec : Parser[Long] = """\d+""".r ^^ 
+    { s => java.lang.Long.parseLong(s, 10) }
   
-  def dec : Parser[Int] = """\d+""".r ^^ 
-    { s => str2int(s, 10) }
+  def hex : Parser[Long] = """0x[\da-fA-F]+""".r ^^ 
+    { s => java.lang.Long.parseLong(s.substring(2).toLowerCase(), 16) }
   
-  def hex : Parser[Int] = """0x[\da-fA-F]+""".r ^^ 
-    { s => str2int(s.substring(2).toLowerCase(), 16) }
-  
-  def positive : Parser[Int] = hex | dec
+  def positive : Parser[Long] = hex | dec
   
   def address = positive
   
-  def integer : Parser[Int] = opt("-") ~ positive ^^ {
+  def integer : Parser[Long] = opt("-") ~ positive ^^ {
       case Some(_) ~ positive => -positive
       case None ~ positive => positive
     }
@@ -82,7 +60,7 @@ object GASParser extends RegexParsers() {
     }
 
   // segment:displacement(base register, offset register, scalar multiplier)
-  def membase1 : Parser[(Option[Register], Option[Register], Int)] = 
+  def membase1 : Parser[(Option[Register], Option[Register], Long)] = 
     "(" ~> (reg?) ~ (("," ~> reg ~ (("," ~> positive)?))?) <~ ")" ^^ {
       case base ~ offAndMulti =>
         offAndMulti match {
@@ -94,7 +72,7 @@ object GASParser extends RegexParsers() {
       }
     }
     
-  def membase2 : Parser[(Option[Register], Option[Register], Int)] =
+  def membase2 : Parser[(Option[Register], Option[Register], Long)] =
     "(" ~> reg ~ ("," ~> positive) <~ ")" ^^ {
       case reg ~ positive => (None, Some(reg), positive)
     }
