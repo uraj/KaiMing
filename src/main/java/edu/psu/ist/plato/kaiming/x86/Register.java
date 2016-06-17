@@ -9,7 +9,7 @@ import java.util.Set;
 import edu.psu.ist.plato.kaiming.Machine;
 import edu.psu.ist.plato.kaiming.Machine.Arch;
 import edu.psu.ist.plato.kaiming.Machine.MachRegister;
-import edu.psu.ist.plato.kaiming.util.UnsupportedLanguageException;
+import edu.psu.ist.plato.kaiming.exception.UnsupportedLanguageException;
 
 public class Register extends Operand implements MachRegister {
     

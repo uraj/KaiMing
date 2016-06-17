@@ -1,5 +1,7 @@
 package edu.psu.ist.plato.kaiming.util;
 
+import edu.psu.ist.plato.kaiming.exception.UnreachableCodeException;
+
 public class Assert {
 
     public static void test(boolean condition) {

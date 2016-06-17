@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.x86.parsing;
+package edu.psu.ist.plato.kaiming.exception;
 
 
 public class ParsingException extends Exception {
@@ -8,6 +8,5 @@ public class ParsingException extends Exception {
     public ParsingException(String msg) {
         super(msg);
     }
-    
     
 }

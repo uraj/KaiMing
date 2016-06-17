@@ -9,7 +9,7 @@ import scala.collection.Set
 import scala.collection.JavaConverters._
 
 import edu.psu.ist.plato.kaiming.ir._
-import edu.psu.ist.plato.kaiming.util.UnreachableCodeException
+import edu.psu.ist.plato.kaiming.exception.UnreachableCodeException
 
 import edu.psu.ist.plato.kaiming.elf.Elf
 import edu.psu.ist.plato.kaiming.ir.BExpr;

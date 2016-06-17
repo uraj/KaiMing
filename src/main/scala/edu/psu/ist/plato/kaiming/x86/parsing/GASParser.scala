@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.JavaConversions.bufferAsJavaList
 
 import edu.psu.ist.plato.kaiming.Label;
+import edu.psu.ist.plato.kaiming.exception.ParsingException;
 import edu.psu.ist.plato.kaiming.x86.Function;
 import edu.psu.ist.plato.kaiming.x86.Opcode;
 import edu.psu.ist.plato.kaiming.x86.Instruction;
@@ -108,7 +109,7 @@ object GASParser extends RegexParsers() {
   def operand : Parser[Operand] = mem | imm | reg
   
   def operands : Parser[List[Operand]] = operand ~ (("," ~> operand)*) ^^ {
-      case first ~ (rest : List[Operand] @unchecked) => first :: rest
+      case first ~ rest => first :: rest
     }
   
   def prefix : Parser[String] = """(?i)rep(n?[ez])?|lock""".r ^^ { 
@@ -137,7 +138,7 @@ object GASParser extends RegexParsers() {
               case Some(_) => indirect = true 
             }
         }
-        Instruction.createInstruction(addr, op, operands, indirect)
+        Instruction.create(addr, op, operands, indirect)
     }
   
   def function : Parser[Function] = funlabel ~ rep(inst) ^^ {

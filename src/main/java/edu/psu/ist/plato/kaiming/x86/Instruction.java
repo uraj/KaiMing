@@ -197,7 +197,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
         return new ArrayIterator<Operand>(mOperands);
     }
 
-    public static Instruction createInstruction(long addr, Opcode opcode,
+    public static Instruction create(long addr, Opcode opcode,
             Operand[] operands, boolean isIndirect) {
         Instruction ret = null;
         switch (opcode.opcodeClass()) {
