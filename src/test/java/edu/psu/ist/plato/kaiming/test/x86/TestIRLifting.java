@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.test.x86.ir;
+package edu.psu.ist.plato.kaiming.test.x86;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +37,7 @@ public class TestIRLifting {
     @Before
     public void setup() {
         try {
-            testdir = new File(getClass().getResource("/TestParser/").toURI());
+            testdir = new File(getClass().getResource("/TestParser/x86").toURI());
         } catch (URISyntaxException e) {
             Assert.assertTrue("Test resources not found", false);
         }

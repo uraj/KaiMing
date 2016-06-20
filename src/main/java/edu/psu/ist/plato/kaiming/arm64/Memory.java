@@ -4,11 +4,17 @@ public class Memory extends Operand {
 
     public abstract class Offset {
         public abstract boolean isImmediateOffset();
+        public ImmOff asImmOff() {
+            return (ImmOff)this;
+        }
+        public RegOff asRegOff() {
+            return (RegOff)this;
+        }
     }
 
     public class ImmOff extends Offset {
-        public final int value;
-        public ImmOff(int off) {
+        public final long value;
+        public ImmOff(long off) {
             value = off;
         }
         public boolean isImmediateOffset() {
@@ -16,9 +22,9 @@ public class Memory extends Operand {
         }
     }
     
-    public class ShiftedOff extends Offset {
-        public final ShiftedRegister value;
-        public ShiftedOff(ShiftedRegister off) {
+    public class RegOff extends Offset {
+        public final Register value;
+        public RegOff(Register off) {
             value = off;
         }
         public boolean isImmediateOffset() {
@@ -31,19 +37,20 @@ public class Memory extends Operand {
     
     public Memory(Register base) {
         super(Type.MEMORY);
+        mBase = base;
         mOff = null;
     }
     
-    public Memory(Register base, int off) {
+    public Memory(Register base, long off) {
         super(Type.MEMORY);
         mBase = base;
         mOff = new ImmOff(off);
     }
     
-    public Memory(Register base, ShiftedRegister off) {
+    public Memory(Register base, Register off) {
         super(Type.MEMORY);
         mBase = base;
-        mOff = new ShiftedOff(off);
+        mOff = new RegOff(off);
     }
     
     public Register base() {

@@ -1,5 +1,6 @@
 package edu.psu.ist.plato.kaiming.util;
 
+import edu.psu.ist.plato.kaiming.exception.AssertionFailException;
 import edu.psu.ist.plato.kaiming.exception.UnreachableCodeException;
 
 public class Assert {
@@ -28,8 +29,12 @@ public class Assert {
     }
     
     public static void verify(boolean condition) {
+        verify(condition, "");
+    }
+    
+    public static void verify(boolean condition, String msg) {
         if (!condition)
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException(msg);
     }
     
     /**

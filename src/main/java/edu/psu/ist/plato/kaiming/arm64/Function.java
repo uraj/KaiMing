@@ -6,29 +6,39 @@ import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.CFG;
 import edu.psu.ist.plato.kaiming.Label;
 import edu.psu.ist.plato.kaiming.Procedure;
+import edu.psu.ist.plato.kaiming.util.Assert;
 
 public class Function extends Procedure<Instruction> {
     
-    public Function(Label label, List<Instruction> entries) {
-        
+    private CFG<Instruction> mCFG;
+    private int mSubLabelCount;
+    private static final String sSubLabelSuffix = "_sub";
+    
+    public Function(Label label, List<Instruction> insts) {
+        mLabel = label;
+        mCFG = buildCFG(insts);
+        mSubLabelCount = 0;
     }
 
     @Override
     public CFG<Instruction> cfg() {
-        // TODO Auto-generated method stub
-        return null;
+        return mCFG;
     }
 
     @Override
     public String name() {
-        // TODO Auto-generated method stub
-        return null;
+        return mLabel.name();
     }
 
     @Override
     protected Label deriveSubLabel(BasicBlock<Instruction> bb) {
-        // TODO Auto-generated method stub
-        return null;
+        Assert.verify(mLabel != null);
+        Assert.verify(mLabel.name() != null);
+        String name = mLabel.name() + sSubLabelSuffix
+                + String.valueOf(mSubLabelCount++);
+        Label ret = new Label(name, 0);
+        bb.firstEntry().fillLabelInformation(ret);
+        return ret;
     }
 
 }

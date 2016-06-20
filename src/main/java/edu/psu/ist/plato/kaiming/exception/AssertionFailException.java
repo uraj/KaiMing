@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.util;
+package edu.psu.ist.plato.kaiming.exception;
 
 public class AssertionFailException extends RuntimeException {
     

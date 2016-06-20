@@ -80,30 +80,30 @@ object GASParser extends RegexParsers() {
     
   def membase = membase1 | membase2
   
-  def memdist : Parser[(Option[Register], Int)] =
+  def memdist : Parser[(Option[Register], Long)] =
     ((sreg <~ ":" ~ integer) | (sreg <~ ":") | integer) ^^ {
-      case (sreg : Register) ~ (dist : Int) => (Some(sreg), dist)
+      case (sreg : Register) ~ (dist : Long) => (Some(sreg), dist)
       case sreg : Register => (Some(sreg), 0)
-      case dist : Int => (None, dist)
+      case dist : Long => (None, dist)
     }
   
-  def constructMem(memdist: (Option[Register], Int),
-                   membase : (Option[Register], Option[Register], Int)) : Memory =
+  def constructMem(memdist: (Option[Register], Long),
+                   membase : (Option[Register], Option[Register], Long)) : Memory =
     memdist match {
       case (seg, dist) =>
         membase match {
-          case (base, off, multi) => new Memory(seg.orNull, dist, base.orNull, off.orNull, multi)
+          case (base, off, multi) => new Memory(seg.orNull, dist, base.orNull, off.orNull, multi.toInt)
         }
     }
   
   def mem : Parser[Memory] = (memdist ~ membase | memdist | membase) ^^ {
       case (memdist ~ membase) =>
-        constructMem(memdist.asInstanceOf[(Option[Register], Int)],
-                     membase.asInstanceOf[(Option[Register], Option[Register], Int)])
+        constructMem(memdist.asInstanceOf[(Option[Register], Long)],
+                     membase.asInstanceOf[(Option[Register], Option[Register], Long)])
       case memdist : (_, _)  =>
-        constructMem(memdist.asInstanceOf[(Option[Register], Int)], (None, None, 1))
+        constructMem(memdist.asInstanceOf[(Option[Register], Long)], (None, None, 1))
       case membase : (_, _, _) =>
-        constructMem((None, 0), membase.asInstanceOf[(Option[Register], Option[Register], Int)])
+        constructMem((None, 0), membase.asInstanceOf[(Option[Register], Option[Register], Long)])
     }
     
   def operand : Parser[Operand] = mem | imm | reg

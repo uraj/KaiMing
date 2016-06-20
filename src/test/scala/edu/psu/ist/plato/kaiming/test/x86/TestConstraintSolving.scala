@@ -1,23 +1,18 @@
-package edu.psu.ist.plato.kaiming.test.x86.ir.typing
+package edu.psu.ist.plato.kaiming.test.x86
 
 import java.io.File
 import java.io.FileInputStream
-
 import scala.io.Source
-
 import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfter
 import org.scalatest.junit.JUnitRunner
-
 import edu.psu.ist.plato.kaiming.ir._
 import edu.psu.ist.plato.kaiming.ir.typing._
 import edu.psu.ist.plato.kaiming.elf.Elf
-import edu.psu.ist.plato.kaiming.ir.AssemblyUnit;
-import edu.psu.ist.plato.kaiming.ir.Printer;
+import edu.psu.ist.plato.kaiming.ir.AssemblyUnit
+import edu.psu.ist.plato.kaiming.ir.Printer
 import edu.psu.ist.plato.kaiming.x86.parsing.GASParser
-
 import org.junit.runner.RunWith
-
 import scodec.bits._
 
 @RunWith(classOf[JUnitRunner])

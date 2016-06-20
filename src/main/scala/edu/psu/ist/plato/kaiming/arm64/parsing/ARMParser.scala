@@ -34,33 +34,38 @@ object ARMParser extends RegexParsers() {
       case integer => Immediate.getImmediate(integer)
     }
   
-    def label : Parser[String] =
+  def label : Parser[String] =
     """[a-zA-Z_]([_\-@\.a-zA-Z0-9])*:""".r ^^ { 
       x => x.toString.substring(0, x.length() - 1)
     }
   
   def reg : Parser[Register] = 
-    ("(?i)" + "(" + Register.Id.values().map(_.name()).mkString("|") + ")").r ^^ {
+    ("(?i)(" + 
+        Register.Id.values().map(_.name()).sorted(Ordering[String].reverse).mkString("|")
+        + ")").r ^^ {
       Register.getRegister(_)
     }
   
-  def shiftType : Parser[ShiftedRegister.ShiftType] =
-    ("(?i)" + "(" + ShiftedRegister.ShiftType.values().map(_.name()).mkString("|") + ")").r ^^ { 
-      x => ShiftedRegister.ShiftType.valueOf(x.toUpperCase())
+  def shiftType : Parser[Register.Shift.Type] =
+    ("(?i)" + "(" + Register.Shift.Type.values().map(_.name()).mkString("|") + ")").r ^^ { 
+      x => Register.Shift.Type.valueOf(x.toUpperCase())
     }
     
-  def shifted : Parser[ShiftedRegister] = (reg <~ ",") ~ shiftType ~ imm ^^ {
-      case reg ~ st ~ sh => new ShiftedRegister(reg, st, sh.getValue().toInt)
+  def shifted : Parser[Register] = (reg <~ ",") ~ shiftType ~ integer ^^ {
+      case reg ~ st ~ sh => sh match {
+        case sh if sh == 0 => reg
+        case _ => Register.getRegister(reg.id, new Register.Shift(st, sh.toInt))
+      }
     }
   
-  def mem : Parser[Memory] = "[" ~> reg ~ (("," ~> (imm | reg | shifted))?) <~ "]" ^^ {
-      case reg ~ someInt => someInt match {
+  def mem : Parser[Memory] = (("[" ~> reg ~ (("," ~> (imm | reg)?) <~ "]")) | address) ^^ {
+      case (reg : Register) ~ someInt => someInt match {
         case None => new Memory(reg)
-        case Some(int : Immediate) => new Memory(reg, int.getValue().toInt)
-        case Some(off : Register) => new Memory(reg, new ShiftedRegister(off))
-        case Some(shifted : ShiftedRegister) => new Memory(reg, shifted)
+        case Some(int : Immediate) => new Memory(reg, int.getValue())
+        case Some(off : Register) => new Memory(reg, off)
         case _ => throw new UnreachableCodeException
       }
+      case addr : Long => new Memory(null, addr)
     }
   
   def cond : Parser[Condition] = 
@@ -75,13 +80,13 @@ object ARMParser extends RegexParsers() {
   }
   
   def mnemonic : Parser[String] = 
-    ("""(?i)[a-z]+([a-z\d])*(\.(""" + Condition.values().map(_.name()).mkString("|") + "))").r
+    ("""(?i)[a-z]+([a-z\d])*((\.(""" + Condition.values().map(_.name()).mkString("|") + "))?)").r
   
   def opcode : Parser[Opcode] = mnemonic ^^ {
-      case opcode => new Opcode(opcode.toLowerCase())
+      case opcode => new Opcode(opcode)
     }
   
-  def inst : Parser[Instruction] = address ~ opcode ~ (operands ?) ~ ("," ~> cond ?) <~ nl ^^ {
+  def inst : Parser[Instruction] = address ~ opcode ~ (operands ?) ~ (cond ?) <~ nl ^^ {
     case addr ~ code ~ oplist ~ cond => oplist match {
       case None => Instruction.create(addr, code, Array[Operand](), cond.orNull)
       case Some(operands) => 
@@ -89,8 +94,8 @@ object ARMParser extends RegexParsers() {
     }
   }
   
-  def funlabel : Parser[Label] = address ~ label ~ nl ^^ { 
-      case addr ~ label ~ _ => new Label(label, addr)
+  def funlabel : Parser[Label] = address ~ label <~ nl ^^ { 
+      case addr ~ label => new Label(label, addr)
     }
   
   def function : Parser[Function] = funlabel ~ (inst *) ^^ {

@@ -6,7 +6,6 @@ public abstract class Operand {
         IMMEDIATE,
         REGISTER,
         MEMORY,
-        SHIFTED_REGISTER,
     }
     
     private final Type mType;
@@ -24,7 +23,7 @@ public abstract class Operand {
     }
 
     public final boolean isImmeidate() { 
-        return mType == Type.IMMEDIATE; 
+        return mType == Type.IMMEDIATE;
     }
     
     public final Type type() { 
@@ -42,4 +41,5 @@ public abstract class Operand {
     public final Register asRegister() {
         return (Register)this;
     }
+    
 }
