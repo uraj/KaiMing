@@ -2,6 +2,7 @@ package edu.psu.ist.plato.kaiming;
 
 import java.util.List;
 
+import edu.psu.ist.plato.kaiming.arm64.ARM64Machine;
 import edu.psu.ist.plato.kaiming.x86.X86Machine;
 
 public abstract class Machine {
@@ -25,5 +26,6 @@ public abstract class Machine {
     
     public abstract List<MachRegister> registers();
     
-    public static final X86Machine x86 = X86Machine.instance; 
+    public static final X86Machine x86 = X86Machine.instance;
+    public static final ARM64Machine arm64 = ARM64Machine.instance;
 }
