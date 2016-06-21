@@ -4,8 +4,6 @@ import edu.psu.ist.plato.kaiming.Entry;
 
 public class CallStmt extends DefStmt {
 
-	private Expr mTarget;
-	
     public CallStmt(Entry inst, Expr target) {
         super(Kind.CALL, inst,
                 // TODO: Make this value configurable with a "CallingConvention"
@@ -16,10 +14,9 @@ public class CallStmt extends DefStmt {
                 // if they are to be used later in the same routine.
                 Reg.getReg(inst.machine().returnRegister()),
                 new Expr[] { target });
-        mTarget = target;
     }
     
     public Expr target() {
-    	return mTarget;
+    	return usedExpr(0);
     }
 }

@@ -4,21 +4,16 @@ import edu.psu.ist.plato.kaiming.x86.Instruction;
 
 public class StStmt extends Stmt {
 
-	private Expr mAddr;
-	private Expr mContent;
-	
 	public StStmt(Instruction inst, Expr addr, Expr content) {
 		super(Kind.ST, inst, new Expr[] { addr, content });
-		mAddr = addr;
-		mContent = content;
 	}
 	
 	public Expr storeTo() {
-		return mAddr;
+		return usedExpr(0);
 	}
 	
 	public Expr storedExpr() {
-		return mContent;
+		return usedExpr(1);
 	}
 
 }

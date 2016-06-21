@@ -103,6 +103,10 @@ abstract public class Stmt extends Entry {
         return mUDChain.keySet();
     }
     
+    protected final Expr usedExpr(int idx) {
+        return mUsedExpr[idx];
+    }
+    
     public Set<Expr> enumerateRval() {
         class Enumerator extends Expr.Visitor {
             

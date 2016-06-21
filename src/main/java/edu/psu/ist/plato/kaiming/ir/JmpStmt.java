@@ -8,17 +8,15 @@ import edu.psu.ist.plato.kaiming.x86.JumpInst;
 
 public class JmpStmt extends Stmt {
 
-    private Expr mTarget;
     private Target mResolvedTarget;
     
     public JmpStmt(JumpInst inst, Expr target) {
         super(Kind.JMP, inst, new Expr[] {target});
-        mTarget = target;
         mResolvedTarget = null;
     }
     
     public Expr target() {
-        return mTarget;
+        return usedExpr(0);
     }
     
     public Target resolvedTarget() {
@@ -38,6 +36,6 @@ public class JmpStmt extends Stmt {
     }
     
     public void resolveTarget(BasicBlock<Stmt> bb) {
-        mResolvedTarget = mTarget.asTarget(bb);
+        mResolvedTarget = usedExpr(0).asTarget(bb);
     }
 }

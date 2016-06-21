@@ -94,10 +94,14 @@ public class Printer extends PrintWriter {
     
     private void printUExprOperator(UExpr.Op op) {
         switch (op) {
-            case BSWAP: print("<>"); break;
-            case HIGH:  print("high"); break;
-            case LOW:   print("low"); break;
-            case NOT:   print("~"); break;
+            case BSWAP:    print("<>");   break;
+            case HIGH:     print("high"); break;
+            case LOW:      print("low");  break;
+            case NOT:      print("~");    break;
+            case CARRY:    print("C");    break;
+            case NEGATIVE: print("N");    break;
+            case OVERFLOW: print("V");    break;
+            case ZERO:     print("Z");    break;
         }
     }
     
@@ -177,6 +181,16 @@ public class Printer extends PrintWriter {
         print(" ];");
     }
     
+    public void printSelectStmt(SelectStmt s) {
+        printLval(s.definedLval());
+        print("=");
+        printExpr(s.condition());
+        print(" ? ");
+        printExpr(s.truevalue());
+        print(" : ");
+        printExpr(s.falsevalue());
+    }
+    
     public void printStmt(Stmt s) {
         switch (s.kind()) {
             case ASSIGN:
@@ -203,7 +217,8 @@ public class Printer extends PrintWriter {
             case ST:
                 printStStmt((StStmt) s);
                 break;
-            // FIXME: implement case for select statement
+            case SELECT:
+                printSelectStmt((SelectStmt) s);
         }
     }
     

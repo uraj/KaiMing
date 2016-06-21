@@ -6,6 +6,11 @@ public final class UExpr extends Expr {
         LOW,
         HIGH,
         BSWAP,
+        // operators for extracting flags 
+        CARRY,
+        ZERO,
+        NEGATIVE,
+        OVERFLOW,
     }
     
     private Op mOperator;
