@@ -75,7 +75,7 @@ public class Instruction extends Entry implements Iterable<Operand> {
     }
     
     @Override
-    public Machine machine() {
+    public final Machine machine() {
         return ARM64Machine.instance;
     }
     

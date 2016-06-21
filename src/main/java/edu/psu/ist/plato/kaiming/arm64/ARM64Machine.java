@@ -1,9 +1,12 @@
 package edu.psu.ist.plato.kaiming.arm64;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import edu.psu.ist.plato.kaiming.Machine;
+import edu.psu.ist.plato.kaiming.ir.Context;
+import edu.psu.ist.plato.kaiming.ir.Stmt;
 
 public class ARM64Machine extends Machine {
 
@@ -31,6 +34,43 @@ public class ARM64Machine extends Machine {
     @Override
     public int wordSizeInBits() {
         return 64;
+    }
+    
+    public List<Stmt> toIRStatements(Context ctx, Instruction inst) {
+        LinkedList<Stmt> ret = new LinkedList<Stmt>();
+        switch (inst.kind()) {
+            case BIN_ARITHN:
+                break;
+            case BITFIELD_MOVE:
+                break;
+            case BRANCH:
+                break;
+            case COMPARE:
+                break;
+            case LOAD:
+                break;
+            case LOAD_PAIR:
+                break;
+            case MOVE:
+                break;
+            case NOP:
+                break;
+            case POP:
+                break;
+            case PUSH:
+                break;
+            case SELECT:
+                break;
+            case STORE:
+                break;
+            case STORE_PAIR:
+                break;
+            case UN_ARITH:
+                break;
+            default:
+                break;
+        }
+        return ret;
     }
 
 }

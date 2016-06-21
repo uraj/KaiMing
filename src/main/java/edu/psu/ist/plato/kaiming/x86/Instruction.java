@@ -366,7 +366,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
     }
     
     @Override
-    public Machine machine() {
+    public final Machine machine() {
         return X86Machine.instance;
     }
 }
