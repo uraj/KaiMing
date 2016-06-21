@@ -203,6 +203,7 @@ public class Printer extends PrintWriter {
             case ST:
                 printStStmt((StStmt) s);
                 break;
+            // FIXME: implement case for select statement
         }
     }
     

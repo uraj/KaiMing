@@ -24,7 +24,14 @@ public abstract class Machine {
         public MachRegister containingRegister();
     }
     
+    public interface MachFlag {
+        public String name();
+        public Arch arch();
+        public int index();
+    }
+    
     public abstract List<MachRegister> registers();
+    public abstract MachRegister returnRegister();
     
     public static final X86Machine x86 = X86Machine.instance;
     public static final ARM64Machine arm64 = ARM64Machine.instance;

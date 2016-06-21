@@ -4,6 +4,7 @@ import java.util.Iterator;
 
 import edu.psu.ist.plato.kaiming.Entry;
 import edu.psu.ist.plato.kaiming.Label;
+import edu.psu.ist.plato.kaiming.Machine;
 import edu.psu.ist.plato.kaiming.util.ArrayIterator;
 import edu.psu.ist.plato.kaiming.util.Assert;
 
@@ -71,6 +72,11 @@ public class Instruction extends Entry implements Iterable<Operand> {
     public int fillLabelInformation(Label l) {
         l.setAddr(mAddr);
         return 0;
+    }
+    
+    @Override
+    public Machine machine() {
+        return ARM64Machine.instance;
     }
     
     public static Instruction create(long addr, Opcode opcode, Operand[] oplist, Condition cond) {

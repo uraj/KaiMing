@@ -424,4 +424,9 @@ public class X86Machine extends Machine {
         }
         return ret;
     }
+
+    @Override
+    public MachRegister returnRegister() {
+        return Register.getRegister("eax");
+    }
 }

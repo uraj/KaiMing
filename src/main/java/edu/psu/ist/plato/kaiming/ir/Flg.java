@@ -1,11 +1,11 @@
 package edu.psu.ist.plato.kaiming.ir;
 
-import edu.psu.ist.plato.kaiming.x86.Flag;
+import edu.psu.ist.plato.kaiming.Machine.MachFlag;
 
 public final class Flg extends Lval {
-    public final Flag flag;
+    public final MachFlag flag;
     
-    public Flg(Flag f) {
+    public Flg(MachFlag f) {
         flag = f;
     }
 

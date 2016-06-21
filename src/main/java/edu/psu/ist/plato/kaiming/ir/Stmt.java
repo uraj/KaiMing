@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import edu.psu.ist.plato.kaiming.Entry;
+import edu.psu.ist.plato.kaiming.Machine;
 
 abstract public class Stmt extends Entry {
     
@@ -20,6 +21,7 @@ abstract public class Stmt extends Entry {
         SETF,
         ST,
         RET,
+        SELECT,
     }
     
     protected class LvalProbe extends Expr.Visitor {
@@ -135,5 +137,10 @@ abstract public class Stmt extends Entry {
         p.printStmt(this);
         p.close();
         return baos.toString();
+    }
+    
+    @Override
+    public Machine machine() {
+        throw new UnsupportedOperationException();
     }
 }

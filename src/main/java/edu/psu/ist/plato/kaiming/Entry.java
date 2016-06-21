@@ -66,4 +66,6 @@ public abstract class Entry implements Comparable<Long> {
 		public long targetIndex();
 		public void relocateTarget(BasicBlock<T> target);
     }
+    
+    public abstract Machine machine();
 }

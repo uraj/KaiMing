@@ -10,6 +10,7 @@ import java.util.Set;
 
 import edu.psu.ist.plato.kaiming.Entry;
 import edu.psu.ist.plato.kaiming.Label;
+import edu.psu.ist.plato.kaiming.Machine;
 import edu.psu.ist.plato.kaiming.util.ArrayIterator;
 import edu.psu.ist.plato.kaiming.util.Assert;
 
@@ -362,5 +363,10 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
     
     public final boolean isLocked() {
         return mOpcode.isLocked();
+    }
+    
+    @Override
+    public Machine machine() {
+        return X86Machine.instance;
     }
 }

@@ -1,20 +1,13 @@
 package edu.psu.ist.plato.kaiming.ir;
 
 
-import edu.psu.ist.plato.kaiming.util.Assert;
 import edu.psu.ist.plato.kaiming.Entry;
-
 
 public class SetFlagStmt extends DefStmt {
 
     
-    public SetFlagStmt(Entry inst) {
-        super(Kind.SETF, inst, new Expr[] {});
+    public SetFlagStmt(Entry inst, Flg flg, Expr expr) {
+        super(Kind.SETF, inst, flg, new Expr[] {expr});
     }
-
-    @Override
-    public Lval definedLval() {
-        Assert.unreachable();
-        return null;
-    }
+    
 }

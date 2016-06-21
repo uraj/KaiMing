@@ -3,10 +3,14 @@ package edu.psu.ist.plato.kaiming.x86;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.TreeSet;
+
+import edu.psu.ist.plato.kaiming.Machine.Arch;
+import edu.psu.ist.plato.kaiming.Machine.MachFlag;
+
 import java.util.Map;
 import java.util.SortedSet;
 
-public enum Flag {
+public enum Flag implements MachFlag {
     CF(0), PF(2), AF(4), ZF(6), SF(7), TF(8), IF(9), DF(10), OF(11);
 
     private final int mPos;
@@ -178,6 +182,16 @@ public enum Flag {
     
     public static SortedSet<Flag> getModifiedFlagsByOpcode(Opcode.Class op) {
         return sOpcodeLookup.get(op);
+    }
+
+    @Override
+    public Arch arch() {
+        return Arch.X86;
+    }
+
+    @Override
+    public int index() {
+        return bitPosition();
     }
 
 }

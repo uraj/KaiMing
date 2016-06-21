@@ -23,4 +23,9 @@ public class ARM64Machine extends Machine {
         return null;
     }
 
+    @Override
+    public MachRegister returnRegister() {
+        return Register.getRegister("R0");
+    }
+
 }

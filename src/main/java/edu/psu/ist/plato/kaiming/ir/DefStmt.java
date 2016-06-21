@@ -8,13 +8,17 @@ import edu.psu.ist.plato.kaiming.Entry;
 abstract public class DefStmt extends Stmt {
 	
 	private Set<Stmt> mDUChain;
+	private Lval mLval;
 	
-	protected DefStmt(Kind kind, Entry inst, Expr[] usedExpr) {
+	protected DefStmt(Kind kind, Entry inst, Lval lval, Expr[] usedExpr) {
 		super(kind, inst, usedExpr);
+		mLval = lval;
 		mDUChain = new HashSet<Stmt>();
 	}
 	
-	abstract public Lval definedLval();
+	public final Lval definedLval() {
+	    return mLval;
+	}
 		
 	final public Set<Stmt> defUseChain() {
 		return mDUChain;
@@ -36,12 +40,7 @@ abstract public class DefStmt extends Stmt {
      * A special DefStmt object that indicates the initial definition
      * of all Lval values in a Context.
      */
-    static final public DefStmt EXTERNAL = new DefStmt(null, null, new Expr[] {}) {
-        @Override
-        public Lval definedLval() {
-            return null;
-        }
-    };
+    static final public DefStmt EXTERNAL = new DefStmt(null, null, null, new Expr[] {}) {};
     
     final public boolean isExternal() {
         return this == EXTERNAL;
