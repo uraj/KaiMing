@@ -429,4 +429,9 @@ public class X86Machine extends Machine {
     public MachRegister returnRegister() {
         return Register.getRegister("eax");
     }
+
+    @Override
+    public int wordSizeInBits() {
+        return 32;
+    }
 }

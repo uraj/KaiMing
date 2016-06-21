@@ -32,7 +32,7 @@ public abstract class Machine {
     
     public abstract List<MachRegister> registers();
     public abstract MachRegister returnRegister();
-    
+    public abstract int wordSizeInBits();
     public static final X86Machine x86 = X86Machine.instance;
     public static final ARM64Machine arm64 = ARM64Machine.instance;
 }

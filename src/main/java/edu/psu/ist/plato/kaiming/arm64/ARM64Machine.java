@@ -28,4 +28,9 @@ public class ARM64Machine extends Machine {
         return Register.getRegister("R0");
     }
 
+    @Override
+    public int wordSizeInBits() {
+        return 64;
+    }
+
 }
