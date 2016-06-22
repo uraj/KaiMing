@@ -9,7 +9,7 @@ public class LdStmt extends DefStmt {
 	}
 	
 	public Expr loadFrom() {
-		return usedExpr(1);
+		return usedExpr(0);
 	}
 
 }

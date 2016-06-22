@@ -1,12 +1,18 @@
 package edu.psu.ist.plato.kaiming.arm64;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import edu.psu.ist.plato.kaiming.BasicBlock;
+import edu.psu.ist.plato.kaiming.CFG;
+import edu.psu.ist.plato.kaiming.Label;
 import edu.psu.ist.plato.kaiming.Machine;
 import edu.psu.ist.plato.kaiming.util.Assert;
+import edu.psu.ist.plato.kaiming.util.Tuple;
 import edu.psu.ist.plato.kaiming.ir.*;
 
 public class ARM64Machine extends Machine {
@@ -24,7 +30,7 @@ public class ARM64Machine extends Machine {
         for (Register.Id id : allRegs) {
             ret.add(Register.getRegister(id));
         }
-        return null;
+        return ret;
     }
 
     @Override
@@ -406,4 +412,51 @@ public class ARM64Machine extends Machine {
         return ret;
     }
 
+    public Tuple<List<BasicBlock<Stmt>>, BasicBlock<Stmt>>
+    buildCFGForARM64(Context ctx, Function fun) {
+        CFG<Instruction> asmCFG = fun.cfg();
+        List<BasicBlock<Stmt>> bbs = 
+                new ArrayList<BasicBlock<Stmt>>(asmCFG.size());
+        Map<BasicBlock<Instruction>, BasicBlock<Stmt>> map =
+                new HashMap<BasicBlock<Instruction>, BasicBlock<Stmt>>();
+        int labelNo = 0;
+        for (BasicBlock<Instruction> bb : asmCFG) {
+            List<Stmt> irstmt = new LinkedList<Stmt>();
+            bb.forEach(inst -> irstmt.addAll(toIRStatements(inst)));
+            BasicBlock<Stmt> irbb = 
+                    new BasicBlock<Stmt>(ctx, irstmt, new Label("L_" + labelNo++, -1));
+            bbs.add(irbb);
+            map.put(bb, irbb);
+        }
+        for (BasicBlock<Instruction> bb : asmCFG) {
+            BasicBlock<Stmt> irbb = map.get(bb);
+            bb.allPredecessor().forEach(pred -> irbb.addPredecessor(map.get(pred)));
+            bb.allSuccessor().forEach(succ -> irbb.addSuccessor(map.get(succ)));
+        }
+        // Set indices for IR statements
+        int stmtNo = 0;
+        for (BasicBlock<Instruction> bb : asmCFG) {
+            BasicBlock<Stmt> irbb = map.get(bb);
+            for (Stmt s : irbb) {
+                Assert.test(s != null);
+                s.setIndex(stmtNo++);
+            }
+            irbb.label().setAddr(irbb.index());
+        }
+        
+        for (BasicBlock<Stmt> bb : bbs) {
+            Stmt last = bb.lastEntry();
+            if (last.kind() == Stmt.Kind.JMP) {
+                JmpStmt js = (JmpStmt)last;
+                BranchInst lastInst = (BranchInst)js.hostEntry();
+                if (lastInst.target() instanceof Relocation) {
+                    BasicBlock<Instruction> asmTarget =
+                            ((Relocation)lastInst.target()).targetBlock();
+                    js.resolveTarget(map.get(asmTarget));
+                }
+            }
+        }
+        return new Tuple<List<BasicBlock<Stmt>>, BasicBlock<Stmt>>(
+                bbs, map.get(asmCFG.entryBlock()));
+    }
 }

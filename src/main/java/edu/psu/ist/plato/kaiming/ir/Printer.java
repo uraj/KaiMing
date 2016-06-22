@@ -39,7 +39,7 @@ public class Printer extends PrintWriter {
     
     public void printFlg(Flg f) {
         print('%');
-        print(f.flag.name().toUpperCase());
+        print(f.flag.name());
     }
     
     public void printLval(Lval lv) {
@@ -159,7 +159,7 @@ public class Printer extends PrintWriter {
         print("jmp");
         if (s.isConditional()) {
             print('[');
-            s.dependentFlags().forEach(f -> print(f.toString().substring(0, 1)));
+            s.dependentFlags().forEach(f -> print(f.toString() + ", "));
             print(']');
         }
         print(" ");

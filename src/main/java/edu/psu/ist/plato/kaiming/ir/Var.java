@@ -8,7 +8,7 @@ public class Var extends Lval {
     public Var(Context context, String name) {
         mName = name;
         mContext = context;
-        mSize = context.mach().wordSizeInBits();;
+        mSize = context.mach().wordSizeInBits();
     }
     
     public Var(Context context, String name, int sizeInBits) {

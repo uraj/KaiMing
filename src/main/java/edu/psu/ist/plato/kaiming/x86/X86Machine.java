@@ -127,7 +127,7 @@ public class X86Machine extends Machine {
         } else if (inst.isJumpInst()) {
             JumpInst j = (JumpInst)inst;
             branch = new JmpStmt(j, target, 
-                    j.dependentFlags().stream().map(x -> new Flg(x)).collect(Collectors.toSet()));
+                    j.dependentFlags().stream().map(x -> Flg.getFlg(x)).collect(Collectors.toSet()));
         } else {
             Assert.unreachable();
         }

@@ -10,7 +10,7 @@ public class Relocation extends Memory {
         mTargetBB = bb;
     }
     
-    public BasicBlock<Instruction> targetBasicBlock() {
+    public BasicBlock<Instruction> targetBlock() {
         return mTargetBB;
     }
 

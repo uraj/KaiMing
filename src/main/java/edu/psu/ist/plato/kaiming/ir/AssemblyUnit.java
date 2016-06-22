@@ -74,9 +74,7 @@ public class AssemblyUnit {
                             key = lv;
                         }
                         if (!out.containsKey(key)) {
-                            Set<DefStmt> toAdd = new HashSet<DefStmt>();
-                            toAdd.add(DefStmt.EXTERNAL);
-                            out.put(key, toAdd);
+                            out.put(key, new HashSet<DefStmt>());
                         }
                         s.updateDefFor(lv, out.get(key));
                     }
