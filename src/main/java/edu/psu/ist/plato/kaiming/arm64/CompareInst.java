@@ -6,5 +6,11 @@ public class CompareInst extends Instruction {
         super(Kind.COMPARE, addr, op, new Operand[] { rd, r2 });
     }
 
+    public Register comparedLeft() {
+        return operand(0).asRegister();
+    }
     
+    public Register comparedRight() {
+        return operand(1).asRegister();
+    }
 }

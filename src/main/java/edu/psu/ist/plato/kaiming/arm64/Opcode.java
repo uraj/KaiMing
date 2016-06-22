@@ -22,6 +22,7 @@ public class Opcode {
         B, BL,
         NOP,
         EXT,
+        PUSH, POP,
     }
 
     private static Map<String, Mnemonic> sMap = new HashMap<String, Mnemonic>();
@@ -107,6 +108,12 @@ public class Opcode {
         initList.add(new Tuple<Mnemonic, String[]>(
                 Mnemonic.NOP,
                 new String[] { "NOP", }));
+        initList.add(new Tuple<Mnemonic, String[]>(
+                Mnemonic.PUSH,
+                new String[] { "PUSH", }));
+        initList.add(new Tuple<Mnemonic, String[]>(
+                Mnemonic.POP,
+                new String[] { "POP", }));
         for (Tuple<Mnemonic, String[]> initItem : initList) {
             for (String str : initItem.second) {
                 sMap.put(str, initItem.first);

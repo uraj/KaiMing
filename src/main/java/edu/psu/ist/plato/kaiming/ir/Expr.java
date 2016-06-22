@@ -5,9 +5,6 @@ import java.io.PrintStream;
 
 import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.util.Assert;
-//import edu.psu.ist.plato.kaiming.x86.Immediate;
-//import edu.psu.ist.plato.kaiming.x86.Memory;
-//import edu.psu.ist.plato.kaiming.x86.Register;
 
 public abstract class Expr {
     

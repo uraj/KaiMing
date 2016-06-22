@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.CFG;
@@ -26,7 +27,7 @@ public class X86Machine extends Machine {
     }
     
     private static Const toExpr(Immediate imm) {
-        return Const.getConstant(imm);
+        return Const.getConstant(imm.getValue());
     }
     
     private static Expr toExpr(Register reg) {
@@ -101,7 +102,7 @@ public class X86Machine extends Machine {
     
     private Tuple<Expr, LdStmt> loadMemory(Context ctx, Instruction inst, Memory mem) {
         Var temp = ctx.getNewTempVariable();
-        LdStmt load = new LdStmt(inst, toExpr(mem), temp);
+        LdStmt load = new LdStmt(inst, temp, toExpr(mem));
         return new Tuple<Expr, LdStmt>(temp, load);
     }
     
@@ -124,7 +125,9 @@ public class X86Machine extends Machine {
         if (inst.isCallInst()) {
             branch = new CallStmt((CallInst)inst, target);
         } else if (inst.isJumpInst()) {
-            branch = new JmpStmt((JumpInst)inst, target);
+            JumpInst j = (JumpInst)inst;
+            branch = new JmpStmt(j, target, 
+                    j.dependentFlags().stream().map(x -> new Flg(x)).collect(Collectors.toSet()));
         } else {
             Assert.unreachable();
         }

@@ -11,9 +11,10 @@ public final class BExpr extends Expr {
         MUL,
         DIV,
         CONCAT,
-        SHL,
-        SHR,
-        SAR,
+        // Shift
+        SHL, SHR, SAR, ROR,
+        // Extension
+        SEXT, UEXT,
     }
     
     private Op mOperator;

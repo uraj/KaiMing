@@ -6,4 +6,16 @@ public class StorePairInst extends Instruction {
         super(Kind.STORE_PAIR, addr, op, new Operand[] { rd1, rd2, mem });
     }
     
+    public Register srcLeft() {
+        return operand(0).asRegister();
+    }
+
+    public Register srcRight() {
+        return operand(1).asRegister();
+    }
+    
+    public Memory dest() {
+        return operand(2).asMemory();
+    }
+    
 }

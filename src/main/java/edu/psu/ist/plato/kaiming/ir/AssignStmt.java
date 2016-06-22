@@ -1,21 +1,21 @@
 package edu.psu.ist.plato.kaiming.ir;
 
+import edu.psu.ist.plato.kaiming.Entry;
 import edu.psu.ist.plato.kaiming.util.Tuple;
-import edu.psu.ist.plato.kaiming.x86.Instruction;
 
 public class AssignStmt extends DefStmt {
 
     private Tuple<Integer, Integer> mUpdateRange;
 
-    public AssignStmt(Instruction inst, Lval lval, Expr expr) {
+    public AssignStmt(Entry inst, Lval lval, Expr expr) {
         super(Kind.ASSIGN, inst, lval, new Expr[] { expr });
         mUpdateRange = new Tuple<Integer, Integer>(0, inst.machine().wordSizeInBits());
     }
     
-    // [rangeLow, rangeHigh)
-    public AssignStmt(Instruction inst, Lval lval, Expr expr, int rangeLow, int rangeHigh) {
+    // [rangeInsig, rangeSig)
+    public AssignStmt(Entry inst, Lval lval, Expr expr, int rangeInsig, int rangeSig) {
         super(Kind.ASSIGN, inst, lval, new Expr[] { expr });
-        mUpdateRange = new Tuple<Integer, Integer>(rangeLow, rangeHigh);
+        mUpdateRange = new Tuple<Integer, Integer>(rangeInsig, rangeSig);
     }
     
     public Expr usedRval() {

@@ -10,4 +10,11 @@ public class MoveInst extends Instruction {
         return opcode().mnemonic() == Opcode.Mnemonic.MOVK;
     }
 
+    public Register dest() {
+        return operand(0).asRegister();
+    }
+    
+    public Operand src() {
+        return operand(1);
+    }
 }

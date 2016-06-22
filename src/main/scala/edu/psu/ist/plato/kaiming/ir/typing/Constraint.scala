@@ -107,8 +107,6 @@ class TypeInferer(elf : Elf) {
         exprToConstraints(s, s.storeTo(), rvalMap)
       case s : RetStmt =>
         Nil
-      case s : SetFlagStmt =>
-        Nil
     }).flatten
     (new Result(rvalMap, lvalMap), rdConstraints ++ stmtConstraints)
   }
@@ -131,7 +129,7 @@ class TypeInferer(elf : Elf) {
         val tau1 = rvalMap.get((s, e.leftSubExpr())).orNull
         val tau2 = rvalMap.get((s, e.rightSubExpr())).orNull
         e.operator() match {
-          case BExpr.Op.CONCAT | BExpr.Op.MUL | BExpr.Op.DIV | BExpr.Op.SAR =>
+          case BExpr.Op.CONCAT | BExpr.Op.MUL | BExpr.Op.DIV | BExpr.Op.SAR | BExpr.Op.ROR | BExpr.Op.SEXT =>
             ret = 
               Subtype(tau, IntVar)::
               Subtype(tau1, IntVar)::
@@ -143,7 +141,7 @@ class TypeInferer(elf : Elf) {
             ret = Add(tau, tau1, tau2)::ret
           case BExpr.Op.SUB =>
             ret = Sub(tau, tau1, tau2)::ret
-          case BExpr.Op.XOR | BExpr.Op.OR | BExpr.Op.AND =>
+          case BExpr.Op.XOR | BExpr.Op.OR | BExpr.Op.AND | BExpr.Op.UEXT =>
             // Intentionally left blank
         }
         true

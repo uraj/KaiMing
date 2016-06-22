@@ -1,6 +1,9 @@
 package edu.psu.ist.plato.kaiming.arm64;
 
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import edu.psu.ist.plato.kaiming.Entry;
 import edu.psu.ist.plato.kaiming.Label;
@@ -51,14 +54,22 @@ public class Instruction extends Entry implements Iterable<Operand> {
         return mOpcode;
     }
     
-    public final Operand operand(int index) {
+    protected final Operand operand(int index) {
         return mOperands[index];
+    }
+    
+    protected final int numOfOperands() {
+        return mOperands.length;
     }
     
     protected final void setOperand(int index, Operand op) {
         mOperands[index] = op;
     }
     
+    // This method should not be used inside Instruction and its subclasses.
+    // By override this method, specific instructions can ``hide'' certain 
+    // operands from outside. This is useful for implementing alias instructions
+    // which are frequently seen in ARM64
     @Override
     public Iterator<Operand> iterator() {
         return new ArrayIterator<Operand>(mOperands);
@@ -103,6 +114,9 @@ public class Instruction extends Entry implements Iterable<Operand> {
                 break;
             case ADR:
             case NEG:
+                Assert.verify(oplist.length == 2);
+                Assert.verify(oplist[0].isRegister() && oplist[1].isRegister());
+                ret = new UnaryArithInst(addr, opcode, oplist[0].asRegister(), oplist[1]);
                 break;
             case LDR:
                 Assert.verify(oplist.length == 2);
@@ -164,7 +178,7 @@ public class Instruction extends Entry implements Iterable<Operand> {
             case EXT:
                 Assert.verify(oplist.length == 2);
                 Assert.verify(oplist[0].isRegister() && oplist[1].isRegister());
-                ret = new BitfieldMoveInst(addr, opcode,
+                ret = new ExtensionInst(addr, opcode,
                         oplist[0].asRegister(), oplist[1].asRegister());
                 break;
             case B:
@@ -174,9 +188,25 @@ public class Instruction extends Entry implements Iterable<Operand> {
                     Assert.verify(oplist[0].isMemory() || oplist[0].isRegister());
                     ret = new BranchInst(addr, opcode, oplist[0]);
                 } else {
-                    ret = new BranchInst(addr, opcode);
+                    ret = new ReturnInst(addr, opcode);
                 }
                 break;
+            case PUSH: {
+                Assert.verify(oplist.length > 0);
+                Stream<Operand> stream = Arrays.stream(oplist);
+                stream.forEach(x -> Assert.verify(x.isRegister()));
+                ret = new PushInst(addr, opcode, 
+                        stream.map(x -> x.asRegister()).collect(Collectors.toList()));
+                break;
+            }
+            case POP: {
+                Assert.verify(oplist.length > 0);
+                Stream<Operand> stream = Arrays.stream(oplist);
+                stream.forEach(x -> Assert.verify(x.isRegister()));
+                ret = new PopInst(addr, opcode, 
+                        stream.map(x -> x.asRegister()).collect(Collectors.toList()));
+                break;
+            }
             case NOP:
                 Assert.verify(oplist.length == 0);
                 ret = new NopInst(addr);

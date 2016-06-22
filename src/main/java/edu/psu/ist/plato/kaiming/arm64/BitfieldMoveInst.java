@@ -24,4 +24,25 @@ public class BitfieldMoveInst extends Instruction {
             Assert.unreachable();
         }
     }
+    
+    public Register dest() {
+        return operand(0).asRegister();
+    }
+    
+    public boolean isExtension() {
+        return this instanceof ExtensionInst;
+    }
+    
+    public boolean isSigned() {
+        char first = opcode().rawOpcode().charAt(0);
+        return first == 'S';
+    }
+    
+    public Immediate rotate() {
+        return operand(2).asImmediate();
+    }
+    
+    public Immediate shift() {
+        return operand(3).asImmediate();
+    }
 }

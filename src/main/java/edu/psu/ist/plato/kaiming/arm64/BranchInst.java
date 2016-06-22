@@ -1,5 +1,7 @@
 package edu.psu.ist.plato.kaiming.arm64;
 
+import java.util.Set;
+
 import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.Entry;
 
@@ -9,13 +11,6 @@ public class BranchInst extends Instruction implements Entry.Terminator<Instruct
     
     protected BranchInst(long addr, Opcode op, Operand target) {
         super(Kind.BRANCH, addr, op, new Operand[] { target });
-        mCond = op.getCondition();
-    }
-    
-    private static Register sLinker = Register.getRegister(Register.Id.X30);
-    
-    protected BranchInst(long addr, Opcode op) {
-        super(Kind.BRANCH, addr, op, new Operand[] { sLinker });
         mCond = op.getCondition();
     }
 
@@ -28,11 +23,15 @@ public class BranchInst extends Instruction implements Entry.Terminator<Instruct
     }
     
     public boolean isReturn() {
-        return opcode().rawOpcode().equals("RET");
+        return this instanceof ReturnInst;
     }
     
     public Operand target() {
         return operand(0);
+    }
+    
+    public Set<Flag> dependentFlags() {
+        return mCond.dependentFlags();
     }
 
     @Override

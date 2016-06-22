@@ -1,10 +1,10 @@
 package edu.psu.ist.plato.kaiming.ir;
 
-import edu.psu.ist.plato.kaiming.x86.Instruction;
+import edu.psu.ist.plato.kaiming.Entry;
 
 public class StStmt extends Stmt {
 
-	public StStmt(Instruction inst, Expr addr, Expr content) {
+	public StStmt(Entry inst, Expr addr, Expr content) {
 		super(Kind.ST, inst, new Expr[] { addr, content });
 	}
 	

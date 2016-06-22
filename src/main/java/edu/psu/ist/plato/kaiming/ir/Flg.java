@@ -5,8 +5,12 @@ import edu.psu.ist.plato.kaiming.Machine.MachFlag;
 public final class Flg extends Lval {
     public final MachFlag flag;
     
-    public Flg(MachFlag f) {
+    private Flg(MachFlag f) {
         flag = f;
+    }
+    
+    public static Flg getFlg(MachFlag f) {
+        return new Flg(f);
     }
 
 	@Override

@@ -1,18 +1,21 @@
 package edu.psu.ist.plato.kaiming.ir;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
 import edu.psu.ist.plato.kaiming.BasicBlock;
-import edu.psu.ist.plato.kaiming.x86.Flag;
-import edu.psu.ist.plato.kaiming.x86.JumpInst;
+import edu.psu.ist.plato.kaiming.Entry;
 
 public class JmpStmt extends Stmt {
 
     private Target mResolvedTarget;
+    private Set<Flg> mDependentFlags;
     
-    public JmpStmt(JumpInst inst, Expr target) {
+    public JmpStmt(Entry inst, Expr target, Collection<Flg> flags) {
         super(Kind.JMP, inst, new Expr[] {target});
         mResolvedTarget = null;
+        mDependentFlags = new HashSet<Flg>(flags);
     }
     
     public Expr target() {
@@ -28,11 +31,11 @@ public class JmpStmt extends Stmt {
     }
     
     public boolean isConditional() {
-    	return ((JumpInst)mHost).isConditional();
+    	return mDependentFlags.size() > 0;
     }
     
-    public Set<Flag> dependentFlags() {
-        return ((JumpInst)mHost).dependentFlags();
+    public Set<Flg> dependentFlags() {
+        return mDependentFlags;
     }
     
     public void resolveTarget(BasicBlock<Stmt> bb) {

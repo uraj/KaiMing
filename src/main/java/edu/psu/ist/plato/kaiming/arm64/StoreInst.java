@@ -6,12 +6,12 @@ public class StoreInst extends Instruction {
         super(Kind.STORE, addr, op, new Operand[] { rs, mem });
     }
     
-    public Memory src() {
-        return operand(0).asMemory();
+    public Register src() {
+        return operand(0).asRegister();
     }
     
-    public Register dest() {
-        return operand(1).asRegister();
+    public Memory dest() {
+        return operand(1).asMemory();
     }
 
 }

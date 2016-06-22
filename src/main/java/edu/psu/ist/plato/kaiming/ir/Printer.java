@@ -65,8 +65,11 @@ public class Printer extends PrintWriter {
             case SAR:    print(">>>"); break;
             case SHL:    print("<<"); break;
             case SHR:    print(">>"); break;
+            case ROR:    print("><"); break;
             case SUB:    print('-'); break;
             case XOR:    print('^'); break;
+            case SEXT:     print("sext"); break;
+            case UEXT:     print("uext"); break;
         }
     }
     
@@ -181,7 +184,7 @@ public class Printer extends PrintWriter {
         print(" ];");
     }
     
-    public void printSelectStmt(SelectStmt s) {
+    public void printSelectStmt(SelStmt s) {
         printLval(s.definedLval());
         print("=");
         printExpr(s.condition());
@@ -218,7 +221,7 @@ public class Printer extends PrintWriter {
                 printStStmt((StStmt) s);
                 break;
             case SELECT:
-                printSelectStmt((SelectStmt) s);
+                printSelectStmt((SelStmt) s);
         }
     }
     

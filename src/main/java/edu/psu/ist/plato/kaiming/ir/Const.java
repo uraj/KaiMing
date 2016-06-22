@@ -1,7 +1,5 @@
 package edu.psu.ist.plato.kaiming.ir;
 
-import edu.psu.ist.plato.kaiming.x86.Immediate;
-
 public final class Const extends Expr {
 
 	private final long mValue;
@@ -12,10 +10,6 @@ public final class Const extends Expr {
 	
 	public static Const getConstant(long value) {
 	    return new Const(value);
-	}
-	
-	public static Const getConstant(Immediate imm) {
-		return getConstant(imm.getValue());
 	}
 	
 	public long value() {
