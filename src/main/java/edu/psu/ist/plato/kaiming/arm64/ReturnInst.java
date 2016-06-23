@@ -5,7 +5,7 @@ import java.util.Iterator;
 
 public class ReturnInst extends BranchInst {
 
-    private static Register sLinker = Register.getRegister(Register.Id.X30);
+    private static Register sLinker = Register.get(Register.Id.X30);
     
     protected ReturnInst(long addr, Opcode op) {
         super(addr, op, sLinker);

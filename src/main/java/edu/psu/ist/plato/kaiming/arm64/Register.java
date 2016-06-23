@@ -127,11 +127,11 @@ public class Register extends Operand implements Machine.MachRegister {
         id = ID;
     }
     
-    public static Register getRegister(Id id, Shift shift) {
+    public static Register get(Id id, Shift shift) {
         return new Register(id, shift);
     }
     
-    public static Register getRegister(Id id) {
+    public static Register get(Id id) {
         switch (id) {
             case X0: return x0;
             case X1: return x1;
@@ -203,8 +203,8 @@ public class Register extends Operand implements Machine.MachRegister {
         }
     }
     
-    public static Register getRegister(String name) {
-        return getRegister(Id.valueOf(name.toUpperCase()));
+    public static Register get(String name) {
+        return get(Id.valueOf(name.toUpperCase()));
     }
 
     public boolean isShifted() {
@@ -234,7 +234,7 @@ public class Register extends Operand implements Machine.MachRegister {
     public MachRegister containingRegister() {
         String name = name();
         if (name.startsWith("W"))
-            return getRegister(name.replace("W", "X"));
+            return get(name.replace("W", "X"));
         return this;
     }
 

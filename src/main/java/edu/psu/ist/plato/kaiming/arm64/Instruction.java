@@ -8,6 +8,7 @@ import java.util.stream.Stream;
 import edu.psu.ist.plato.kaiming.Entry;
 import edu.psu.ist.plato.kaiming.Label;
 import edu.psu.ist.plato.kaiming.Machine;
+import edu.psu.ist.plato.kaiming.arm64.LoadStoreInst.AddressingMode;
 import edu.psu.ist.plato.kaiming.util.ArrayIterator;
 import edu.psu.ist.plato.kaiming.util.Assert;
 
@@ -90,7 +91,8 @@ public class Instruction extends Entry implements Iterable<Operand> {
         return ARM64Machine.instance;
     }
     
-    public static Instruction create(long addr, Opcode opcode, Operand[] oplist, Condition cond) {
+    public static Instruction create(long addr, Opcode opcode, Operand[] oplist,
+            Condition cond, boolean preidx) {
         Instruction ret = null;
         cond = cond == null ? Condition.AL : cond; 
         switch (opcode.mnemonic()) {
@@ -115,39 +117,58 @@ public class Instruction extends Entry implements Iterable<Operand> {
             case ADR:
             case NEG:
                 Assert.verify(oplist.length == 2);
-                Assert.verify(oplist[0].isRegister() && oplist[1].isRegister());
+                Assert.verify(oplist[0].isRegister() && (oplist[1].isRegister() || oplist[1].isImmeidate()));
                 ret = new UnaryArithInst(addr, opcode, oplist[0].asRegister(), oplist[1]);
                 break;
             case LDR:
-                Assert.verify(oplist.length == 2);
+            case STR: {
+                Assert.verify(oplist.length == 2 || (oplist.length == 3));
                 Assert.verify(oplist[0].isRegister() && oplist[1].isMemory());
-                ret = new LoadInst(addr, opcode, oplist[0].asRegister(), oplist[1].asMemory());
+                
+                Register rd = oplist[0].asRegister();
+                Memory mem = oplist[1].asMemory();
+                AddressingMode mode = preidx ? AddressingMode.PRE_INDEX : AddressingMode.REGULAR;
+                if (oplist.length == 3) {
+                    Assert.verify(!preidx && oplist[2].isImmeidate());
+                    mem = new Memory(mem.base(), oplist[2].asImmediate().value());
+                    mode = AddressingMode.POST_INDEX;
+                }
+                if (opcode.mnemonic() == Opcode.Mnemonic.LDR)
+                    ret = new LoadInst(addr, opcode, rd, mem, mode);
+                else
+                    ret = new StoreInst(addr, opcode, rd, mem, mode);
                 break;
+            }
             case LDP:
-                Assert.verify(oplist.length == 3);
+            case STP: {
+                Assert.verify(oplist.length == 3 || oplist.length == 4);
                 Assert.verify(oplist[0].isRegister() && oplist[1].isRegister() && oplist[2].isMemory());
-                ret = new LoadPairInst(addr, opcode, oplist[0].asRegister(),
-                        oplist[1].asRegister(), oplist[2].asMemory());
+                
+                Register rd1 = oplist[0].asRegister();
+                AddressingMode mode = preidx ? AddressingMode.PRE_INDEX : AddressingMode.REGULAR;
+                Register rd2 = oplist[1].asRegister();
+                Memory mem = oplist[2].asMemory();
+                if (oplist.length == 4) {
+                    Assert.verify(!preidx && oplist[3].isImmeidate());
+                    mode = AddressingMode.POST_INDEX;
+                    mem = new Memory(mem.base(), oplist[3].asImmediate().value());
+                }
+                if (opcode.mnemonic() == Opcode.Mnemonic.LDP)
+                    ret = new LoadPairInst(addr, opcode, rd1, rd2, mem, mode);
+                else
+                    ret = new StorePairInst(addr, opcode, rd1, rd2, mem, mode);
                 break;
-            case STR:
+            }
+            case TST:
                 Assert.verify(oplist.length == 2);
-                Assert.verify(oplist[0].isRegister());
-                Assert.verify(oplist[1].isMemory());
-                ret = new StoreInst(addr, opcode, oplist[0].asRegister(), oplist[1].asMemory());
-                break;
-            case STP:
-                Assert.verify(oplist.length == 3);
-                Assert.verify(oplist[0].isRegister() &&
-                        oplist[1].isRegister() && oplist[2].isMemory());
-                ret = new StorePairInst(addr, opcode, oplist[0].asRegister(),
-                        oplist[1].asRegister(), oplist[2].asMemory());
+                Assert.verify(oplist[0].isRegister() && (oplist[1].isRegister() || oplist[1].isImmeidate()));
+                ret = new CompareInst(addr, opcode, oplist[0].asRegister(), oplist[1], true);
                 break;
             case CMP:
             case CMN:
                 Assert.verify(oplist.length == 2);
-                Assert.verify(oplist[0].isRegister() && oplist[1].isRegister());
-                ret = new CompareInst(addr, opcode, 
-                        oplist[0].asRegister(), oplist[1].asRegister());
+                Assert.verify(oplist[0].isRegister() && (oplist[1].isRegister() || oplist[1].isImmeidate()));
+                ret = new CompareInst(addr, opcode, oplist[0].asRegister(), oplist[1], false);
                 break;
             case CSEL:
             case CSINC:
@@ -161,14 +182,17 @@ public class Instruction extends Entry implements Iterable<Operand> {
                 Assert.verify(oplist.length == 2);
                 Assert.verify(oplist[0].isRegister() && oplist[1].isRegister());
                 ret = new SelectInst(addr, new Opcode("CSINC"), oplist[0].asRegister(),
-                        oplist[1].asRegister(), oplist[1].asRegister(), cond);
+                        oplist[1].asRegister(), oplist[1].asRegister(), cond.invert());
                 break;
-            case CSET:
-                Assert.verify(oplist.length == 2);
-                Assert.verify(oplist[0].isRegister() && oplist[1].isRegister());
+            case CSET: {
+                Assert.verify(oplist.length == 1);
+                Assert.verify(oplist[0].isRegister());
+                Register zero = oplist[0].asRegister().sizeInBits() == 32 ?
+                        Register.get(Register.Id.WZR) : Register.get(Register.Id.XZR); 
                 ret = new SelectInst(addr, new Opcode("CSINC"), oplist[0].asRegister(),
-                        oplist[0].asRegister(), oplist[1].asRegister(), cond);
+                        zero, zero, cond.invert());
                 break;
+            }
             case MOV:
             case MOVK:
                 Assert.verify(oplist.length == 2);
@@ -180,6 +204,11 @@ public class Instruction extends Entry implements Iterable<Operand> {
                 Assert.verify(oplist[0].isRegister() && oplist[1].isRegister());
                 ret = new ExtensionInst(addr, opcode,
                         oplist[0].asRegister(), oplist[1].asRegister());
+                break;
+            case BFM:
+                Assert.verify(oplist.length == 4);
+                ret = new BitfieldMoveInst(addr, opcode, oplist[0].asRegister(),
+                        oplist[1].asRegister(), oplist[2].asImmediate(), oplist[3].asImmediate());
                 break;
             case B:
             case BL:

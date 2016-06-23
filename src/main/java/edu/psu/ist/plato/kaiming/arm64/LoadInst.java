@@ -1,9 +1,9 @@
 package edu.psu.ist.plato.kaiming.arm64;
 
-public class LoadInst extends Instruction {
+public class LoadInst extends LoadStoreInst {
 
-    protected LoadInst(long addr, Opcode op, Register rd, Memory mem) {
-        super(Kind.LOAD, addr, op, new Operand[] { rd, mem });
+    protected LoadInst(long addr, Opcode op, Register rd, Memory mem, AddressingMode mode) {
+        super(Kind.LOAD, addr, op, new Operand[] { rd, mem }, mode);
     }
 
     public Register dest() {
@@ -12,5 +12,10 @@ public class LoadInst extends Instruction {
     
     public Memory src() {
         return operand(1).asMemory();
+    }
+
+    @Override
+    public int indexingOperand() {
+        return 1;
     }
 }

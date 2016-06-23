@@ -7,6 +7,7 @@ import java.util.Iterator;
 import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.CFG;
 import edu.psu.ist.plato.kaiming.Label;
+import edu.psu.ist.plato.kaiming.arm64.LoadStoreInst.AddressingMode;
 import edu.psu.ist.plato.kaiming.util.Assert;
 
 public class Printer extends PrintWriter {
@@ -33,7 +34,7 @@ public class Printer extends PrintWriter {
 
     public void printOpImmediate(Immediate imm) {
         print('#');
-        printSignedHex(imm.getValue());
+        printSignedHex(imm.value());
     }
     
     public void printOpRegister(Register reg) {
@@ -104,13 +105,40 @@ public class Printer extends PrintWriter {
             }
         } else {
             Iterator<Operand> iter = i.iterator();
+            int indexingOperand = -1;
+            LoadStoreInst.AddressingMode mode = AddressingMode.REGULAR;
+            if (i instanceof LoadStoreInst) {
+                mode = ((LoadStoreInst)i).addressingMode();
+                if (mode != AddressingMode.REGULAR)
+                    indexingOperand = ((LoadStoreInst)i).indexingOperand(); 
+            }
+            
+            int round = 0;
             if (iter.hasNext()) {
                 while (true) {
-                    printOperand(iter.next());
+                    if (round == indexingOperand) {
+                        switch (mode) {
+                            case PRE_INDEX:
+                                printOperand(iter.next());
+                                print('!');
+                                break;
+                            case POST_INDEX: {
+                                Memory next = iter.next().asMemory();
+                                printOperand(next.base());
+                                print(", #");
+                                printSignedHex(next.offset().asImmOff().value);
+                                break;
+                            }
+                            case REGULAR:
+                                Assert.unreachable();
+                        }
+                    } else 
+                        printOperand(iter.next());
                     if (iter.hasNext())
                         print(", ");
                     else
                         break;
+                    ++round;
                 }
             }
         }

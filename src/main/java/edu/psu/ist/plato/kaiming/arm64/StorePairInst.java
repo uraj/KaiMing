@@ -1,9 +1,9 @@
 package edu.psu.ist.plato.kaiming.arm64;
 
-public class StorePairInst extends Instruction {
+public class StorePairInst extends LoadStoreInst {
 
-    protected StorePairInst(long addr, Opcode op, Register rd1, Register rd2, Memory mem) {
-        super(Kind.STORE_PAIR, addr, op, new Operand[] { rd1, rd2, mem });
+    protected StorePairInst(long addr, Opcode op, Register rd1, Register rd2, Memory mem, AddressingMode mode) {
+        super(Kind.STORE_PAIR, addr, op, new Operand[] { rd1, rd2, mem }, mode);
     }
     
     public Register srcLeft() {
@@ -16,6 +16,11 @@ public class StorePairInst extends Instruction {
     
     public Memory dest() {
         return operand(2).asMemory();
+    }
+
+    @Override
+    public int indexingOperand() {
+        return 2;
     }
     
 }

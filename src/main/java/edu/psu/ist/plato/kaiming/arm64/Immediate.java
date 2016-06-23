@@ -40,7 +40,7 @@ public class Immediate extends Operand {
         }
     };
 
-    public final long getValue() {
+    public final long value() {
         return mValue;
     }
 }

@@ -28,14 +28,14 @@ public class ARM64Machine extends Machine {
         Register.Id[] allRegs = Register.Id.values();
         List<MachRegister> ret = new ArrayList<MachRegister>();
         for (Register.Id id : allRegs) {
-            ret.add(Register.getRegister(id));
+            ret.add(Register.get(id));
         }
         return ret;
     }
 
     @Override
     public MachRegister returnRegister() {
-        return Register.getRegister("R0");
+        return Register.get("R0");
     }
 
     @Override
@@ -44,7 +44,7 @@ public class ARM64Machine extends Machine {
     }
     
     private Const toExpr(Immediate imm) {
-        return Const.getConstant(imm.getValue());
+        return Const.getConstant(imm.value());
     }
     
     private Expr toExpr(Register reg) {
@@ -166,7 +166,8 @@ public class ARM64Machine extends Machine {
     }
     
     private void toIR(CompareInst inst, List<Stmt> ret) {
-        Expr cmp = new BExpr(BExpr.Op.SUB, toExpr(inst.comparedLeft()),
+        BExpr.Op testop = inst.isTest() ? BExpr.Op.AND : BExpr.Op.SUB;
+        Expr cmp = new BExpr(testop, toExpr(inst.comparedLeft()),
                 toExpr(inst.comparedRight()));
         Flg c = Flg.getFlg(Flag.C);
         ret.add(new AssignStmt(inst, c, new UExpr(UExpr.Op.CARRY, cmp)));
@@ -208,7 +209,7 @@ public class ARM64Machine extends Machine {
     
     public void toIR(PopInst inst, List<Stmt> ret) {
         int n = inst.numOfPoppedRegisters();
-        Reg sp = Reg.getReg(Register.getRegister(Register.Id.SP));
+        Reg sp = Reg.getReg(Register.get(Register.Id.SP));
         
         if (n == 1) {
             Reg popped = Reg.getReg(inst.firstPoppedRegister());
@@ -228,7 +229,7 @@ public class ARM64Machine extends Machine {
     
     public void toIR(PushInst inst, List<Stmt> ret) {
         int n = inst.numOfPushedRegisters();
-        Reg sp = Reg.getReg(Register.getRegister(Register.Id.SP));
+        Reg sp = Reg.getReg(Register.get(Register.Id.SP));
         
         if (n == 1) {
             Reg popped = Reg.getReg(inst.firstPushedRegister());
@@ -246,6 +247,7 @@ public class ARM64Machine extends Machine {
         }
     }
     
+    // FIXME: consider different addressing mode
     private void toIR(StoreInst inst, List<Stmt> ret) {
         Expr addr = toExpr(inst.dest());
         Expr e = toExpr(inst.src());

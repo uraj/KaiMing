@@ -43,7 +43,7 @@ object ARMParser extends RegexParsers() {
     ("(?i)(" + 
         Register.Id.values().map(_.name()).sorted(Ordering[String].reverse).mkString("|")
         + ")").r ^^ {
-      Register.getRegister(_)
+      Register.get(_)
     }
   
   def shiftType : Parser[Register.Shift.Type] =
@@ -54,14 +54,14 @@ object ARMParser extends RegexParsers() {
   def shifted : Parser[Register] = (reg <~ ",") ~ shiftType ~ integer ^^ {
       case reg ~ st ~ sh => sh match {
         case sh if sh == 0 => reg
-        case _ => Register.getRegister(reg.id, new Register.Shift(st, sh.toInt))
+        case _ => Register.get(reg.id, new Register.Shift(st, sh.toInt))
       }
     }
   
   def mem : Parser[Memory] = (("[" ~> reg ~ (("," ~> (imm | reg)?) <~ "]")) | address) ^^ {
       case (reg : Register) ~ someInt => someInt match {
         case None => new Memory(reg)
-        case Some(int : Immediate) => new Memory(reg, int.getValue())
+        case Some(int : Immediate) => new Memory(reg, int.value())
         case Some(off : Register) => new Memory(reg, off)
         case _ => throw new UnreachableCodeException
       }
@@ -73,11 +73,16 @@ object ARMParser extends RegexParsers() {
       x => Condition.valueOf(x.toUpperCase())
     }
   
-  def operand : Parser[Operand] = reg | mem | shifted | imm
+  def operand : Parser[(Operand, Boolean)] = (((reg | mem | shifted) ~ ("!" ?)) | imm) ^^ {
+      case imm : Immediate => (imm, false)
+      case (op : Operand) ~ (preidx : Option[_]) => (op, preidx.isDefined)
+    }
   
-  def operands : Parser[List[Operand]] = operand ~ (("," ~> operand)*) ^^ {
-    case head ~ tail => head::tail
-  }
+  def operands : Parser[(List[Operand], Boolean)] = operand ~ (("," ~> operand)*) ^^ {
+      case head ~ tail => (head::tail).foldRight((List[Operand](), false)){ 
+        case (x, (l, preidx)) => (x._1 :: l, x._2 || preidx) 
+      }
+    }
   
   def mnemonic : Parser[String] = 
     ("""(?i)[a-z]+([a-z\d])*((\.(""" + Condition.values().map(_.name()).mkString("|") + "))?)").r
@@ -86,11 +91,11 @@ object ARMParser extends RegexParsers() {
       case opcode => new Opcode(opcode)
     }
   
-  def inst : Parser[Instruction] = address ~ opcode ~ (operands ?) ~ (cond ?) <~ nl ^^ {
+  def inst : Parser[Instruction] = address ~ opcode ~ (operands ?) ~ (("," ~> cond) ?) <~ nl ^^ {
     case addr ~ code ~ oplist ~ cond => oplist match {
-      case None => Instruction.create(addr, code, Array[Operand](), cond.orNull)
+      case None => Instruction.create(addr, code, Array[Operand](), cond.orNull, false)
       case Some(operands) => 
-        Instruction.create(addr, code, operands.toArray[Operand], cond.orNull)
+        Instruction.create(addr, code, operands._1.toArray[Operand], cond.orNull, operands._2)
     }
   }
   

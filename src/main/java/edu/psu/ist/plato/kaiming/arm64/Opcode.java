@@ -23,6 +23,8 @@ public class Opcode {
         NOP,
         EXT,
         PUSH, POP,
+        BFM,
+        TST,
     }
 
     private static Map<String, Mnemonic> sMap = new HashMap<String, Mnemonic>();
@@ -32,10 +34,16 @@ public class Opcode {
                 new ArrayList<Tuple<Mnemonic, String[]>>();
         initList.add(new Tuple<Mnemonic, String[]>(
             Mnemonic.LDR,
-            new String[]{ "LDR", "LDUR", "LDRSW", }));
+            new String[]{ "LDR", "LDUR", "LDRSW", "LDURB", }));
+        initList.add(new Tuple<Mnemonic, String[]>(
+                Mnemonic.LDP,
+                new String[]{ "LDP", }));
+        initList.add(new Tuple<Mnemonic, String[]>(
+                Mnemonic.STP,
+                new String[]{ "STP", }));
         initList.add(new Tuple<Mnemonic, String[]>(
                 Mnemonic.STR,
-                new String[] { "STR", "STUR", "SXTW", }));
+                new String[] { "STR", "STUR", "SXTW", "STURB", }));
         initList.add(new Tuple<Mnemonic, String[]>(
                 Mnemonic.ADD,
                 new String[] { "ADD", "ADDS", "ADC", "ADCS", }));
@@ -44,10 +52,13 @@ public class Opcode {
                 new String[] { "SUB", "SUBS", }));
         initList.add(new Tuple<Mnemonic, String[]>(
                 Mnemonic.ADR,
-                new String[] { "ADR", }));
+                new String[] { "ADR", "ADRP", }));
         initList.add(new Tuple<Mnemonic, String[]>(
                 Mnemonic.AND,
                 new String[] { "AND", "ANDS", }));
+        initList.add(new Tuple<Mnemonic, String[]>(
+                Mnemonic.TST,
+                new String[] { "TST", }));
         initList.add(new Tuple<Mnemonic, String[]>(
                 Mnemonic.ASR,
                 new String[] { "ASR", }));
@@ -90,6 +101,9 @@ public class Opcode {
         initList.add(new Tuple<Mnemonic, String[]>(
                 Mnemonic.EXT,
                 new String[] { "SXTW", "SXTH", "SXTB", "UXTW", "UXTH", "UXTB", }));
+        initList.add(new Tuple<Mnemonic, String[]>(
+                Mnemonic.BFM,
+                new String[] { "SBFX", "SBFM", "UBFX", "UBFM", }));
         initList.add(new Tuple<Mnemonic, String[]>(
                 Mnemonic.MUL,
                 new String[] { "MUL", "UMUL", }));
