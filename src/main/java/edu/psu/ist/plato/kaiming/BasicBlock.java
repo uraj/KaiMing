@@ -7,45 +7,16 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 
 import edu.psu.ist.plato.kaiming.util.Assert;
-import edu.psu.ist.plato.kaiming.util.ReverseIterator;
 
 public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<BasicBlock<T>> {
 
     protected List<BasicBlock<T>> mPred;
     protected List<BasicBlock<T>> mSucc;
-
     protected List<T> mEntries;
-
     protected Label mLabel;
-
     protected Procedure<T> mUnit;
-    
-    private class ReverseEntryIterator implements ReverseIterator<T> {
-
-        ListIterator<T> mIter;
-        
-        public ReverseEntryIterator(List<T> entries) {
-            mIter = entries.listIterator(entries.size());
-        }
-        
-        @Override
-        public boolean hasPrevious() {
-            return mIter.hasPrevious();
-        }
-
-        @Override
-        public T previous() {
-            return mIter.previous();
-        }
-
-        @Override
-        public void remove() {
-            mIter.remove();
-        }
-    }
 
     public BasicBlock(Procedure<T> unit, List<T> entries, Label label) {
         if (entries.size() == 0)
@@ -90,10 +61,6 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
     
     public List<T> entries() {
         return new ArrayList<T>(mEntries);
-    }
-    
-    public ReverseIterator<T> reverseIterator() {
-        return new ReverseEntryIterator(mEntries);
     }
 
     public T firstEntry() {
