@@ -119,8 +119,8 @@ public abstract class Procedure<T extends Entry> {
                 if (inspect.hasPredecessor())
                     cfg.add(inspect);
                 else {
-                    inspect.allSuccessor().forEach(
-                            succ -> succ.removePredecessor(inspect));
+                    inspect.successors().forEach(
+                            succ -> succ.removePredecessors(inspect));
                 }
             }
         } else {
@@ -133,8 +133,8 @@ public abstract class Procedure<T extends Entry> {
     private void checkCFGSanity(List<BasicBlock<T>> bbs) {
         Set<BasicBlock<T>> all = new HashSet<BasicBlock<T>>(bbs);
         for (BasicBlock<T> bb : bbs) {
-            bb.allPredecessor().forEach(pred -> Assert.test(all.contains(pred)));
-            bb.allSuccessor().forEach(succ -> Assert.test(all.contains(succ)));
+            bb.predecessors().forEach(pred -> Assert.test(all.contains(pred)));
+            bb.successors().forEach(succ -> Assert.test(all.contains(succ)));
         }
     }
 }

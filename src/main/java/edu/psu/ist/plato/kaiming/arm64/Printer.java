@@ -95,7 +95,7 @@ public class Printer extends PrintWriter {
                     printOpRegister(target.asRegister());
                 } else if (target.isMemory()) {
                     if (target instanceof Relocation) {
-                        print(((Relocation)target).targetBasicBlock().label());
+                        print(((Relocation)target).targetBlock().label());
                     } else
                         printSignedHex(target.asMemory().offset().asImmOff().value);
                 } else {

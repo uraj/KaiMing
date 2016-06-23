@@ -17,6 +17,7 @@ import edu.psu.ist.plato.kaiming.exception.ParsingException;
 import edu.psu.ist.plato.kaiming.ir.AssemblyUnit;
 import edu.psu.ist.plato.kaiming.ir.Context;
 import edu.psu.ist.plato.kaiming.ir.Printer;
+import edu.psu.ist.plato.kaiming.Loop;
 import edu.psu.ist.plato.kaiming.arm64.Function;
 import edu.psu.ist.plato.kaiming.arm64.parsing.ARMParser;
 
@@ -64,6 +65,7 @@ public class TestIRLifting {
         funs.forEach(f -> ctxs.add(new Context(f)));
         ctxs.forEach(c -> AssemblyUnit.UDAnalysis(c));
         ctxs.forEach(c -> Printer.out.printContextWithUDInfo(c));
+        ctxs.forEach(c -> Loop.detectLoops(c.cfg()).forEach(x -> System.out.println(x)));
     }
     
     @After

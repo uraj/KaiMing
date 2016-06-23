@@ -34,10 +34,6 @@ public class Context extends Procedure<Stmt> {
         mMach = Machine.arm64;
         Tuple<List<BasicBlock<Stmt>>, BasicBlock<Stmt>> t = Machine.arm64.buildCFGForARM64(this, fun);
         mCFG = createCFGObject(t.first, t.second);
-        System.err.println(mCFG.entryBlock().label());
-        System.err.println(mCFG.entryBlock().numOfSuccessor());
-        System.err.println(mCFG.entryBlock().successor(0).label());
-        
     }
     
     public Machine mach() {

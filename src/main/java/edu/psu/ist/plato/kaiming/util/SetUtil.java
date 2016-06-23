@@ -22,4 +22,16 @@ public class SetUtil {
         r.retainAll(v);
         return r;
     }
+    
+    static public <T> Set<T> add(Set<T> u, T a) {
+        Set<T> r = new HashSet<T>(u);
+        r.add(a);
+        return r;
+    }
+    
+    static public <T> Set<T> remove(Set<T> u, T b) {
+        Set<T> r = new HashSet<T>(u);
+        r.remove(b);
+        return r;
+    }
 }

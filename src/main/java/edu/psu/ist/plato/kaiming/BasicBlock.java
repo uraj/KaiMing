@@ -122,11 +122,11 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
         return mSucc.add(e);
     }
     
-    public boolean addPredecessorAll(Collection<? extends BasicBlock<T>> e) {
+    public boolean addPredecessors(Collection<? extends BasicBlock<T>> e) {
         return mPred.addAll(e);
     }
 
-    public boolean addSuccessorAll(Collection<? extends BasicBlock<T>> e) {
+    public boolean addSuccessors(Collection<? extends BasicBlock<T>> e) {
         return mSucc.addAll(e);
     }
 
@@ -138,11 +138,11 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
         return mSucc.get(pos);
     }
     
-    public List<BasicBlock<T>> allPredecessor() {
+    public List<BasicBlock<T>> predecessors() {
         return Collections.unmodifiableList(mPred);
     }
     
-    public List<BasicBlock<T>> allSuccessor() {
+    public List<BasicBlock<T>> successors() {
         return Collections.unmodifiableList(mSucc);
     }
     
@@ -154,27 +154,27 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
         return mSucc.remove(pos);
     }
 
-    public boolean removePredecessor(BasicBlock<T> bb) {
+    public boolean removePredecessors(BasicBlock<T> bb) {
         return mPred.remove(bb);
     }
 
-    public boolean removeSuccessor(BasicBlock<T> bb) {
+    public boolean removeSuccessors(BasicBlock<T> bb) {
         return mSucc.remove(bb);
     }
     
-    public void removePredecessorAll() {
+    public void clearPredecessors() {
         mPred.clear();
     }
 
-    public void removeSuccessorAll() {
+    public void clearSuccessors() {
         mSucc.clear();
     }
 
-    public int numOfPredecessor() {
+    public int numOfPredecessors() {
         return mPred.size();
     }
     
-    public int numOfSuccessor() {
+    public int numOfSuccessors() {
         return mSucc.size();
     }
     
@@ -240,25 +240,25 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
 
         for (int i = 0; i < bbs.size() - 1; ++i) {
             final int j = i;
-            bbs.get(j + 1).allPredecessor().forEach(
+            bbs.get(j + 1).predecessors().forEach(
                     pred -> bbs.get(j).addSuccessor(pred));
         }
 
         for (int i = 1; i < bbs.size(); ++i) {
             final int j = i;
-            bbs.get(j - 1).allSuccessor().forEach(
+            bbs.get(j - 1).successors().forEach(
                     succ -> bbs.get(j).addPredecessor(succ));
         }
 
         BasicBlock<T> first = bbs.get(0), last = bbs.get(bbs.size() - 1);
-        for (BasicBlock<T> pred : allPredecessor()) {
+        for (BasicBlock<T> pred : predecessors()) {
             first.addPredecessor(pred);
-            pred.removeSuccessor(this);
+            pred.removeSuccessors(this);
             pred.addSuccessor(first);
         }
-        for (BasicBlock<T> succ : allSuccessor()) {
+        for (BasicBlock<T> succ : successors()) {
             last.addPredecessor(succ);
-            succ.removePredecessor(this);
+            succ.removePredecessors(this);
             succ.addPredecessor(last);
         }
 

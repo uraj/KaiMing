@@ -430,8 +430,8 @@ public class ARM64Machine extends Machine {
         }
         for (BasicBlock<Instruction> bb : asmCFG) {
             BasicBlock<Stmt> irbb = map.get(bb);
-            bb.allPredecessor().forEach(pred -> irbb.addPredecessor(map.get(pred)));
-            bb.allSuccessor().forEach(succ -> irbb.addSuccessor(map.get(succ)));
+            bb.predecessors().forEach(pred -> irbb.addPredecessor(map.get(pred)));
+            bb.successors().forEach(succ -> irbb.addSuccessor(map.get(succ)));
         }
         // Set indices for IR statements
         int stmtNo = 0;
