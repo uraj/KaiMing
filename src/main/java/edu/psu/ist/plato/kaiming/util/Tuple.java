@@ -16,6 +16,11 @@ public class Tuple<F, S> {
         this.second = second;
     }
     
+    public Tuple(Tuple<F, S> that) {
+        first = that.first;
+        second = that.second;
+    }
+    
     @Override
     public boolean equals(Object e) {
         if (e instanceof Tuple) {

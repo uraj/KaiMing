@@ -14,8 +14,8 @@ public class CompareInst extends Instruction {
         return operand(0).asRegister();
     }
     
-    public Register comparedRight() {
-        return operand(1).asRegister();
+    public Operand comparedRight() {
+        return operand(1);
     }
     
     public boolean isTest() {

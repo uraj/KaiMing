@@ -9,13 +9,9 @@ public class StoreInst extends LoadStoreInst {
     public Register src() {
         return operand(0).asRegister();
     }
-    
-    public Memory dest() {
-        return operand(1).asMemory();
-    }
 
     @Override
-    public int indexingOperand() {
+    public int indexingOperandIndex() {
         return 1;
     }
 

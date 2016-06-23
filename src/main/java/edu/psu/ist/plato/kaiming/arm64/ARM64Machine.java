@@ -35,7 +35,7 @@ public class ARM64Machine extends Machine {
 
     @Override
     public MachRegister returnRegister() {
-        return Register.get("R0");
+        return Register.get("X0");
     }
 
     @Override
@@ -147,17 +147,19 @@ public class ARM64Machine extends Machine {
     
     private void toIR(BitfieldMoveInst inst, List<Stmt> ret) {
         Lval lval = Reg.getReg(inst.dest());
-        if (inst.isExtension()) {
-            BExpr.Op op = inst.isSigned() ? BExpr.Op.SEXT : BExpr.Op.UEXT;
+        if (inst instanceof ExtensionInst) {
+            BExpr.Op op = inst.extension() == BitfieldMoveInst.Extension.SIGNED ?
+                    BExpr.Op.SEXT : BExpr.Op.UEXT;
             new AssignStmt(inst, lval, new BExpr(op, lval, Const.getConstant(lval.sizeInBits())));
         } else {
-            Assert.unreachable();
+            // TODO: lift general bitmove instructions
+            //Assert.unreachable();
         }
     }
     
     private void toIR(MoveInst inst, List<Stmt> ret) {
         Lval lval = Reg.getReg(inst.dest());
-        Expr rval = toExpr(inst.dest());
+        Expr rval = operandToExpr(inst.src());
         int boundSig = lval.sizeInBits();
         if (inst.keep()) {
             boundSig = 16;
@@ -168,7 +170,7 @@ public class ARM64Machine extends Machine {
     private void toIR(CompareInst inst, List<Stmt> ret) {
         BExpr.Op testop = inst.isTest() ? BExpr.Op.AND : BExpr.Op.SUB;
         Expr cmp = new BExpr(testop, toExpr(inst.comparedLeft()),
-                toExpr(inst.comparedRight()));
+                operandToExpr(inst.comparedRight()));
         Flg c = Flg.getFlg(Flag.C);
         ret.add(new AssignStmt(inst, c, new UExpr(UExpr.Op.CARRY, cmp)));
         Flg n = Flg.getFlg(Flag.N);
@@ -189,22 +191,6 @@ public class ARM64Machine extends Machine {
                     inst.dependentFlags().stream().map(
                             x -> Flg.getFlg(x)).collect(Collectors.toSet())));
         }
-    }
-    
-    private void toIR(LoadInst inst, List<Stmt> ret) {
-        Lval lval = Reg.getReg(inst.dest());
-        Expr e = toExpr(inst.src());
-        ret.add(new LdStmt(inst, lval, e));
-    }
-    
-    private void toIR(LoadPairInst inst, List<Stmt> ret) {
-        Reg first = Reg.getReg(inst.destLeft());
-        int sizeInBytes = first.sizeInBits() / 8;
-        Expr addr = toExpr(inst.src());
-        ret.add(new LdStmt(inst, first, addr));
-        Reg second = Reg.getReg(inst.destRight());
-        Const disp = Const.getConstant(sizeInBytes);
-        ret.add(new LdStmt(inst, second, new BExpr(BExpr.Op.ADD, addr, disp)));
     }
     
     public void toIR(PopInst inst, List<Stmt> ret) {
@@ -247,17 +233,67 @@ public class ARM64Machine extends Machine {
         }
     }
     
-    // FIXME: consider different addressing mode
-    private void toIR(StoreInst inst, List<Stmt> ret) {
-        Expr addr = toExpr(inst.dest());
+    private void toIR(Context ctx, LoadStoreInst inst, List<Stmt> ret) {
+        LoadStoreInst.AddressingMode mode = inst.addressingMode();
+        Memory mem = inst.indexingOperand();
+        Register base = mem.base();
+        Expr addr = null;
+        switch (mode) {
+            case POST_INDEX:
+                addr = toExpr(mem.base());
+                break;
+            case PRE_INDEX:
+            case REGULAR:
+                addr = toExpr(mem);
+                break;
+        }
+        if (!addr.isPrimitive()) {
+            Var tmp = ctx.getNewTempVariable();
+            ret.add(new AssignStmt(inst, tmp, addr));
+            addr = tmp;
+        }
+        
+        if (inst instanceof LoadInst)
+            processLoadStore((LoadInst)inst, addr, ret);
+        else if (inst instanceof LoadPairInst)
+            processLoadStore((LoadPairInst)inst, addr, ret);
+        else if (inst instanceof StoreInst)
+            processLoadStore((StoreInst)inst, addr, ret);
+        else if (inst instanceof StorePairInst)
+            processLoadStore((StorePairInst)inst, addr, ret);
+        else
+            Assert.unreachable();
+        
+        // pre- or post-indexing requires base reigster to be updated
+        if (mode != LoadStoreInst.AddressingMode.REGULAR) {
+            ret.add(new AssignStmt(inst, Reg.getReg(base), addr));
+        }
+        
+        return;
+    }
+    
+    private void processLoadStore(LoadInst inst, Expr addr, List<Stmt> ret) {
+        Lval lval = Reg.getReg(inst.dest());
+        ret.add(new LdStmt(inst, lval, addr));
+    }
+    
+    private void processLoadStore(LoadPairInst inst, Expr addr, List<Stmt> ret) {
+        Reg first = Reg.getReg(inst.destLeft());
+        int sizeInBytes = first.sizeInBits() / 8;
+        ret.add(new LdStmt(inst, first, addr));
+        Reg second = Reg.getReg(inst.destRight());
+        Const disp = Const.getConstant(sizeInBytes);
+        ret.add(new LdStmt(inst, second, new BExpr(BExpr.Op.ADD, addr, disp)));
+    }
+    
+    private void processLoadStore(StoreInst inst, Expr addr, List<Stmt> ret) {
         Expr e = toExpr(inst.src());
         ret.add(new StStmt(inst, addr, e));
     }
     
-    private void toIR(StorePairInst inst, List<Stmt> ret) {
+    private void processLoadStore(StorePairInst inst, Expr addr, List<Stmt> ret) {
         Reg first = Reg.getReg(inst.srcLeft());
         int sizeInBytes = first.sizeInBits() / 8;
-        Expr addr = toExpr(inst.dest());
         ret.add(new LdStmt(inst, first, addr));
         Reg second = Reg.getReg(inst.srcRight());
         Const disp = Const.getConstant(sizeInBytes);
@@ -366,7 +402,7 @@ public class ARM64Machine extends Machine {
                 cond, toExpr(inst.truevalue()), toExpr(inst.falsevalue())));
     }
     
-    public List<Stmt> toIRStatements(Instruction inst) {
+    public List<Stmt> toIRStatements(Context ctx, Instruction inst) {
         LinkedList<Stmt> ret = new LinkedList<Stmt>();
         switch (inst.kind()) {
             case BIN_ARITHN:
@@ -381,12 +417,6 @@ public class ARM64Machine extends Machine {
             case COMPARE:
                 toIR((CompareInst)inst, ret);
                 break;
-            case LOAD:
-                toIR((LoadInst)inst, ret);
-                break;
-            case LOAD_PAIR:
-                toIR((LoadPairInst)inst, ret);
-                break;
             case MOVE:
                 toIR((MoveInst)inst, ret);
                 break;
@@ -399,11 +429,11 @@ public class ARM64Machine extends Machine {
             case SELECT:
                 toIR((SelectInst)inst, ret);
                 break;
+            case LOAD:
+            case LOAD_PAIR:
             case STORE:
-                toIR((StoreInst)inst, ret);
-                break;
             case STORE_PAIR:
-                toIR((StorePairInst)inst, ret);
+                toIR(ctx, (LoadStoreInst)inst, ret);
                 break;
             case UN_ARITH:
                 toIR((UnaryArithInst)inst, ret);
@@ -424,7 +454,7 @@ public class ARM64Machine extends Machine {
         int labelNo = 0;
         for (BasicBlock<Instruction> bb : asmCFG) {
             List<Stmt> irstmt = new LinkedList<Stmt>();
-            bb.forEach(inst -> irstmt.addAll(toIRStatements(inst)));
+            bb.forEach(inst -> irstmt.addAll(toIRStatements(ctx, inst)));
             BasicBlock<Stmt> irbb = 
                     new BasicBlock<Stmt>(ctx, irstmt, new Label("L_" + labelNo++, -1));
             bbs.add(irbb);

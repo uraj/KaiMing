@@ -110,7 +110,7 @@ public class Printer extends PrintWriter {
             if (i instanceof LoadStoreInst) {
                 mode = ((LoadStoreInst)i).addressingMode();
                 if (mode != AddressingMode.REGULAR)
-                    indexingOperand = ((LoadStoreInst)i).indexingOperand(); 
+                    indexingOperand = ((LoadStoreInst)i).indexingOperandIndex(); 
             }
             
             int round = 0;

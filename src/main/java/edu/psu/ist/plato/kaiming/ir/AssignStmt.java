@@ -9,13 +9,15 @@ public class AssignStmt extends DefStmt {
 
     public AssignStmt(Entry inst, Lval lval, Expr expr) {
         super(Kind.ASSIGN, inst, lval, new Expr[] { expr });
-        mUpdateRange = new Tuple<Integer, Integer>(0, inst.machine().wordSizeInBits());
+        mUpdateRange = new Tuple<Integer, Integer>(0, lval.sizeInBits());
     }
     
     // [rangeInsig, rangeSig)
     public AssignStmt(Entry inst, Lval lval, Expr expr, int rangeInsig, int rangeSig) {
         super(Kind.ASSIGN, inst, lval, new Expr[] { expr });
-        mUpdateRange = new Tuple<Integer, Integer>(rangeInsig, rangeSig);
+        int maxsize = lval.sizeInBits();
+        mUpdateRange = new Tuple<Integer, Integer>(rangeInsig,
+                rangeSig > maxsize ? maxsize : rangeSig);
     }
     
     public Expr usedRval() {
@@ -23,6 +25,11 @@ public class AssignStmt extends DefStmt {
     }
 
     public Tuple<Integer, Integer> rangeOfAssignment() {
-        return mUpdateRange;
+        return new Tuple<>(mUpdateRange);
+    }
+    
+    public boolean isPartialAssignment() {
+        return mUpdateRange.first != 0 || 
+                mUpdateRange.second != definedLval().sizeInBits();
     }
 }

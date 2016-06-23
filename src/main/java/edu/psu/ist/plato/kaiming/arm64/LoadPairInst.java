@@ -14,12 +14,8 @@ public class LoadPairInst extends LoadStoreInst {
         return operand(1).asRegister();
     }
 
-    public Memory src() {
-        return operand(2).asMemory();
-    }
-
     @Override
-    public int indexingOperand() {
+    public int indexingOperandIndex() {
         return 2;
     }
 }

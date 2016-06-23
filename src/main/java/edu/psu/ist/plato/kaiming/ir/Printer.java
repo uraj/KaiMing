@@ -5,6 +5,7 @@ import java.io.PrintWriter;
 
 import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.util.Assert;
+import edu.psu.ist.plato.kaiming.util.Tuple;
 
 public class Printer extends PrintWriter {
 
@@ -136,6 +137,14 @@ public class Printer extends PrintWriter {
     
     private void printAssignStmt(AssignStmt s) {
         printLval(s.definedLval());
+        if (s.isPartialAssignment()) {
+            Tuple<Integer, Integer> range = s.rangeOfAssignment();
+            print('<');
+            print(range.first);
+            print(',');
+            print(range.second);
+            print('>');
+        }
         print(" = ");
         printExpr(s.usedRval());
         print(";");

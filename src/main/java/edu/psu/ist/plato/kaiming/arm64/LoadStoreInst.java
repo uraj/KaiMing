@@ -19,6 +19,10 @@ public abstract class LoadStoreInst extends Instruction {
         return mAddressingMode;
     }
     
-    public abstract int indexingOperand();
+    public abstract int indexingOperandIndex();
+    
+    public Memory indexingOperand() {
+        return operand(indexingOperandIndex()).asMemory();
+    }
         
 }

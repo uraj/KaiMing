@@ -16,6 +16,10 @@ public abstract class Expr {
     
     public abstract int numOfSubExpr();
     
+    public boolean isPrimitive() {
+        return numOfSubExpr() == 0;
+    }
+    
     public static abstract class Visitor {
 
         private boolean action(Expr expr) {

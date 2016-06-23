@@ -10,12 +10,8 @@ public class LoadInst extends LoadStoreInst {
         return operand(0).asRegister();
     }
     
-    public Memory src() {
-        return operand(1).asMemory();
-    }
-
     @Override
-    public int indexingOperand() {
+    public int indexingOperandIndex() {
         return 1;
     }
 }
