@@ -16,7 +16,7 @@ public final class UExpr extends Expr {
     private Op mOperator;
     private Expr mSubExpr;
     
-    public UExpr(Op op, Expr subexpr) {
+    protected UExpr(Op op, Expr subexpr) {
         mOperator = op;
         mSubExpr = subexpr;
     }

@@ -9,7 +9,7 @@ public final class Flg extends Lval {
         flag = f;
     }
     
-    public static Flg getFlg(MachFlag f) {
+    public static Flg get(MachFlag f) {
         return new Flg(f);
     }
 

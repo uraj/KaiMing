@@ -20,7 +20,7 @@ public final class BExpr extends Expr {
     private Op mOperator;
     private Expr mLeft, mRight;
     
-    public BExpr(Op op, Expr left, Expr right) {
+    protected BExpr(Op op, Expr left, Expr right) {
         mOperator = op;
         mLeft = left;
         mRight = right;

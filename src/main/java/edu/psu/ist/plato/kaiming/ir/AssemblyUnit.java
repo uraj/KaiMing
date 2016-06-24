@@ -54,7 +54,7 @@ public class AssemblyUnit {
                     Set<DefStmt> set = new HashSet<DefStmt>();
                     set.add(DefStmt.EXTERNAL);
                     for (MachRegister mreg : mMach.registers()) {
-                        ret.put(Reg.getReg(mreg), set);
+                        ret.put(Reg.get(mreg), set);
                     }
                 }
                 return ret;

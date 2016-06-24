@@ -19,8 +19,8 @@ public class X86Machine extends Machine {
     
     public static final X86Machine instance = new X86Machine();
     
-    private static Reg esp = Reg.getReg(Register.getRegister("esp"));
-    private static Reg ebp = Reg.getReg(Register.getRegister("ebp"));
+    private static Reg esp = Reg.get(Register.getRegister("esp"));
+    private static Reg ebp = Reg.get(Register.getRegister("ebp"));
     
     private X86Machine() {
         super(Arch.X86);
@@ -31,7 +31,7 @@ public class X86Machine extends Machine {
     }
     
     private static Expr toExpr(Register reg) {
-        return Reg.getReg(reg);
+        return Reg.get(reg);
     }
     
     private static Expr toExpr(Memory mem) {
@@ -39,21 +39,21 @@ public class X86Machine extends Machine {
         if (mem.offsetRegister() != null) {
             ret = toExpr(mem.offsetRegister());
             if (mem.multiplier() != 1) {
-                ret = new BExpr(BExpr.Op.MUL, ret, Const.get(mem.multiplier()));
+                ret = ret.mul(Const.get(mem.multiplier()));
             }
         }
         if (mem.baseRegister() != null) {
             if (ret == null) {
                 ret = toExpr(mem.baseRegister());
             } else {
-                ret = new BExpr(BExpr.Op.ADD, toExpr(mem.baseRegister()), ret);
+                ret = toExpr(mem.baseRegister()).add(ret);
             }
         }
         if (mem.displacement() != 0) {
             if (ret == null) {
                 ret = Const.get(mem.displacement());
             } else {
-                ret = new BExpr(BExpr.Op.ADD, Const.get(mem.displacement()), ret);
+                ret = Const.get(mem.displacement()).add(ret);
             }
         }
         if (ret == null)
@@ -63,7 +63,7 @@ public class X86Machine extends Machine {
     
     private Stmt updateOperand(Instruction inst, Operand operand, Expr value) {
         if (operand.isRegister()) {
-            return new AssignStmt(inst, Reg.getReg(operand.asRegister()), value);
+            return new AssignStmt(inst, Reg.get(operand.asRegister()), value);
         } else if (operand.isMemory()){
             Expr addr = toExpr(operand.asMemory());
             return new StStmt(inst, addr, value);
@@ -127,7 +127,7 @@ public class X86Machine extends Machine {
         } else if (inst.isJumpInst()) {
             JumpInst j = (JumpInst)inst;
             branch = new JmpStmt(j, target, 
-                    j.dependentFlags().stream().map(x -> Flg.getFlg(x)).collect(Collectors.toSet()));
+                    j.dependentFlags().stream().map(x -> Flg.get(x)).collect(Collectors.toSet()));
         } else {
             Assert.unreachable();
         }
@@ -151,17 +151,17 @@ public class X86Machine extends Machine {
     }
     
     private void toIR(PopInst inst, List<Stmt> ret) {
-        LdStmt load = new LdStmt(inst, Reg.getReg(inst.popTarget()), esp); 
+        LdStmt load = new LdStmt(inst, Reg.get(inst.popTarget()), esp); 
         ret.add(load);
         
         Const size = Const.get(inst.sizeInBits() / 8);
-        BExpr incEsp = new BExpr(BExpr.Op.ADD, esp, size);
+        BExpr incEsp = esp.add(size);
         ret.add(new AssignStmt(inst, esp, incEsp));
     }
     
     private void toIR(Context ctx, PushInst inst, List<Stmt> ret) {
         Const size = Const.get(inst.sizeInBits() / 8);
-        BExpr decEsp = new BExpr(BExpr.Op.SUB, esp, size);
+        BExpr decEsp = esp.sub(size);
         ret.add(new AssignStmt(inst, esp, decEsp));
         
         Expr toPush = null;
@@ -183,15 +183,14 @@ public class X86Machine extends Machine {
     
     private void toIR(Context ctx, DivideInst inst, List<Stmt> ret) {
         Tuple<Register, Register> x = inst.dividend();
-        Expr dividend = new BExpr(BExpr.Op.CONCAT, 
-                Reg.getReg(x.first), Reg.getReg(x.second));
+        Expr dividend = Reg.get(x.first).concat(Reg.get(x.second));
         Expr divider = readOperand(ctx, inst, inst.divider(), ret);
-        Expr divid = new BExpr(BExpr.Op.DIV, dividend, divider);
-        Expr low = new UExpr(UExpr.Op.LOW, divid);
-        Expr high = new UExpr(UExpr.Op.HIGH, divid);
+        Expr divid = dividend.div(divider);
+        Expr low = divid.low();
+        Expr high = divid.high();
         Tuple<Register, Register> y = inst.dest();
-        ret.add(new AssignStmt(inst, Reg.getReg(y.first), low));
-        ret.add(new AssignStmt(inst, Reg.getReg(y.second), high));
+        ret.add(new AssignStmt(inst, Reg.get(y.first), low));
+        ret.add(new AssignStmt(inst, Reg.get(y.second), high));
     }
     
     private void toIR(Context ctx, ExchangeInst inst, List<Stmt> ret) {
@@ -206,74 +205,66 @@ public class X86Machine extends Machine {
     
     private void toIR(LeaInst inst, List<Stmt> ret) {
         ret.add(new AssignStmt(inst,
-                Reg.getReg(inst.loadedRegister()),
+                Reg.get(inst.loadedRegister()),
                 toExpr(inst.addrExpression())));
     }
     
     private void toIR(Context ctx, UnaryArithInst inst, List<Stmt> ret) {
-        UExpr.Op op = null;
         Operand o = inst.operand();
         switch(inst.opcode().opcodeClass()) {
             case INC: // Use a binary expression to hold this
                 ret.add(updateOperand(inst, o,
-                        new BExpr(BExpr.Op.ADD,
-                                readOperand(ctx, inst, o, ret),
-                                Const.get(1))));
-                return;
+                        readOperand(ctx, inst, o, ret).add(Const.get(1))));
+                break;
             case DEC:
                 ret.add(updateOperand(inst, o,
-                        new BExpr(BExpr.Op.SUB,
-                                readOperand(ctx, inst, o, ret),
-                                Const.get(1))));
-                return;
+                		readOperand(ctx, inst, o, ret).sub(Const.get(1))));
+                break;
             case NEG:
                 ret.add(updateOperand(inst, o,
-                        new BExpr(BExpr.Op.SUB,
-                                Const.get(0),
-                                readOperand(ctx, inst, o, ret))));
-                return;
+                		Const.get(0).sub(readOperand(ctx, inst, o, ret))));
+                break;
             case NOT:
-                op = UExpr.Op.NOT;
+            	ret.add(updateOperand(inst, o, readOperand(ctx, inst, o, ret).not()));
                 break;
             case BSWAP:
+            	ret.add(updateOperand(inst, o, readOperand(ctx, inst, o, ret).bswap()));
                 break;
             default:
                 Assert.unreachable();
         }
-        Expr e = readOperand(ctx, inst, o, ret);
-        ret.add(updateOperand(inst, o, new UExpr(op, e)));
     }
 
     private void toIR(Context ctx, BinaryArithInst inst, List<Stmt> ret) {
-        BExpr.Op op = null;
         Expr e1 = readOperand(ctx, inst, inst.src(), ret);
         Expr e2 = readOperand(ctx, inst, inst.dest(), ret);
+        BExpr bexp = null;
         switch(inst.opcode().opcodeClass()) {
             case ADD:
             case ADC:
-                op = BExpr.Op.ADD;
+                bexp = e2.add(e1);
                 break;
             case SUB:
             case SBB:
-                op = BExpr.Op.SUB;
+            	bexp = e2.sub(e1);
                 break;
             case AND:
-                op = BExpr.Op.AND;
+                bexp = e2.and(e1);
                 break;
             case XOR:
-                op = BExpr.Op.XOR;
+                bexp = e2.xor(e1);
                 break;
             case OR:
-                op = BExpr.Op.OR;
+            	bexp = e2.or(e1);
                 break;
             case SAR:
-                op = BExpr.Op.SAR;
+            	bexp = e2.sar(e1);
                 break;
             case SHL:
-                op = BExpr.Op.SHL;
+            	bexp = e2.shl(e1);
                 break;
             case SHR:
-                op = BExpr.Op.SHR;
+            	bexp = e2.shr(e1);
                 break;
             default:
                 Assert.unreachable();
@@ -282,7 +273,7 @@ public class X86Machine extends Machine {
         // FIXME: The order of e1 and e2 here is critical. Make sure
         // the current ordering reflects the correct semantics of all
         // instructions translated here.
-        BExpr bexp = new BExpr(op, e2, e1);
+        
         Operand dest = inst.dest();
         ret.add(updateOperand(inst, dest, bexp));
     }
@@ -292,7 +283,7 @@ public class X86Machine extends Machine {
         LdStmt load = new LdStmt(inst, ebp, esp); 
         ret.add(load);
         Const size = Const.get(4);
-        BExpr incEsp = new BExpr(BExpr.Op.ADD, esp, size);
+        BExpr incEsp = esp.add(size);
         ret.add(new AssignStmt(inst, esp, incEsp));
     }
     
@@ -300,14 +291,14 @@ public class X86Machine extends Machine {
         Tuple<Operand, Operand> src = inst.src();
         Expr e1 = readOperand(ctx, inst, src.first, ret);
         Expr e2 = readOperand(ctx, inst, src.second, ret);
-        BExpr bexp = new BExpr(BExpr.Op.MUL, e1, e2);
+        BExpr bexp = e1.mul(e2);
         Tuple<Operand, Operand> dest = inst.dest();
         Var result = ctx.getNewTempVariable(64);
         ret.add(new AssignStmt(inst, result, bexp));
-        Expr low = new UExpr(UExpr.Op.LOW, result);
+        Expr low = result.low();
         ret.add(updateOperand(inst, dest.first, low));
         if (dest.second != null) {
-            Expr high = new UExpr(UExpr.Op.HIGH, result);
+            Expr high = result.high();
             ret.add(updateOperand(inst, dest.second, high));
         }
     }

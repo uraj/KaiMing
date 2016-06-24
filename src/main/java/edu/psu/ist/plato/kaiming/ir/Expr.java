@@ -6,8 +6,6 @@ import java.io.PrintStream;
 import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.util.Assert;
 
-// TODO: Implement a builder pattern for expression construction
-
 public abstract class Expr {
     
     public boolean isLval() {
@@ -86,4 +84,93 @@ public abstract class Expr {
     
     @Override
     public abstract int hashCode();
+    
+    public BExpr add(Expr that) {
+    	return new BExpr(BExpr.Op.ADD, this, that);
+    }
+    
+    public BExpr sub(Expr that) {
+    	return new BExpr(BExpr.Op.SUB, this, that);
+    }
+    
+    public BExpr and(Expr that) {
+    	return new BExpr(BExpr.Op.AND, this, that);
+    }
+    
+    public BExpr or(Expr that) {
+    	return new BExpr(BExpr.Op.AND, this, that);
+    }
+    
+    public BExpr xor(Expr that) {
+    	return new BExpr(BExpr.Op.XOR, this, that);
+    }
+    
+    public BExpr shl(Expr that) {
+    	return new BExpr(BExpr.Op.SHL, this, that);
+    }
+    
+    public BExpr shr(Expr that) {
+    	return new BExpr(BExpr.Op.SHR, this, that);
+    }
+    
+    public BExpr sar(Expr that) {
+    	return new BExpr(BExpr.Op.SAR, this, that);
+    }
+    
+    public BExpr mul(Expr that) {
+    	return new BExpr(BExpr.Op.MUL, this, that);
+    }
+    
+    public BExpr div(Expr that) {
+    	return new BExpr(BExpr.Op.DIV, this, that);
+    }
+    
+    public BExpr concat(Expr that) {
+    	return new BExpr(BExpr.Op.CONCAT, this, that);
+    }
+    
+    public BExpr ror(Expr that) {
+    	return new BExpr(BExpr.Op.ROR, this, that);
+    }
+    
+    public BExpr sext(Expr that) {
+    	return new BExpr(BExpr.Op.SEXT, this, that);
+    }
+    
+    public BExpr uext(Expr that) {
+    	return new BExpr(BExpr.Op.UEXT, this, that);
+    }
+    
+    public UExpr low() {
+    	return new UExpr(UExpr.Op.LOW, this);
+    }
+    
+    public UExpr high() {
+    	return new UExpr(UExpr.Op.HIGH, this);
+    }
+    
+    public UExpr bswap() {
+    	return new UExpr(UExpr.Op.BSWAP, this);
+    }
+
+    public UExpr not() {
+    	return new UExpr(UExpr.Op.NOT, this);
+    }
+    
+    public UExpr foverflow() {
+    	return new UExpr(UExpr.Op.OVERFLOW, this);
+    }
+    
+    public UExpr fnegative() {
+    	return new UExpr(UExpr.Op.NEGATIVE, this);
+    }
+    
+    public UExpr fzero() {
+    	return new UExpr(UExpr.Op.ZERO, this);
+    }
+    
+    public UExpr fcarry() {
+    	return new UExpr(UExpr.Op.CARRY, this);
+    }
+    
 }

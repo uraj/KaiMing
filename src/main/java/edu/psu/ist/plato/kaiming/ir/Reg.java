@@ -10,7 +10,7 @@ public final class Reg extends Lval {
         mReg = mreg;
     }
     
-    public static Reg getReg(MachRegister mreg) {
+    public static Reg get(MachRegister mreg) {
         return new Reg(mreg);
     }
     
@@ -38,7 +38,7 @@ public final class Reg extends Lval {
     }
     
     public Reg containingReg() {
-        return getReg(mReg.containingRegister());
+        return get(mReg.containingRegister());
     }
     
     public Machine.MachRegister machRegister() {
