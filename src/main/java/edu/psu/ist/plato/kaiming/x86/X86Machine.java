@@ -11,7 +11,10 @@ import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.CFG;
 import edu.psu.ist.plato.kaiming.Label;
 import edu.psu.ist.plato.kaiming.Machine;
+import edu.psu.ist.plato.kaiming.MachRegister;
+
 import edu.psu.ist.plato.kaiming.ir.*;
+
 import edu.psu.ist.plato.kaiming.util.Assert;
 import edu.psu.ist.plato.kaiming.util.Tuple;
 
@@ -19,8 +22,8 @@ public class X86Machine extends Machine {
     
     public static final X86Machine instance = new X86Machine();
     
-    private static Reg esp = Reg.get(Register.getRegister("esp"));
-    private static Reg ebp = Reg.get(Register.getRegister("ebp"));
+    private static Reg esp = Reg.get(Register.get("esp"));
+    private static Reg ebp = Reg.get(Register.get("ebp"));
     
     private X86Machine() {
         super(Arch.X86);
@@ -421,7 +424,7 @@ public class X86Machine extends Machine {
 
     @Override
     public MachRegister returnRegister() {
-        return Register.getRegister("eax");
+        return Register.get("eax");
     }
 
     @Override

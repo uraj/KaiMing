@@ -219,7 +219,7 @@ public abstract class Instruction extends Entry implements Iterable<Operand> {
                 Operand op1 = operands[0];
                 Operand op2;
                 if (operands.length == 1)
-                    op2 = Immediate.getImmediate(1);
+                    op2 = Immediate.get(1);
                 else
                     op2 = operands[1];
                 ret = new BinaryArithInst(addr, opcode, op1, op2);

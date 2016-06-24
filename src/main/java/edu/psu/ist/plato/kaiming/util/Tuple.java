@@ -1,7 +1,7 @@
 package edu.psu.ist.plato.kaiming.util;
 
 // Till Java 8 we still don't have tuple or pair structures in
-// standard libraries, so it's still OP to use this whenever needed.
+// standard libraries, so it's OK to use this whenever needed.
 public class Tuple<F, S> {
     public F first;
     public S second;

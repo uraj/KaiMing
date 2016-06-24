@@ -38,7 +38,7 @@ object GASParser extends RegexParsers() {
     }
   
   def imm : Parser[Immediate] = "$" ~> integer ^^ {
-      case integer => Immediate.getImmediate(integer)
+      case integer => Immediate.get(integer)
     }
   
   def label : Parser[String] =
@@ -53,11 +53,11 @@ object GASParser extends RegexParsers() {
   
   def reg : Parser[Register] = 
     ("(?i)%" + "(" + Register.Id.values().map(_.name()).mkString("|") + ")").r ^^ {
-      x => Register.getRegister(x.substring(1))
+      x => Register.get(x.substring(1))
     }
   
   def sreg : Parser[Register] = """%[gesd]s""".r ^^ {
-      x => Register.getRegister(x.substring(1))
+      x => Register.get(x.substring(1))
     }
 
   // segment:displacement(base register, offset register, scalar multiplier)
@@ -145,14 +145,16 @@ object GASParser extends RegexParsers() {
       case label ~ insts => new Function(label, ListBuffer(insts: _*))
     }
    
-   def binaryunit : Parser[List[Function]] = rep(function)
+  def binaryunit : Parser[List[Function]] = rep(function)
    
-   def parseBinaryUnit(input : String) : List[Function] = parseAll(binaryunit, input) match {
-     case Success(value, _) => value
-     case failure : NoSuccess => throw new ParsingException(failure.msg + "\n" + failure.next.offset + " " + failure.next.pos)
-   }
+  def parseBinaryUnit(input : String) : List[Function] = parseAll(binaryunit, input) match {
+    case Success(value, _) => value
+    case failure : NoSuccess => 
+      throw new ParsingException(failure.msg + "\n" + failure.next.offset + " " + failure.next.pos)
+  }
    
-   @throws(classOf[ParsingException])
-   def parseBinaryUnitJava(input : String) : java.util.List[Function] = ListBuffer(parseBinaryUnit(input):_*)
+  @throws(classOf[ParsingException])
+  def parseBinaryUnitJava(input : String) : java.util.List[Function] =
+    ListBuffer(parseBinaryUnit(input):_*)
 
 }

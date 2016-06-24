@@ -1,11 +1,13 @@
 package edu.psu.ist.plato.kaiming.arm64;
 
-public class Immediate extends Operand {
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+
+public final class Immediate implements Operand {
 
     private final long mValue;
     
     private Immediate(long value) {
-        super(Type.IMMEDIATE);
         mValue = value;
     }
     
@@ -21,7 +23,7 @@ public class Immediate extends Operand {
     private static final Immediate sNegEight = new Immediate(-8);
     
     
-    public static Immediate getImmediate(long value) {
+    public static Immediate get(long value) {
         int nv = (int)value;
         if (nv != value)
             return new Immediate(value);
@@ -42,5 +44,49 @@ public class Immediate extends Operand {
 
     public final long value() {
         return mValue;
+    }
+
+    @Override
+    public boolean isRegister() {
+        return false;
+    }
+
+    @Override
+    public boolean isMemory() {
+        return false;
+    }
+
+    @Override
+    public boolean isImmeidate() {
+        return true;
+    }
+
+    @Override
+    public Type type() {
+        return Type.IMMEDIATE;
+    }
+
+    @Override
+    public Immediate asImmediate() {
+        return this;
+    }
+
+    @Override
+    public Memory asMemory() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Register asRegister() {
+        throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public String toString() {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Printer p = new Printer(new PrintStream(baos));
+        p.printOpImmediate(this);
+        p.close();
+        return baos.toString();
     }
 }

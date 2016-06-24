@@ -1,7 +1,7 @@
 package edu.psu.ist.plato.kaiming.arm64;
 
 import edu.psu.ist.plato.kaiming.Machine.Arch;
-import edu.psu.ist.plato.kaiming.Machine.MachFlag;
+import edu.psu.ist.plato.kaiming.MachFlag;
 
 public enum Flag implements MachFlag {
     

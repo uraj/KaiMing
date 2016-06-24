@@ -11,6 +11,7 @@ import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.CFG;
 import edu.psu.ist.plato.kaiming.Label;
 import edu.psu.ist.plato.kaiming.Machine;
+import edu.psu.ist.plato.kaiming.MachRegister;
 import edu.psu.ist.plato.kaiming.util.Assert;
 import edu.psu.ist.plato.kaiming.util.Tuple;
 import edu.psu.ist.plato.kaiming.ir.*;

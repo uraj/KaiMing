@@ -1,6 +1,6 @@
 package edu.psu.ist.plato.kaiming.ir;
 
-import edu.psu.ist.plato.kaiming.Machine.MachFlag;
+import edu.psu.ist.plato.kaiming.MachFlag;
 
 public final class Flg extends Lval {
     public final MachFlag flag;
@@ -26,7 +26,7 @@ public final class Flg extends Lval {
     @Override
     public boolean equals(Object lv) {
         if (lv instanceof Flg) {
-            return ((Flg)lv).flag == flag;
+            return ((Flg)lv).flag.equals(flag);
         }
         return false;
     }

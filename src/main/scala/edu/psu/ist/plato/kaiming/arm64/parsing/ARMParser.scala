@@ -31,7 +31,7 @@ object ARMParser extends RegexParsers() {
     }
   
   def imm : Parser[Immediate] = "#" ~> integer ^^ {
-      case integer => Immediate.getImmediate(integer)
+      case integer => Immediate.get(integer)
     }
   
   def label : Parser[String] =

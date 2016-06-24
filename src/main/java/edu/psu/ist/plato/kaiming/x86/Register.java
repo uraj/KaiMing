@@ -1,5 +1,7 @@
 package edu.psu.ist.plato.kaiming.x86;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,10 +10,10 @@ import java.util.Set;
 
 import edu.psu.ist.plato.kaiming.Machine;
 import edu.psu.ist.plato.kaiming.Machine.Arch;
-import edu.psu.ist.plato.kaiming.Machine.MachRegister;
+import edu.psu.ist.plato.kaiming.MachRegister;
 import edu.psu.ist.plato.kaiming.exception.UnsupportedLanguageException;
 
-public class Register extends Operand implements MachRegister {
+public class Register extends MachRegister implements Operand  {
     
     public enum Id {
         EAX, EBX, ECX, EDX, ESP, EBP, ESI, EDI,
@@ -113,7 +115,6 @@ public class Register extends Operand implements MachRegister {
     private static final Register eiz = new Register(Id.EIZ, 32);
 
     private Register(Id id, int size) {
-        super(Type.REGISTER);
         this.id = id;
         mSize = size;
     }
@@ -156,7 +157,7 @@ public class Register extends Operand implements MachRegister {
         }
     }
     
-    public static Register getRegister(String name) {
+    public static Register get(String name) {
         Id id = sNameMap.get(name);
         if (id == null)
             throw new UnsupportedLanguageException("Unknown register name: " + name);
@@ -233,5 +234,65 @@ public class Register extends Operand implements MachRegister {
     @Override
     public Arch arch() {
         return Machine.Arch.X86;
+    }
+
+    @Override
+    public Set<MachRegister> subsumedRegisters() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public boolean isRegister() {
+        return true;
+    }
+
+    @Override
+    public boolean isMemory() {
+        return false;
+    }
+
+    @Override
+    public boolean isImmeidate() {
+        return false;
+    }
+
+    @Override
+    public Type type() {
+        return Type.REGISTER;
+    }
+
+    @Override
+    public Immediate asImmediate() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Memory asMemory() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Register asRegister() {
+        return this;
+    }
+
+    @Override
+    public boolean equals(Object that) {
+        if (this == that)
+            return true;
+        if (that instanceof Register) {
+            return id == ((Register)that).id;
+        }
+        return false;
+    }
+    
+    @Override
+    public String toString() {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Printer p = new Printer(new PrintStream(baos));
+        p.printOpRegister(this);
+        p.close();
+        return baos.toString();
     }
 }

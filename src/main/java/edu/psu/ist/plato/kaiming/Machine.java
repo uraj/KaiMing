@@ -17,19 +17,6 @@ public abstract class Machine {
         arch = architecture;
     }
     
-    public interface MachRegister {
-        public String name();
-        public Arch arch();
-        public int sizeInBits();
-        public MachRegister containingRegister();
-    }
-    
-    public interface MachFlag {
-        public String name();
-        public Arch arch();
-        public int index();
-    }
-    
     public abstract List<MachRegister> registers();
     public abstract MachRegister returnRegister();
     public abstract int wordSizeInBits();

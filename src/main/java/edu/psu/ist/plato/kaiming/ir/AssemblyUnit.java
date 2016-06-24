@@ -7,7 +7,7 @@ import java.util.Map;
 
 import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.Machine;
-import edu.psu.ist.plato.kaiming.Machine.MachRegister;
+import edu.psu.ist.plato.kaiming.MachRegister;
 import edu.psu.ist.plato.kaiming.elf.Elf;
 import edu.psu.ist.plato.kaiming.problem.PathInsensitiveProblem;
 import edu.psu.ist.plato.kaiming.problem.UnsolvableException;

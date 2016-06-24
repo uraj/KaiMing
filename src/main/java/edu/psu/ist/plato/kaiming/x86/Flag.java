@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.TreeSet;
 
 import edu.psu.ist.plato.kaiming.Machine.Arch;
-import edu.psu.ist.plato.kaiming.Machine.MachFlag;
+import edu.psu.ist.plato.kaiming.MachFlag;
 
 import java.util.Map;
 import java.util.SortedSet;
@@ -30,7 +30,7 @@ public enum Flag implements MachFlag {
         return mPos;
     }
 
-    public static Flag getFlag(int pos) {
+    public static Flag get(int pos) {
         if (pos < 0 || pos >= sFlags.length)
             return null;
         return sFlags[pos];

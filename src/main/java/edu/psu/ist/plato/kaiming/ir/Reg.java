@@ -1,10 +1,9 @@
 package edu.psu.ist.plato.kaiming.ir;
 
-import edu.psu.ist.plato.kaiming.Machine;
-import edu.psu.ist.plato.kaiming.Machine.MachRegister;
+import edu.psu.ist.plato.kaiming.MachRegister;
 
 public final class Reg extends Lval {
-    private final Machine.MachRegister mReg;
+    private final MachRegister mReg;
     
     private Reg(MachRegister mreg) {
         mReg = mreg;
@@ -41,7 +40,7 @@ public final class Reg extends Lval {
         return get(mReg.containingRegister());
     }
     
-    public Machine.MachRegister machRegister() {
+    public MachRegister machRegister() {
         return mReg;
     }
     

@@ -1,6 +1,6 @@
 package edu.psu.ist.plato.kaiming.arm64;
 
-public abstract class Operand {
+public interface Operand {
     
     public enum Type {
         IMMEDIATE,
@@ -8,38 +8,18 @@ public abstract class Operand {
         MEMORY,
     }
     
-    private final Type mType;
+    public boolean isRegister();
     
-    protected Operand(Type type) {
-        mType = type;
-    }
-    
-    public final boolean isRegister() { 
-        return mType == Type.REGISTER;
-    }
-    
-    public final boolean isMemory() {
-        return mType == Type.MEMORY;
-    }
+    public boolean isMemory();
 
-    public final boolean isImmeidate() { 
-        return mType == Type.IMMEDIATE;
-    }
+    public boolean isImmeidate();
     
-    public final Type type() { 
-        return mType;
-    }
+    public Type type();
     
-    public final Immediate asImmediate() {
-        return (Immediate)this;
-    }
+    public Immediate asImmediate();
     
-    public final Memory asMemory() {
-        return (Memory)this;
-    }
+    public Memory asMemory();
     
-    public final Register asRegister() {
-        return (Register)this;
-    }
+    public Register asRegister();
     
 }
