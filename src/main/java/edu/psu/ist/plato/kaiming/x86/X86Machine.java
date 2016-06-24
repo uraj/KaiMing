@@ -27,7 +27,7 @@ public class X86Machine extends Machine {
     }
     
     private static Const toExpr(Immediate imm) {
-        return Const.getConstant(imm.getValue());
+        return Const.get(imm.getValue());
     }
     
     private static Expr toExpr(Register reg) {
@@ -39,7 +39,7 @@ public class X86Machine extends Machine {
         if (mem.offsetRegister() != null) {
             ret = toExpr(mem.offsetRegister());
             if (mem.multiplier() != 1) {
-                ret = new BExpr(BExpr.Op.MUL, ret, Const.getConstant(mem.multiplier()));
+                ret = new BExpr(BExpr.Op.MUL, ret, Const.get(mem.multiplier()));
             }
         }
         if (mem.baseRegister() != null) {
@@ -51,13 +51,13 @@ public class X86Machine extends Machine {
         }
         if (mem.displacement() != 0) {
             if (ret == null) {
-                ret = Const.getConstant(mem.displacement());
+                ret = Const.get(mem.displacement());
             } else {
-                ret = new BExpr(BExpr.Op.ADD, Const.getConstant(mem.displacement()), ret);
+                ret = new BExpr(BExpr.Op.ADD, Const.get(mem.displacement()), ret);
             }
         }
         if (ret == null)
-            ret = Const.getConstant(mem.displacement());
+            ret = Const.get(mem.displacement());
         return ret;
     }
     
@@ -154,13 +154,13 @@ public class X86Machine extends Machine {
         LdStmt load = new LdStmt(inst, Reg.getReg(inst.popTarget()), esp); 
         ret.add(load);
         
-        Const size = Const.getConstant(inst.sizeInBits() / 8);
+        Const size = Const.get(inst.sizeInBits() / 8);
         BExpr incEsp = new BExpr(BExpr.Op.ADD, esp, size);
         ret.add(new AssignStmt(inst, esp, incEsp));
     }
     
     private void toIR(Context ctx, PushInst inst, List<Stmt> ret) {
-        Const size = Const.getConstant(inst.sizeInBits() / 8);
+        Const size = Const.get(inst.sizeInBits() / 8);
         BExpr decEsp = new BExpr(BExpr.Op.SUB, esp, size);
         ret.add(new AssignStmt(inst, esp, decEsp));
         
@@ -218,18 +218,18 @@ public class X86Machine extends Machine {
                 ret.add(updateOperand(inst, o,
                         new BExpr(BExpr.Op.ADD,
                                 readOperand(ctx, inst, o, ret),
-                                Const.getConstant(1))));
+                                Const.get(1))));
                 return;
             case DEC:
                 ret.add(updateOperand(inst, o,
                         new BExpr(BExpr.Op.SUB,
                                 readOperand(ctx, inst, o, ret),
-                                Const.getConstant(1))));
+                                Const.get(1))));
                 return;
             case NEG:
                 ret.add(updateOperand(inst, o,
                         new BExpr(BExpr.Op.SUB,
-                                Const.getConstant(0),
+                                Const.get(0),
                                 readOperand(ctx, inst, o, ret))));
                 return;
             case NOT:
@@ -291,7 +291,7 @@ public class X86Machine extends Machine {
         ret.add(new AssignStmt(inst, esp, ebp));
         LdStmt load = new LdStmt(inst, ebp, esp); 
         ret.add(load);
-        Const size = Const.getConstant(4);
+        Const size = Const.get(4);
         BExpr incEsp = new BExpr(BExpr.Op.ADD, esp, size);
         ret.add(new AssignStmt(inst, esp, incEsp));
     }

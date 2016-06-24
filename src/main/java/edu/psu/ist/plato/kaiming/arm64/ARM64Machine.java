@@ -44,14 +44,14 @@ public class ARM64Machine extends Machine {
     }
     
     private Const toExpr(Immediate imm) {
-        return Const.getConstant(imm.value());
+        return Const.get(imm.value());
     }
     
     private Expr toExpr(Register reg) {
         Expr ret = Reg.getReg(reg);
         if (reg.isShifted()) {
             Register.Shift shift = reg.shift();
-            Const off = Const.getConstant(shift.value());
+            Const off = Const.get(shift.value());
             switch (shift.type()) {
                 case ASR:
                     ret = new BExpr(BExpr.Op.SAR, ret, off);
@@ -75,7 +75,7 @@ public class ARM64Machine extends Machine {
         if (mem.offset() != null) {
             Expr oe = null;
             if (off.isImmediateOffset())
-                oe = Const.getConstant(off.asImmOff().value);
+                oe = Const.get(off.asImmOff().value);
             else {
                 oe = toExpr(off.asRegOff().value);
             }
@@ -145,15 +145,53 @@ public class ARM64Machine extends Machine {
         ret.add(new AssignStmt(inst, lval, rval));
     }
     
-    private void toIR(BitfieldMoveInst inst, List<Stmt> ret) {
+    private void toIR(Context ctx, BitfieldMoveInst inst, List<Stmt> ret) {
         Lval lval = Reg.getReg(inst.dest());
         if (inst instanceof ExtensionInst) {
             BExpr.Op op = inst.extension() == BitfieldMoveInst.Extension.SIGNED ?
                     BExpr.Op.SEXT : BExpr.Op.UEXT;
-            new AssignStmt(inst, lval, new BExpr(op, lval, Const.getConstant(lval.sizeInBits())));
+           ret.add(new AssignStmt(inst, lval, new BExpr(op, lval, Const.get(lval.sizeInBits()))));
         } else {
-            // TODO: lift general bitmove instructions
-            //Assert.unreachable();
+            int rotate = (int)inst.rotate().value(), shift = (int)inst.shift().value();
+            int destInsig, destSig, srcInsig, srcSig;
+            int size = lval.sizeInBits();
+            if (shift >= rotate) {
+                destInsig = 0;
+                destSig = shift - rotate;
+                srcInsig = rotate;
+                srcSig = shift;
+            } else {
+                destInsig = size - rotate;
+                destSig = size + shift - rotate;
+                srcInsig = 0;
+                srcSig = shift;
+            }
+            Expr assigned = toExpr(inst.src()); 
+            if (srcInsig > 0) {
+                assigned = new BExpr(BExpr.Op.SHR, assigned, Const.get(srcInsig));
+            }
+            Lval tmp = ctx.getNewTempVariable(srcSig - srcInsig + 1);
+            ret.add(new AssignStmt(inst, tmp, assigned)); // This triggers a truncate
+            assigned = tmp;
+            if (srcInsig > 0) { // Paddings required on the right
+                tmp = ctx.getNewTempVariable(srcInsig);
+                ret.add(new AssignStmt(inst, tmp, Const.get(0)));
+                assigned = new BExpr(BExpr.Op.CONCAT, assigned, tmp);
+            }
+            int assignRangeSig = size, assignRangeInsig = 0;
+            switch (inst.extension()) {
+                case SIGNED:
+                    assigned = new BExpr(BExpr.Op.SEXT, assigned, Const.get(size));
+                    break;
+                case UNSIGNED:
+                    assigned = new BExpr(BExpr.Op.UEXT, assigned, Const.get(size));
+                    break;
+                case NIL: // There will be a partial assignment
+                    assignRangeSig = destSig;
+                    assignRangeInsig = destInsig;
+                    break;
+            }
+            ret.add(new AssignStmt(inst, lval, assigned, assignRangeInsig, assignRangeSig));
         }
     }
     
@@ -200,14 +238,14 @@ public class ARM64Machine extends Machine {
         if (n == 1) {
             Reg popped = Reg.getReg(inst.firstPoppedRegister());
             ret.add(new LdStmt(inst, popped, sp));
-            Expr add = new BExpr(BExpr.Op.ADD, sp, Const.getConstant(popped.sizeInBits() / 8));
+            Expr add = new BExpr(BExpr.Op.ADD, sp, Const.get(popped.sizeInBits() / 8));
             ret.add(new AssignStmt(inst, sp, add));
         } else {
             for (Register p : inst.poppedRegisters()) {
                 Reg popped = Reg.getReg(p);
                 ret.add(new LdStmt(inst, popped, sp));
                 Expr add = new BExpr(BExpr.Op.ADD, sp,
-                        Const.getConstant(popped.sizeInBits() / 8));
+                        Const.get(popped.sizeInBits() / 8));
                 ret.add(new AssignStmt(inst, sp, add));
             }
         }
@@ -220,14 +258,14 @@ public class ARM64Machine extends Machine {
         if (n == 1) {
             Reg popped = Reg.getReg(inst.firstPushedRegister());
             ret.add(new LdStmt(inst, popped, sp));
-            Expr sub = new BExpr(BExpr.Op.SUB, sp, Const.getConstant(popped.sizeInBits() / 8));
+            Expr sub = new BExpr(BExpr.Op.SUB, sp, Const.get(popped.sizeInBits() / 8));
             ret.add(new AssignStmt(inst, sp, sub));
         } else {
             for (Register p : inst.pushedRegisters()) {
                 Reg popped = Reg.getReg(p);
                 ret.add(new LdStmt(inst, popped, sp));
                 Expr sub = new BExpr(BExpr.Op.SUB, sp,
-                        Const.getConstant(popped.sizeInBits() / 8));
+                        Const.get(popped.sizeInBits() / 8));
                 ret.add(new AssignStmt(inst, sp, sub));
             }
         }
@@ -264,7 +302,7 @@ public class ARM64Machine extends Machine {
         else
             Assert.unreachable();
         
-        // pre- or post-indexing requires base reigster to be updated
+        // pre- or post-indexing requires the base register to be updated
         if (mode != LoadStoreInst.AddressingMode.REGULAR) {
             ret.add(new AssignStmt(inst, Reg.getReg(base), addr));
         }
@@ -282,7 +320,7 @@ public class ARM64Machine extends Machine {
         int sizeInBytes = first.sizeInBits() / 8;
         ret.add(new LdStmt(inst, first, addr));
         Reg second = Reg.getReg(inst.destRight());
-        Const disp = Const.getConstant(sizeInBytes);
+        Const disp = Const.get(sizeInBytes);
         ret.add(new LdStmt(inst, second, new BExpr(BExpr.Op.ADD, addr, disp)));
     }
     
@@ -296,7 +334,7 @@ public class ARM64Machine extends Machine {
         int sizeInBytes = first.sizeInBits() / 8;
         ret.add(new LdStmt(inst, first, addr));
         Reg second = Reg.getReg(inst.srcRight());
-        Const disp = Const.getConstant(sizeInBytes);
+        Const disp = Const.get(sizeInBytes);
         ret.add(new LdStmt(inst, second, new BExpr(BExpr.Op.ADD, addr, disp)));
     }
     
@@ -308,7 +346,7 @@ public class ARM64Machine extends Machine {
                 break;
             case NEG:
                 ret.add(new AssignStmt(inst, lval,
-                        new BExpr(BExpr.Op.SUB, Const.getConstant(0),
+                        new BExpr(BExpr.Op.SUB, Const.get(0),
                                 operandToExpr(inst.src()))));
                 break;
             default:
@@ -320,7 +358,7 @@ public class ARM64Machine extends Machine {
         Expr ret = null;
         switch (cond) {
             case AL:
-                ret = Const.getConstant(1);
+                ret = Const.get(1);
                 break;
             case EQ:
                 // Z == 1
@@ -409,7 +447,7 @@ public class ARM64Machine extends Machine {
                 toIR((BinaryArithInst)inst, ret);
                 break;
             case BITFIELD_MOVE:
-                toIR((BitfieldMoveInst)inst, ret);
+                toIR(ctx, (BitfieldMoveInst)inst, ret);
                 break;
             case BRANCH:
                 toIR((BranchInst)inst, ret);

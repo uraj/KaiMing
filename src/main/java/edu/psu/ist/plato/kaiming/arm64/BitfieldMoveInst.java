@@ -26,6 +26,10 @@ public class BitfieldMoveInst extends Instruction {
         return operand(0).asRegister();
     }
     
+    public Register src() {
+        return operand(1).asRegister();
+    }
+    
     public Extension extension() {
         return mExt;
     }

@@ -8,7 +8,7 @@ public final class Const extends Expr {
 		mValue = value;
 	}
 	
-	public static Const getConstant(long value) {
+	public static Const get(long value) {
 	    return new Const(value);
 	}
 	

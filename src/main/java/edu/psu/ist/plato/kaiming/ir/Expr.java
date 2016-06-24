@@ -6,6 +6,8 @@ import java.io.PrintStream;
 import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.util.Assert;
 
+// TODO: Implement a builder pattern for expression construction
+
 public abstract class Expr {
     
     public boolean isLval() {
