@@ -16,6 +16,9 @@ public class JmpStmt extends Stmt {
         super(Kind.JMP, inst, new Expr[] {target});
         mResolvedTarget = null;
         mDependentFlags = new HashSet<Flg>(flags);
+        for (Flg f : mDependentFlags) {
+            updateDefFor(f, new HashSet<DefStmt>());
+        }
     }
     
     public Expr target() {

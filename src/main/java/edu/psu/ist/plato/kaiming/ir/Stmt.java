@@ -26,7 +26,8 @@ abstract public class Stmt extends Entry {
     
     protected class LvalProbe extends Expr.Visitor {
         
-        private Set<Lval> mLvals = new HashSet<Lval>(); 
+        private Set<Lval> mLvals = new HashSet<Lval>();
+        private boolean mExpired = false;
         
         @Override
         protected boolean visitReg(Reg lval) {
@@ -40,7 +41,19 @@ abstract public class Stmt extends Entry {
             return true;
         }
         
+        @Override
+        protected boolean visitFlg(Flg lval) {
+            mLvals.add(lval);
+            return true;
+        }
+        
         public Set<Lval> probedLvals() {
+            // Since java use mutable collections, we want
+            // to make sure only one client has access to
+            // the returned value
+            if (mExpired)
+                throw new UnsupportedOperationException();
+            mExpired = true;
             return mLvals;
         }
     }
@@ -65,11 +78,12 @@ abstract public class Stmt extends Entry {
         }
         // FIXME: Program counter is self defined most of the time,
         // but certain architectures allow explicit assignment to
-        // to PC register. How would this affect the design of out
+        // to PC register. How would this affect the design of our
         // UD analysis algorithm?
         //
         //prob.probedLvals().remove(Reg.eip);
-        for (Lval lv : prob.probedLvals()) {
+        Set<Lval> probedLvals = prob.probedLvals();
+        for (Lval lv : probedLvals) {
             mUDChain.put(lv, new HashSet<DefStmt>());
         }
     }

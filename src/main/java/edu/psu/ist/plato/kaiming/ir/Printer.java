@@ -254,7 +254,9 @@ public class Printer extends PrintWriter {
             bb.forEach(s -> {
                 print('\t');
                 printStmt(s);
-                print("\t# ");
+                print("\t#");
+                print(Long.toHexString(s.hostEntry().index())   );
+                print(' ');
                 println(s.index());
                 s.usedLvals().forEach(lv -> {
                     print("\t\t# ");

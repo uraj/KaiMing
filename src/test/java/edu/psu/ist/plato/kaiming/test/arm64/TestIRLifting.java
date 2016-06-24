@@ -64,8 +64,10 @@ public class TestIRLifting {
         List<Context> ctxs = new ArrayList<Context>(funs.size());
         funs.forEach(f -> ctxs.add(new Context(f)));
         ctxs.forEach(c -> AssemblyUnit.UDAnalysis(c));
-        ctxs.forEach(c -> Printer.out.printContextWithUDInfo(c));
-        ctxs.forEach(c -> Loop.detectLoops(c.cfg()).forEach(x -> System.out.println(x)));
+        ctxs.forEach(c -> {
+            Printer.out.printContextWithUDInfo(c);
+            Loop.detectLoops(c.cfg()).forEach(x -> System.out.println(x));
+        });
     }
     
     @After
