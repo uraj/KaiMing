@@ -83,7 +83,18 @@ public class AssemblyUnit {
                         DefStmt defstmt = (DefStmt)s;
                         Set<DefStmt> defset = new HashSet<DefStmt>();
                         defset.add(defstmt);
-                        out.put(defstmt.definedLval(), defset);
+                        Lval definedLval = defstmt.definedLval();
+                        out.put(definedLval, defset);
+                        // If the defined lvalue is a register, then registers overlapping this
+                        // one also get defined.
+                        if (definedLval instanceof Reg) {
+                            MachRegister definedReg = ((Reg)definedLval).machRegister();
+                            for (MachRegister mr : definedReg.subsumedRegisters()) {
+                                Reg irr = Reg.get(mr);
+                                out.put(irr, defset);
+                            }
+                            out.put(Reg.get(definedReg.containingRegister()), defset);
+                        }
                     }
                 }
                 return out;

@@ -6,8 +6,5 @@ public interface MachFlag {
     public String name();
     public Arch arch();
     public int index();
-    
-    @Override
-    public abstract boolean equals(Object that);
 }
 

@@ -28,14 +28,15 @@ public class Var extends Lval {
     @Override
     public final boolean equals(Object lv) {
         if (lv instanceof Var) {
-            return ((Var)lv).mName.equals(mName);
+            Var v = (Var)lv;
+            return v.mContext == mContext && v.mName.equals(mName);
         }
         return false;
     }
 
     @Override
     public final int hashCode() {
-        return mName.hashCode();
+        return mContext.hashCode() & mName.hashCode();
     }
 
     @Override

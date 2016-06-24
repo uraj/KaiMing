@@ -239,7 +239,8 @@ public class Register extends MachRegister implements Operand  {
     @Override
     public Set<MachRegister> subsumedRegisters() {
         // TODO Auto-generated method stub
-        return null;
+        Set<MachRegister> ret = new HashSet<MachRegister>();
+        return ret;
     }
 
     @Override
@@ -294,5 +295,10 @@ public class Register extends MachRegister implements Operand  {
         p.printOpRegister(this);
         p.close();
         return baos.toString();
+    }
+
+    @Override
+    public int hashCode() {
+        return id.hashCode();
     }
 }

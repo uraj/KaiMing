@@ -13,15 +13,12 @@ public final class Reg extends Lval {
         return new Reg(mreg);
     }
     
-    public boolean equalsTo(Reg reg) {
-        return mReg.arch() == reg.mReg.arch() && 
-                mReg.name().equals(reg.mReg.name());
-    }
-    
     @Override
     public boolean equals(Object lv) {
+        if (this == lv)
+            return true;
         if (lv instanceof Reg) {
-            return equalsTo((Reg)lv);
+            return mReg.equals(((Reg)lv).mReg);
         }
         return false;
     }
