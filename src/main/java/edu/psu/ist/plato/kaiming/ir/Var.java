@@ -36,7 +36,7 @@ public class Var extends Lval {
 
     @Override
     public final int hashCode() {
-        return mContext.hashCode() & mName.hashCode();
+        return mContext.hashCode() * 31 + mName.hashCode();
     }
 
     @Override

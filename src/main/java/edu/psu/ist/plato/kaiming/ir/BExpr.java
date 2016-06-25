@@ -54,12 +54,9 @@ public final class BExpr extends Expr {
 
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((mLeft == null) ? 0 : mLeft.hashCode());
-        result = prime * result
-                + ((mOperator == null) ? 0 : mOperator.hashCode());
-        result = prime * result + ((mRight == null) ? 0 : mRight.hashCode());
+        int result = mLeft.hashCode();
+        result = 31 * result + mOperator.hashCode();
+        result = 31 * result + mRight.hashCode();
         return result;
     }
 

@@ -43,13 +43,7 @@ public final class UExpr extends Expr {
 
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result
-                + ((mOperator == null) ? 0 : mOperator.hashCode());
-        result = prime * result
-                + ((mSubExpr == null) ? 0 : mSubExpr.hashCode());
-        return result;
+        return mOperator.hashCode() * 31 + mSubExpr.hashCode();
     }
 
     @Override
