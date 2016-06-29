@@ -114,7 +114,7 @@ public class ARM64Machine extends Machine {
                 rval = op1.add(op2);
                 break;
             case SUB:
-                rval = op1.add(op2);
+                rval = op1.sub(op2);
                 break;
             case MUL:
                 rval = op1.mul(op2);
@@ -144,6 +144,9 @@ public class ARM64Machine extends Machine {
                 Assert.unreachable();
         }
         ret.add(new AssignStmt(inst, lval, rval));
+        if (inst.updateFlags()) {
+            updateFlags(inst, rval, ret);
+        }
     }
     
     private void toIR(Context ctx, BitfieldMoveInst inst, List<Stmt> ret) {
@@ -209,11 +212,7 @@ public class ARM64Machine extends Machine {
         ret.add(new AssignStmt(inst, lval, rval, 0, boundSig));
     }
     
-    private void toIR(CompareInst inst, List<Stmt> ret) {
-        Expr cmp1 = toExpr(inst.comparedLeft());
-        Expr cmp2 = operandToExpr(inst.comparedRight());
-        Expr cmp =  inst.isTest() ? cmp1.and(cmp2) : cmp1.sub(cmp2);
-                
+    private void updateFlags(Instruction inst, Expr cmp, List<Stmt> ret) {
         Flg c = Flg.get(Flag.C);
         ret.add(new AssignStmt(inst, c, cmp.fcarry()));
         Flg n = Flg.get(Flag.N);
@@ -221,7 +220,15 @@ public class ARM64Machine extends Machine {
         Flg z = Flg.get(Flag.Z);
         ret.add(new AssignStmt(inst, z, cmp.fzero()));
         Flg v = Flg.get(Flag.V);
-        ret.add(new AssignStmt(inst, v, cmp.foverflow()));
+        ret.add(new AssignStmt(inst, v, cmp.foverflow()));        
+    }
+    
+    private void toIR(CompareInst inst, List<Stmt> ret) {
+        Expr cmp1 = toExpr(inst.comparedLeft());
+        Expr cmp2 = operandToExpr(inst.comparedRight());
+        Expr cmp =  inst.isTest() ? cmp1.and(cmp2) : cmp1.sub(cmp2);
+        
+        updateFlags(inst, cmp, ret);
     }
     
     private void toIR(BranchInst inst, List<Stmt> ret) {
@@ -230,9 +237,11 @@ public class ARM64Machine extends Machine {
         } else if (inst.isCall()) {
             ret.add(new CallStmt(inst, operandToExpr(inst.target())));
         } else {
-            ret.add(new JmpStmt(inst, operandToExpr(inst.target()),
+            JmpStmt js = new JmpStmt(inst, operandToExpr(inst.target()),
                     inst.dependentFlags().stream().map(
-                            x -> Flg.get(x)).collect(Collectors.toSet())));
+                            x -> Flg.get(x)).collect(Collectors.toSet()));
+            js.comment = inst.condition().name();
+            ret.add(js);
         }
     }
     
@@ -287,11 +296,6 @@ public class ARM64Machine extends Machine {
             case REGULAR:
                 addr = toExpr(mem);
                 break;
-        }
-        if (!addr.isPrimitive()) {
-            Var tmp = ctx.getNewTempVariable();
-            ret.add(new AssignStmt(inst, tmp, addr));
-            addr = tmp;
         }
         
         if (inst instanceof LoadInst)
@@ -429,8 +433,10 @@ public class ARM64Machine extends Machine {
     
     private void toIR(SelectInst inst, List<Stmt> ret) {
         Expr cond = toExpr(inst.condition());
-        ret.add(new SelStmt(inst, Reg.get(inst.dest()),
-                cond, toExpr(inst.truevalue()), toExpr(inst.falsevalue())));
+        SelStmt select = new SelStmt(inst, Reg.get(inst.dest()),
+                cond, toExpr(inst.truevalue()), toExpr(inst.falsevalue()));
+        select.comment = inst.condition().name();
+        ret.add(select);
     }
     
     public List<Stmt> toIRStatements(Context ctx, Instruction inst) {
@@ -497,12 +503,11 @@ public class ARM64Machine extends Machine {
             bb.successors().forEach(succ -> irbb.addSuccessor(map.get(succ)));
         }
         // Set indices for IR statements
-        int stmtNo = 0;
         for (BasicBlock<Instruction> bb : asmCFG) {
             BasicBlock<Stmt> irbb = map.get(bb);
             for (Stmt s : irbb) {
                 Assert.test(s != null);
-                s.setIndex(stmtNo++);
+                s.setIndex(ctx.nextIndex());
             }
             irbb.label().setAddr(irbb.index());
         }

@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 
 import edu.psu.ist.plato.kaiming.util.Assert;
 
@@ -14,7 +14,7 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
 
     protected List<BasicBlock<T>> mPred;
     protected List<BasicBlock<T>> mSucc;
-    protected List<T> mEntries;
+    protected LinkedList<T> mEntries;
     protected Label mLabel;
     protected Procedure<T> mUnit;
 
@@ -26,6 +26,35 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
         mPred = new LinkedList<BasicBlock<T>>();
         mSucc = new LinkedList<BasicBlock<T>>();
         mUnit = unit;
+    }
+    
+    
+    // TODO: current implementation is very inefficient for its O(n) complexity
+    public boolean insertAfter(T where, T entry) {
+        ListIterator<T> i = mEntries.listIterator();
+        while (i.hasNext()) {
+            if (i.next().equals(where)) {
+                i.add(entry);
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    public boolean insertBefore(T where, T entry) {
+        ListIterator<T> i = mEntries.listIterator();
+        while (i.hasNext()) {
+            if (i.next().equals(where)) {
+                i.previous();
+                i.add(entry);
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    public boolean remove(T entry) {
+        return mEntries.remove(entry);
     }
     
     public long index() {
@@ -51,8 +80,8 @@ public class BasicBlock<T extends Entry> implements Iterable<T>, Comparable<Basi
     }
 
     @Override
-    public Iterator<T> iterator() {
-        return mEntries.iterator();
+    public ListIterator<T> iterator() {
+        return mEntries.listIterator();
     }
     
     public int size() {

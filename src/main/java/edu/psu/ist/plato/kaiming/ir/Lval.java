@@ -24,5 +24,15 @@ public abstract class Lval extends Expr {
     public abstract boolean equals(Object that);
     
     public abstract int sizeInBits();
+    
+    @Override
+    public Expr substitute(Expr o, Expr n) {
+        return this.equals(o) ? n : this;
+    }
+    
+    @Override
+    public boolean contains(Expr o) {
+        return this.equals(o);
+    }
 
 }

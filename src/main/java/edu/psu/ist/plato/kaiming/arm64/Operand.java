@@ -16,10 +16,16 @@ public interface Operand {
     
     public Type type();
     
-    public Immediate asImmediate();
+    public default Immediate asImmediate() {
+        return (Immediate)this;
+    }
     
-    public Memory asMemory();
+    public default Memory asMemory() {
+        return (Memory)this;
+    }
     
-    public Register asRegister();
+    public default Register asRegister() {
+        return (Register)this;
+    }
     
 }

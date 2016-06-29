@@ -89,11 +89,6 @@ public class Memory implements Operand {
     }
 
     @Override
-    public Memory asMemory() {
-        return this;
-    }
-
-    @Override
     public Register asRegister() {
         throw new UnsupportedOperationException();
     }

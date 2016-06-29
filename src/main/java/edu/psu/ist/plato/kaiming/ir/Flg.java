@@ -25,6 +25,8 @@ public final class Flg extends Lval {
 
     @Override
     public boolean equals(Object lv) {
+        if (this == lv)
+            return true;
         if (lv instanceof Flg) {
             return ((Flg)lv).flag.equals(flag);
         }

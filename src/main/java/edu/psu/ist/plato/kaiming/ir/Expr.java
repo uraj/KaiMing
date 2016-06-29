@@ -2,6 +2,8 @@ package edu.psu.ist.plato.kaiming.ir;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.util.HashSet;
+import java.util.Set;
 
 import edu.psu.ist.plato.kaiming.BasicBlock;
 import edu.psu.ist.plato.kaiming.util.Assert;
@@ -65,6 +67,46 @@ public abstract class Expr {
         protected boolean visitFlg(Flg lval) { return true; };
         protected boolean visitConst(Const c) { return true; };
     }
+    
+    public static class LvalProbe extends Visitor {
+        
+        private Set<Lval> mLvals = new HashSet<Lval>();
+        private boolean mExpired = false;
+        
+        @Override
+        protected boolean visitReg(Reg lval) {
+            mLvals.add(lval);
+            return true;
+        }
+        
+        @Override
+        protected boolean visitVar(Var lval) {
+            mLvals.add(lval);
+            return true;
+        }
+        
+        @Override
+        protected boolean visitFlg(Flg lval) {
+            mLvals.add(lval);
+            return true;
+        }
+        
+        public Set<Lval> probedLvals() {
+            // Since java use mutable collections, we want
+            // to make sure only one client has access to
+            // the returned value
+            if (mExpired)
+                throw new UnsupportedOperationException();
+            mExpired = true;
+            return mLvals;
+        }
+    }
+    
+    public static Set<Lval> enumLvals(Expr e) {
+        LvalProbe lp = new LvalProbe();
+        lp.visit(e);
+        return lp.probedLvals();
+    }
 
     @Override
     public final String toString() {
@@ -78,6 +120,10 @@ public abstract class Expr {
     public Target asTarget(BasicBlock<Stmt> bb) {
         return new Target(this, bb);
     }
+    
+    public abstract Expr substitute(Expr o, Expr n);
+    
+    public abstract boolean contains(Expr o);
     
     @Override
     public abstract boolean equals(Object that);

@@ -163,11 +163,6 @@ public final class Register extends MachRegister implements Operand {
     }
 
     @Override
-    public Register asRegister() {
-        return this;
-    }
-
-    @Override
     public boolean equals(Object that) {
         if (this == that)
             return true;

@@ -17,5 +17,9 @@ public class BinaryArithInst extends Instruction {
     public Operand srcRight() {
         return operand(2);
     }
+    
+    public boolean updateFlags() {
+        return opcode().rawOpcode().endsWith("S");
+    }
 
 }

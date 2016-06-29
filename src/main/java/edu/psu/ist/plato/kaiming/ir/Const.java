@@ -32,12 +32,24 @@ public final class Const extends Expr {
 
     @Override
     public boolean equals(Object that) {
-        return this == that;
+        if (this == that)
+            return true;
+        return that instanceof Const && ((Const)that).mValue == mValue;
     }
     
     @Override
     public int hashCode() {
         return (int)mValue;
+    }
+
+    @Override
+    public Expr substitute(Expr o, Expr n) {
+        return this.equals(o) ? n : this;
+    }
+
+    @Override
+    public boolean contains(Expr o) {
+        return this.equals(o);
     }
 
 }

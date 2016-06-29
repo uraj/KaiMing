@@ -13,6 +13,10 @@ public class BranchInst extends Instruction implements Entry.Terminator<Instruct
         super(Kind.BRANCH, addr, op, new Operand[] { target });
         mCond = op.getCondition();
     }
+    
+    public Condition condition() {
+        return mCond;
+    }
 
     public boolean isConditional() {
         return mCond != Condition.AL;

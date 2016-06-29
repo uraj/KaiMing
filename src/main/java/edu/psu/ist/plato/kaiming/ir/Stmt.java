@@ -24,40 +24,6 @@ abstract public class Stmt extends Entry {
         SELECT,
     }
     
-    protected class LvalProbe extends Expr.Visitor {
-        
-        private Set<Lval> mLvals = new HashSet<Lval>();
-        private boolean mExpired = false;
-        
-        @Override
-        protected boolean visitReg(Reg lval) {
-            mLvals.add(lval);
-            return true;
-        }
-        
-        @Override
-        protected boolean visitVar(Var lval) {
-            mLvals.add(lval);
-            return true;
-        }
-        
-        @Override
-        protected boolean visitFlg(Flg lval) {
-            mLvals.add(lval);
-            return true;
-        }
-        
-        public Set<Lval> probedLvals() {
-            // Since java use mutable collections, we want
-            // to make sure only one client has access to
-            // the returned value
-            if (mExpired)
-                throw new UnsupportedOperationException();
-            mExpired = true;
-            return mLvals;
-        }
-    }
-    
     protected final Entry mHost;
     protected long mIndex;
     
@@ -66,22 +32,22 @@ abstract public class Stmt extends Entry {
     private Map<Lval, Set<DefStmt>> mUDChain;
     private final Kind mKind;
     
+    public String comment;
+    
     protected Stmt(Kind kind, Entry inst, Expr[] usedExpr) {
         mKind = kind;
         mHost = inst;
         mIndex = -1;
         mUsedExpr = usedExpr;
+        initializeUDChain();
+    }
+    
+    private void initializeUDChain() {
         mUDChain = new HashMap<Lval, Set<DefStmt>>();
-        LvalProbe prob = new LvalProbe();
+        Expr.LvalProbe prob = new Expr.LvalProbe();
         for (Expr e : mUsedExpr) {
             prob.visit(e);
         }
-        // FIXME: Program counter is self defined most of the time,
-        // but certain architectures allow explicit assignment to
-        // to PC register. How would this affect the design of our
-        // UD analysis algorithm?
-        //
-        //prob.probedLvals().remove(Reg.eip);
         Set<Lval> probedLvals = prob.probedLvals();
         for (Lval lv : probedLvals) {
             mUDChain.put(lv, new HashSet<DefStmt>());
@@ -94,6 +60,10 @@ abstract public class Stmt extends Entry {
     
     final public Entry hostEntry() {
         return mHost;
+    }
+    
+    final public long hostIndex() {
+        return mHost.index();
     }
     
     @Override
@@ -113,12 +83,22 @@ abstract public class Stmt extends Entry {
     	return mUDChain.put(lval, stmt);
     }
     
+
     final public Set<Lval> usedLvals() {
         return mUDChain.keySet();
+    }
+
+    final public int numOfUsedExpr() {
+        return mUsedExpr.length;
     }
     
     protected final Expr usedExpr(int idx) {
         return mUsedExpr[idx];
+    }
+    
+    final void setUsedExpr(int idx, Expr n) {
+        mUsedExpr[idx] = n;
+        initializeUDChain();
     }
     
     public Set<Expr> enumerateRval() {

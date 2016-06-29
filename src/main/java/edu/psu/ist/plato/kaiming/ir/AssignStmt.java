@@ -1,5 +1,7 @@
 package edu.psu.ist.plato.kaiming.ir;
 
+import java.util.HashSet;
+
 import edu.psu.ist.plato.kaiming.Entry;
 import edu.psu.ist.plato.kaiming.util.Tuple;
 
@@ -18,6 +20,10 @@ public class AssignStmt extends DefStmt {
         int maxsize = lval.sizeInBits();
         mUpdateRange = new Tuple<Integer, Integer>(rangeInsig,
                 rangeSig > maxsize ? maxsize : rangeSig);
+        if (mUpdateRange.first != 0 || mUpdateRange.second != lval.sizeInBits()) {
+            updateDefFor(lval, new HashSet<DefStmt>());
+        }
+            
     }
     
     public Expr usedRval() {

@@ -67,11 +67,6 @@ public final class Immediate implements Operand {
     }
 
     @Override
-    public Immediate asImmediate() {
-        return this;
-    }
-
-    @Override
     public Memory asMemory() {
         throw new UnsupportedOperationException();
     }

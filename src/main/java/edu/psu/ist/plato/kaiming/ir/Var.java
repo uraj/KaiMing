@@ -1,9 +1,9 @@
 package edu.psu.ist.plato.kaiming.ir;
 
 public class Var extends Lval {
-    private String mName;
-    private Context mContext;
-    private int mSize;
+    private final String mName;
+    private final Context mContext;
+    private final int mSize;
     
     public Var(Context context, String name) {
         mName = name;
@@ -27,6 +27,8 @@ public class Var extends Lval {
 
     @Override
     public final boolean equals(Object lv) {
+        if (this == lv)
+            return true;
         if (lv instanceof Var) {
             Var v = (Var)lv;
             return v.mContext == mContext && v.mName.equals(mName);

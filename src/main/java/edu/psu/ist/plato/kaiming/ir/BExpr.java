@@ -17,8 +17,8 @@ public final class BExpr extends Expr {
         SEXT, UEXT,
     }
     
-    private Op mOperator;
-    private Expr mLeft, mRight;
+    private final Op mOperator;
+    private final Expr mLeft, mRight;
     
     protected BExpr(Op op, Expr left, Expr right) {
         mOperator = op;
@@ -62,11 +62,32 @@ public final class BExpr extends Expr {
 
     @Override
     public boolean equals(Object that) {
+        if (this == that)
+            return true;
         if (!(that instanceof BExpr)) {
             return false;
         }
         BExpr t = (BExpr)that;
         return mOperator.equals(t.mOperator) && 
                 mLeft.equals(t.mLeft) && mRight.equals(t.mRight);
+    }
+    
+    @Override
+    public Expr substitute(Expr o, Expr n) {
+        if (this.equals(o))
+            return n;
+        Expr left = mLeft.substitute(o, n);
+        Expr right = mRight.substitute(o, n);
+        if ((!left.equals(mLeft)) || (!right.equals(mRight))) {
+            return new BExpr(mOperator, left, right);
+        } else
+            return this;
+    }
+
+    @Override
+    public boolean contains(Expr o) {
+        if (this.equals(o))
+            return true;
+        return mLeft.contains(o) || mRight.contains(o);
     }
 }

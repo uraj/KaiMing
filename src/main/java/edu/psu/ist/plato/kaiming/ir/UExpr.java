@@ -13,8 +13,8 @@ public final class UExpr extends Expr {
         OVERFLOW,
     }
     
-    private Op mOperator;
-    private Expr mSubExpr;
+    private final Op mOperator;
+    private final Expr mSubExpr;
     
     protected UExpr(Op op, Expr subexpr) {
         mOperator = op;
@@ -48,10 +48,30 @@ public final class UExpr extends Expr {
 
     @Override
     public boolean equals(Object that) {
+        if (this == that)
+            return true;
         if (!(that instanceof UExpr)) {
             return false;            
         }
         UExpr t = (UExpr)that;
         return mOperator.equals(t.mOperator) && mSubExpr.equals(t.mSubExpr);
+    }
+    
+    @Override
+    public Expr substitute(Expr o, Expr n) {
+        if (this.equals(o))
+            return n;
+        Expr sub = mSubExpr.substitute(o, n);
+        if (!this.equals(sub)) {
+            return new UExpr(mOperator, sub);
+        }
+        return this;
+    }
+
+    @Override
+    public boolean contains(Expr o) {
+        if (this.equals(o))
+            return true;
+        return mSubExpr.contains(o);
     }
 }
