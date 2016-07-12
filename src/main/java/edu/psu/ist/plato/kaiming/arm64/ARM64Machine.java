@@ -245,44 +245,6 @@ public class ARM64Machine extends Machine {
         }
     }
     
-    public void toIR(PopInst inst, List<Stmt> ret) {
-        int n = inst.numOfPoppedRegisters();
-        Reg sp = Reg.get(Register.get(Register.Id.SP));
-        
-        if (n == 1) {
-            Reg popped = Reg.get(inst.firstPoppedRegister());
-            ret.add(new LdStmt(inst, popped, sp));
-            Expr add = sp.add(Const.get(popped.sizeInBits() / 8));
-            ret.add(new AssignStmt(inst, sp, add));
-        } else {
-            for (Register p : inst.poppedRegisters()) {
-                Reg popped = Reg.get(p);
-                ret.add(new LdStmt(inst, popped, sp));
-                Expr add = sp.add(Const.get(popped.sizeInBits() / 8));
-                ret.add(new AssignStmt(inst, sp, add));
-            }
-        }
-    }
-    
-    public void toIR(PushInst inst, List<Stmt> ret) {
-        int n = inst.numOfPushedRegisters();
-        Reg sp = Reg.get(Register.get(Register.Id.SP));
-        
-        if (n == 1) {
-            Reg popped = Reg.get(inst.firstPushedRegister());
-            ret.add(new LdStmt(inst, popped, sp));
-            Expr sub = sp.sub(Const.get(popped.sizeInBits() / 8));
-            ret.add(new AssignStmt(inst, sp, sub));
-        } else {
-            for (Register p : inst.pushedRegisters()) {
-                Reg popped = Reg.get(p);
-                ret.add(new LdStmt(inst, popped, sp));
-                Expr sub = sp.sub(Const.get(popped.sizeInBits() / 8));
-                ret.add(new AssignStmt(inst, sp, sub));
-            }
-        }
-    }
-    
     private void toIR(Context ctx, LoadStoreInst inst, List<Stmt> ret) {
         LoadStoreInst.AddressingMode mode = inst.addressingMode();
         Memory mem = inst.indexingOperand();
@@ -456,12 +418,6 @@ public class ARM64Machine extends Machine {
                 break;
             case MOVE:
                 toIR((MoveInst)inst, ret);
-                break;
-            case POP:
-                toIR((PopInst)inst, ret);
-                break;
-            case PUSH:
-                toIR((PushInst)inst, ret);
                 break;
             case SELECT:
                 toIR((SelectInst)inst, ret);

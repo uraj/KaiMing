@@ -1,9 +1,6 @@
 package edu.psu.ist.plato.kaiming.arm64;
 
-import java.util.Arrays;
 import java.util.Iterator;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import edu.psu.ist.plato.kaiming.Entry;
 import edu.psu.ist.plato.kaiming.Label;
@@ -22,8 +19,6 @@ public class Instruction extends Entry implements Iterable<Operand> {
         STORE,
         STORE_PAIR,
         BRANCH,
-        PUSH,
-        POP,
         NOP,
         MOVE,
         COMPARE,
@@ -220,22 +215,6 @@ public class Instruction extends Entry implements Iterable<Operand> {
                     ret = new ReturnInst(addr, opcode);
                 }
                 break;
-            case PUSH: {
-                Assert.verify(oplist.length > 0);
-                Stream<Operand> stream = Arrays.stream(oplist);
-                stream.forEach(x -> Assert.verify(x.isRegister()));
-                ret = new PushInst(addr, opcode, 
-                        stream.map(x -> x.asRegister()).collect(Collectors.toList()));
-                break;
-            }
-            case POP: {
-                Assert.verify(oplist.length > 0);
-                Stream<Operand> stream = Arrays.stream(oplist);
-                stream.forEach(x -> Assert.verify(x.isRegister()));
-                ret = new PopInst(addr, opcode, 
-                        stream.map(x -> x.asRegister()).collect(Collectors.toList()));
-                break;
-            }
             case NOP:
                 Assert.verify(oplist.length == 0);
                 ret = new NopInst(addr);
