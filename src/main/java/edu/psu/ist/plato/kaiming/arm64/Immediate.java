@@ -57,7 +57,7 @@ public final class Immediate implements Operand {
     }
 
     @Override
-    public boolean isImmeidate() {
+    public boolean isImmediate() {
         return true;
     }
 

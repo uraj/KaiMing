@@ -12,7 +12,7 @@ public interface Operand {
     
     public boolean isMemory();
 
-    public boolean isImmeidate();
+    public boolean isImmediate();
     
     public Type type();
     

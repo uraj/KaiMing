@@ -143,7 +143,7 @@ public final class Register extends MachRegister implements Operand {
     }
 
     @Override
-    public boolean isImmeidate() {
+    public boolean isImmediate() {
         return false;
     }
 

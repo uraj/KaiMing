@@ -112,7 +112,7 @@ public class Instruction extends Entry implements Iterable<Operand> {
             case ADR:
             case NEG:
                 Assert.verify(oplist.length == 2);
-                Assert.verify(oplist[0].isRegister() && (oplist[1].isRegister() || oplist[1].isImmeidate()));
+                Assert.verify(oplist[0].isRegister() && (oplist[1].isRegister() || oplist[1].isImmediate()));
                 ret = new UnaryArithInst(addr, opcode, oplist[0].asRegister(), oplist[1]);
                 break;
             case LDR:
@@ -124,7 +124,7 @@ public class Instruction extends Entry implements Iterable<Operand> {
                 Memory mem = oplist[1].asMemory();
                 AddressingMode mode = preidx ? AddressingMode.PRE_INDEX : AddressingMode.REGULAR;
                 if (oplist.length == 3) {
-                    Assert.verify(!preidx && oplist[2].isImmeidate());
+                    Assert.verify(!preidx && oplist[2].isImmediate());
                     mem = new Memory(mem.base(), oplist[2].asImmediate().value());
                     mode = AddressingMode.POST_INDEX;
                 }
@@ -144,7 +144,7 @@ public class Instruction extends Entry implements Iterable<Operand> {
                 Register rd2 = oplist[1].asRegister();
                 Memory mem = oplist[2].asMemory();
                 if (oplist.length == 4) {
-                    Assert.verify(!preidx && oplist[3].isImmeidate());
+                    Assert.verify(!preidx && oplist[3].isImmediate());
                     mode = AddressingMode.POST_INDEX;
                     mem = new Memory(mem.base(), oplist[3].asImmediate().value());
                 }
@@ -155,15 +155,11 @@ public class Instruction extends Entry implements Iterable<Operand> {
                 break;
             }
             case TST:
-                Assert.verify(oplist.length == 2);
-                Assert.verify(oplist[0].isRegister() && (oplist[1].isRegister() || oplist[1].isImmeidate()));
-                ret = new CompareInst(addr, opcode, oplist[0].asRegister(), oplist[1], true);
-                break;
             case CMP:
             case CMN:
                 Assert.verify(oplist.length == 2);
-                Assert.verify(oplist[0].isRegister() && (oplist[1].isRegister() || oplist[1].isImmeidate()));
-                ret = new CompareInst(addr, opcode, oplist[0].asRegister(), oplist[1], false);
+                Assert.verify(oplist[0].isRegister() && (oplist[1].isRegister() || oplist[1].isImmediate()));
+                ret = new CompareInst(addr, opcode, oplist[0].asRegister(), oplist[1], opcode.mnemonic() == Opcode.Mnemonic.TST);
                 break;
             case CSEL:
             case CSINC:

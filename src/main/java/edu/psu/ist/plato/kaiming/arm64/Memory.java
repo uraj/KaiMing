@@ -74,7 +74,7 @@ public class Memory implements Operand {
     }
 
     @Override
-    public boolean isImmeidate() {
+    public boolean isImmediate() {
         return false;
     }
 
