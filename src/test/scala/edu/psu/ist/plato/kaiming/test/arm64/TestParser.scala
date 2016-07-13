@@ -14,8 +14,8 @@ import edu.psu.ist.plato.kaiming.arm64.parsing.ARMParser
 @RunWith(classOf[JUnitRunner])
 class TestParser extends FunSuite with BeforeAndAfter {
   
-  var testdir : File = null
-  var testfiles : Array[File] = null
+  var testdir: File = null
+  var testfiles: Array[File] = null
   var total = 0
   var failure = 0
   
@@ -35,8 +35,8 @@ class TestParser extends FunSuite with BeforeAndAfter {
       println(file.getName)
       val source = Source.fromFile(file, "UTF-8")
       val input = source.mkString
-      print("Parsing " + file.getName() + ": ")
-      val result : (Option[List[Function]], String) = ARMParser.parseAll(ARMParser.binaryunit, input) match {
+      print("Parsing " + file.getName() + " : ")
+      val result: (Option[List[Function]], String) = ARMParser.parseAll(ARMParser.binaryunit, input) match {
         case ARMParser.Success(value, _) => (Some(value), "")
         case ARMParser.NoSuccess(msg, next) => (None, msg + " " +  next.offset + " " + next.pos)
       }
@@ -49,7 +49,7 @@ class TestParser extends FunSuite with BeforeAndAfter {
           val baos = new ByteArrayOutputStream()
           val printer = new Printer(baos, false)
           for (func <- funcs) {
-            printer.printCFG(func.cfg())
+            printer.printCFG(func.cfg)
           }
           source.close()
           printer.close()
