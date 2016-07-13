@@ -10,6 +10,7 @@ object Entry {
     def isTargetConcrete: Boolean
     def isConditional: Boolean
     def targetIndex: Long
+    def relocate(target: BasicBlock[T]): Unit
   }
   
   def search(entries: Seq[Entry], idx: Long) =

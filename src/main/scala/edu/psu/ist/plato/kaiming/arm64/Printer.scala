@@ -73,11 +73,15 @@ class Printer(ps: OutputStream, val parseMode: Boolean) extends PrintWriter(ps, 
     i match {
       case b: BranchInst =>
         if (!b.isReturn) {
-          b.target match {
-            case r: Register => printOpRegister(r)
-            case Memory(base, Some(Left(off))) => 
-              printSignedHex(off.value)
-            case _ => throw new UnreachableCodeException()
+          b.relocatedTarget match {
+            case Some(b) => printLabel(b.label)
+            case None => 
+              b.target match {
+                case r: Register => printOpRegister(r)
+                case Memory(base, Some(Left(off))) => 
+                  printSignedHex(off.value)
+                case _ => throw new UnreachableCodeException()
+            }
           }
         }
       case _ => {

@@ -142,6 +142,13 @@ sealed abstract class Instruction(oplist: Operand*)
   override val index = addr
   override val machine = ARM64Machine.instance
   
+  // This overriding may not be necessary, as long as
+  // we restrict one assembly unit per process
+  override def equals(that: Any) = that match {
+    case t: AnyRef => this eq t
+    case _ => false
+  }
+  
 }
 
 case class BinaryArithInst(override val addr: Long, override val opcode: Opcode,
@@ -193,6 +200,14 @@ case class BitfieldMoveInst(override val addr: Long, override val opcode: Opcode
   
 }
 
+object BranchInst {
+  import scala.collection.mutable.Map
+  private val _belongs = Map[BranchInst, BasicBlock[Instruction]]()
+  private def loopUpRelocation(b: BranchInst) = _belongs.get(b)
+  private def relocateTarget(b: BranchInst, bb: BasicBlock[Instruction]) =
+    _belongs += (b->bb)
+}
+
 case class BranchInst(override val addr: Long, override val opcode: Opcode,
     target: Operand)
     extends Instruction(target) with Entry.Terminator[Instruction] {
@@ -214,7 +229,10 @@ case class BranchInst(override val addr: Long, override val opcode: Opcode,
         case Some(Left(imm)) => imm.value
         case _ => throw new UnsupportedOperationException()
     }
+  override def relocate(target: BasicBlock[Instruction]) = 
+    BranchInst.relocateTarget(this, target)
 
+  def relocatedTarget = BranchInst.loopUpRelocation(this)
 }
 
 case class MoveInst(override val addr: Long, override val opcode: Opcode,

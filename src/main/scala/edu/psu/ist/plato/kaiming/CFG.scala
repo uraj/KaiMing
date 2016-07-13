@@ -54,15 +54,14 @@ object CFG {
             if (targetBBOpt.isDefined) {
               val targetBB = targetBBOpt.get
               assert(targetBB.firstEntry.index == targetAddr)
+              term.relocate(targetBB)
               (bb ~+> targetBB)(false) :: l
             } else l
           } else l
         } else l
       }
     }
-    val jumpMap = edges.foldLeft(Map[Long, BasicBlock[T]]()) {
-      (map, e) => map + (e._1.lastEntry.index -> e._2)
-    }
+    edges.foreach { e => e._1.lastEntry }
     val edgesWithFallThrough = bbs.tail.foldLeft((edges, bbs.head))({
       case ((l, prev), next) => {
         if (prev.lastEntry.isTerminator) {
@@ -82,7 +81,7 @@ object CFG {
         graph filter graph.having(node = (bb => bb.value == entry || bb.hasPredecessors))
       }
   
-    (hasIndirectJump, trimmedGraph, jumpMap, entry)
+    (hasIndirectJump, trimmedGraph, entry)
   }
 }
 
@@ -90,10 +89,9 @@ class CFG[T <: Entry] (val parent : Procedure[T], items : Seq[T]) extends Iterab
   
   private val _internal = CFG.buildCFG(parent, items)
   private val _graph = _internal._2 
-  private val _relocation = _internal._3
 
   val hasIndirectJump = _internal._1
-  val entryBlock = _internal._4
+  val entryBlock = _internal._3
   val blocks : SortedSet[BasicBlock[T]] = TreeSet[BasicBlock[T]]() ++ _graph.nodes.map(_.value)
   lazy val entries = blocks.foldLeft(List[BasicBlock[T]]()){ (a, b) => b::a }.flatMap(_.entries)
   def iterator = blocks.iterator
