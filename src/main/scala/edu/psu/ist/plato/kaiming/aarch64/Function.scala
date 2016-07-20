@@ -7,7 +7,7 @@ class Function(override val label: Label, insts: Seq[Instruction])
 
   val mach = Machine.aarch64
   
-  override val cfg = new CFG(this, insts)
+  override val cfg = MachProcedure.buildCFG(this, insts)
   override def deriveLabelForIndex(index: Long) = {
     Label("_sub_" + index.toHexString, index)
   }

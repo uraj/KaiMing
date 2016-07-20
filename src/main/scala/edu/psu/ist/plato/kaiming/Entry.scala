@@ -2,6 +2,7 @@ package edu.psu.ist.plato.kaiming
 
 object Entry {
   trait Terminator[A <: Arch] {
+    self : Entry[A] =>
     def isIndirect: Boolean
     def isReturn: Boolean
     def isCall: Boolean
@@ -21,6 +22,7 @@ object Entry {
 abstract class Entry[A <: Arch] extends Ordered[Entry[A]] {
   
   def index: Long
+  
   final def isTerminator: Boolean = this.isInstanceOf[Entry.Terminator[_]]
   final def asTerminator = this.asInstanceOf[Entry.Terminator[A]]
   
