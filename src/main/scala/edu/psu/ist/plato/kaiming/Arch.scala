@@ -5,10 +5,10 @@ sealed abstract class MachArch extends Arch
 
 object Arch {
   
-  final class AArch64 extends MachArch
-  final class X86 extends MachArch
+  final abstract class AArch64 extends MachArch
+  final abstract class X86 extends MachArch
   
-  final class KaiMing extends Arch
+  final abstract class KaiMing extends Arch
   
 }
 
