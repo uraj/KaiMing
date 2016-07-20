@@ -5,7 +5,7 @@ import edu.psu.ist.plato.kaiming.Machine
 import edu.psu.ist.plato.kaiming.Arch.AArch64
 
 object AArch64Machine {
-  val instance = new AArch64Machine
+  val instance: Machine[AArch64] = new AArch64Machine
 }
 
 class AArch64Machine private extends Machine[AArch64] {

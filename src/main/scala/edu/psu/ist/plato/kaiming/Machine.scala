@@ -9,11 +9,12 @@ import edu.psu.ist.plato.kaiming.x86.X86Machine
 
 object Machine {
 
-  val arm64 = AArch64Machine.instance
+  val aarch64 = AArch64Machine.instance
 
 }
 
-abstract class Machine[A <: Arch] {
+
+abstract class Machine[A <: MachArch] {
 
   def liftToIR(cfg: CFG[A]): CFG[KaiMing]
   

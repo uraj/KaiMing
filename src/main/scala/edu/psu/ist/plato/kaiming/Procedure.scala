@@ -9,3 +9,9 @@ abstract class Procedure[A <: Arch] {
   def deriveLabelForIndex(index: Long): Label
   
 }
+
+abstract class MachProcedure[A <: MachArch] extends Procedure[A] {
+  
+  val mach: Machine[A]
+  
+}

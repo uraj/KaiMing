@@ -144,7 +144,6 @@ sealed abstract class Instruction(oplist: Operand*)
   override def iterator = operands.iterator
     
   override val index = addr
-  override val machine = AArch64Machine.instance
   
   // This overriding may not be necessary, as long as
   // we restrict one assembly unit per process

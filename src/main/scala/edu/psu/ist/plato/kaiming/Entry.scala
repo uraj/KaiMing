@@ -21,7 +21,6 @@ object Entry {
 abstract class Entry[A <: Arch] extends Ordered[Entry[A]] {
   
   def index: Long
-  val machine: Machine[A]
   final def isTerminator: Boolean = this.isInstanceOf[Entry.Terminator[_]]
   final def asTerminator = this.asInstanceOf[Entry.Terminator[A]]
   
