@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.arm64.parsing
+package edu.psu.ist.plato.kaiming.aarch64.parsing
 
 import scala.util.parsing.combinator.RegexParsers
 import scala.collection.mutable.ListBuffer
@@ -8,7 +8,7 @@ import edu.psu.ist.plato.kaiming.Label
 import edu.psu.ist.plato.kaiming.exception.ParsingException
 import edu.psu.ist.plato.kaiming.exception.UnreachableCodeException
 
-import edu.psu.ist.plato.kaiming.arm64._
+import edu.psu.ist.plato.kaiming.aarch64._
 
 object ARMParser extends RegexParsers() {
   override val whiteSpace = """[\t \r]+""".r
@@ -104,7 +104,7 @@ object ARMParser extends RegexParsers() {
   }
   
   def function: Parser[Function] = funlabel ~ (inst *) ^^ {
-    case label ~ insts => Function(label, insts)
+    case label ~ insts => new Function(label, insts)
   }
    
    def binaryunit: Parser[List[Function]] = rep(function)

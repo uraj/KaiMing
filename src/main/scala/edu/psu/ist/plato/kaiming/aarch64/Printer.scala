@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.arm64
+package edu.psu.ist.plato.kaiming.aarch64
 
 import java.io.PrintWriter
 import java.io.OutputStream
@@ -6,6 +6,7 @@ import java.io.OutputStream
 import edu.psu.ist.plato.kaiming.Label
 import edu.psu.ist.plato.kaiming.BasicBlock
 import edu.psu.ist.plato.kaiming.CFG
+import edu.psu.ist.plato.kaiming.Arch.AArch64
 
 import edu.psu.ist.plato.kaiming.exception._
 
@@ -133,7 +134,7 @@ class Printer(ps: OutputStream, val parseMode: Boolean) extends PrintWriter(ps, 
     print(l.name)
   }
   
-  def printBasicBlock(bb: BasicBlock[Instruction]) {
+  def printBasicBlock(bb: BasicBlock[AArch64]) {
     if (!parseMode) {
       printLabel(bb.label)
       println(':')
@@ -141,7 +142,7 @@ class Printer(ps: OutputStream, val parseMode: Boolean) extends PrintWriter(ps, 
     bb.foreach { i => printInstruction(i); println() }
   }
   
-  def printCFG(cfg: CFG[Instruction]) {
+  def printCFG(cfg: CFG[AArch64]) {
     printLabel(cfg.parent.label)
     println(':');
     cfg.foreach { bb => printBasicBlock(bb) }

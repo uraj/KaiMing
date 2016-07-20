@@ -1,11 +1,15 @@
-package edu.psu.ist.plato.kaiming.arm64
+package edu.psu.ist.plato.kaiming.aarch64
 
 import edu.psu.ist.plato.kaiming._
+import edu.psu.ist.plato.kaiming.Arch.AArch64
 
 import enumeratum._
 
 object Instruction {
   
+  implicit def toInstruction(entry: Entry[AArch64]) = 
+    entry.asInstanceOf[Instruction]
+
   sealed trait AddressingMode extends EnumEntry
   
   object AddressingMode extends Enum[AddressingMode] {
@@ -21,7 +25,7 @@ object Instruction {
   def create(addr: Long, opcode: Opcode, oplist: Vector[Operand],
       cond: Option[Condition], preidx: Boolean): Instruction = {
     val condition = cond.getOrElse(Condition.AL)
-    import edu.psu.ist.plato.kaiming.arm64.Opcode.Mnemonic._
+    import edu.psu.ist.plato.kaiming.aarch64.Opcode.Mnemonic._
     opcode.mnemonic match {
       case ADD | SUB | MUL | DIV | ASR | LSL | LSR | ORR | ORN | AND => 
         require(oplist.length == 3 || oplist.length == 2)
@@ -122,7 +126,7 @@ object Instruction {
 }
 
 sealed abstract class Instruction(oplist: Operand*)
-  extends Entry with Iterable[Operand] {
+  extends Entry[AArch64] with Iterable[Operand] {
   
   val operands = oplist.toVector
   val addr: Long
@@ -140,7 +144,7 @@ sealed abstract class Instruction(oplist: Operand*)
   override def iterator = operands.iterator
     
   override val index = addr
-  override val machine = ARM64Machine.instance
+  override val machine = AArch64Machine.instance
   
   // This overriding may not be necessary, as long as
   // we restrict one assembly unit per process
@@ -202,15 +206,15 @@ case class BitfieldMoveInst(override val addr: Long, override val opcode: Opcode
 
 object BranchInst {
   import scala.collection.mutable.Map
-  private val _belongs = Map[BranchInst, BasicBlock[Instruction]]()
+  private val _belongs = Map[BranchInst, BasicBlock[AArch64]]()
   private def loopUpRelocation(b: BranchInst) = _belongs.get(b)
-  private def relocateTarget(b: BranchInst, bb: BasicBlock[Instruction]) =
+  private def relocateTarget(b: BranchInst, bb: BasicBlock[AArch64]) =
     _belongs += (b->bb)
 }
 
 case class BranchInst(override val addr: Long, override val opcode: Opcode,
     target: Operand)
-    extends Instruction(target) with Entry.Terminator[Instruction] {
+    extends Instruction(target) with Entry.Terminator[AArch64] {
   
   val condition = opcode.getCondition()
   val isConditional = condition != Condition.AL
@@ -229,7 +233,7 @@ case class BranchInst(override val addr: Long, override val opcode: Opcode,
         case Some(Left(imm)) => imm.value
         case _ => throw new UnsupportedOperationException()
     }
-  override def relocate(target: BasicBlock[Instruction]) = 
+  override def relocate(target: BasicBlock[AArch64]) = 
     BranchInst.relocateTarget(this, target)
 
   def relocatedTarget = BranchInst.loopUpRelocation(this)

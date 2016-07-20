@@ -1,7 +1,7 @@
-package edu.psu.ist.plato.kaiming.arm64
+package edu.psu.ist.plato.kaiming.aarch64
 
 import edu.psu.ist.plato.kaiming.MachRegister
-import edu.psu.ist.plato.kaiming.Machine.Arch.ARM64
+import edu.psu.ist.plato.kaiming.Arch.AArch64
 
 import enumeratum._
 
@@ -106,11 +106,10 @@ object Register {
 }
 
 case class Register(id: Register.Id, shift: Option[Shift])
-  extends MachRegister with Operand {
+  extends MachRegister[AArch64] with Operand {
   
   // implemention of abstract defs in MachRegister
   override val name = id.entryName
-  override val arch = ARM64
   override val sizeInBits = if (name == "SP" || name.startsWith("X")) 64 else 32
   override lazy val containingRegister = 
     if (name.startsWith("W"))
@@ -119,9 +118,9 @@ case class Register(id: Register.Id, shift: Option[Shift])
       Register(id, None)
   override val subsumedRegisters = 
     if (name.startsWith("X"))
-      Set[MachRegister](Register.get('W' + name.substring(1)))
+      Set[MachRegister[AArch64]](Register.get('W' + name.substring(1)))
     else
-      Set[MachRegister]()
+      Set[MachRegister[AArch64]]()
   
   val isShifted = shift.isDefined
   

@@ -1,11 +1,11 @@
-package edu.psu.ist.plato.kaiming.arm64
+package edu.psu.ist.plato.kaiming.aarch64
 
 import edu.psu.ist.plato.kaiming.MachFlag
 import edu.psu.ist.plato.kaiming.Machine
+import edu.psu.ist.plato.kaiming.Arch
 
-sealed abstract class Flag(val name: String, val index: Int) extends MachFlag {
-  val arch = Machine.Arch.ARM64
-}
+sealed abstract class Flag(val name: String, val index: Int)
+    extends MachFlag[Arch.AArch64]
 
 object Flag {
   case object C extends Flag("C", 0)

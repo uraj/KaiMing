@@ -1,20 +1,20 @@
 package edu.psu.ist.plato.kaiming
 
-import edu.psu.ist.plato.kaiming.arm64.ARM64Machine
+import edu.psu.ist.plato.kaiming.Arch._
+
+import edu.psu.ist.plato.kaiming.ir.Stmt
+
+import edu.psu.ist.plato.kaiming.aarch64.AArch64Machine
 import edu.psu.ist.plato.kaiming.x86.X86Machine
 
 object Machine {
-  sealed trait Arch
-  object Arch {
-    case object ARM64 extends Arch
-    case object X86 extends Arch
-  }
+
+  val arm64 = AArch64Machine.instance
+
 }
 
-class Machine(architecture: Machine.Arch) {
+abstract class Machine[A <: Arch] {
 
-  val arch = architecture
+  def liftToIR(cfg: CFG[A]): CFG[KaiMing]
   
-  val arm64 = ARM64Machine.instance
-
 }

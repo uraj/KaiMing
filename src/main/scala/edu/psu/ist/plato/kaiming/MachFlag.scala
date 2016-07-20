@@ -1,9 +1,8 @@
 package edu.psu.ist.plato.kaiming
 
-import edu.psu.ist.plato.kaiming.Machine.Arch
+import enumeratum.EnumEntry
 
-trait MachFlag {
+trait MachFlag[A <: Arch] extends EnumEntry {
   def name: String
-  def arch: Arch
   def index: Int
 }

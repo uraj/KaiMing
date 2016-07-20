@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.arm64
+package edu.psu.ist.plato.kaiming.aarch64
 
 object Immediate {
   

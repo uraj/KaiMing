@@ -7,9 +7,9 @@ import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfter
 import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
-import edu.psu.ist.plato.kaiming.arm64.Function
-import edu.psu.ist.plato.kaiming.arm64.Printer
-import edu.psu.ist.plato.kaiming.arm64.parsing.ARMParser
+import edu.psu.ist.plato.kaiming.aarch64.Function
+import edu.psu.ist.plato.kaiming.aarch64.Printer
+import edu.psu.ist.plato.kaiming.aarch64.parsing.ARMParser
 
 @RunWith(classOf[JUnitRunner])
 class TestParser extends FunSuite with BeforeAndAfter {

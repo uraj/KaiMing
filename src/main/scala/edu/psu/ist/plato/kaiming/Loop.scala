@@ -1,6 +1,6 @@
 package edu.psu.ist.plato.kaiming
 
-case class Loop[T <: Entry] private (header: BasicBlock[T], body: Set[BasicBlock[T]]) {
+case class Loop[A <: Arch] private (header: BasicBlock[A], body: Set[BasicBlock[A]]) {
   
   override def toString = {
     val b = new StringBuilder()
@@ -16,7 +16,7 @@ case class Loop[T <: Entry] private (header: BasicBlock[T], body: Set[BasicBlock
 
 object Loop {
   
-  def detectLoops[T <: Entry](cfg: CFG[T]): List[Loop[T]] = {
+  def detectLoops[T <: Arch](cfg: CFG[T]): List[Loop[T]] = {
     val allBBs = cfg.blocks.toSet
     val initDominators = allBBs.foldLeft(Map[BasicBlock[T], Set[BasicBlock[T]]]()) {
       (map, bb) => map + (bb -> allBBs)
@@ -48,7 +48,7 @@ object Loop {
             })}
   }
   
-  private def findLoopNodes[T <: Entry](cfg: CFG[T],
+  private def findLoopNodes[T <: Arch](cfg: CFG[T],
       backEdge: (BasicBlock[T], BasicBlock[T]),
       candidates: Set[BasicBlock[T]]): Loop[T] = {
     new Loop(
@@ -62,7 +62,7 @@ object Loop {
     })
   }
   
-  private def reachable[T <: Entry](cfg: CFG[T], start: BasicBlock[T], end: BasicBlock[T],
+  private def reachable[T <: Arch](cfg: CFG[T], start: BasicBlock[T], end: BasicBlock[T],
       candidates: Set[BasicBlock[T]], ret: Set[BasicBlock[T]],
       visited: Set[BasicBlock[T]]): (Boolean, Set[BasicBlock[T]]) = {
     if (start.equals(end))
