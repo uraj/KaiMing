@@ -10,12 +10,6 @@ abstract class Procedure[A <: Arch] {
   
 }
 
-abstract class MachProcedure[A <: MachArch] extends Procedure[A] {
-  
-  val mach: Machine[A]
-  
-}
-
 object MachProcedure {
   
   import scala.collection.immutable.TreeSet
@@ -25,29 +19,29 @@ object MachProcedure {
   import scalax.collection.edge.Implicits._
   
     private def split[A <: MachArch](unit : MachProcedure[A],
-      entries : Seq[Entry[A]], pivots : Seq[Int]) = {
+      entries : Seq[MachEntry[A]], pivots : Seq[Int]) = {
     val sortedPivots = (TreeSet[Int]() ++ pivots + 0 + entries.length).toVector
     require(sortedPivots.head == 0 && sortedPivots.last <= entries.length)
-    (0 until (sortedPivots.length - 1)).foldRight(List[BasicBlock[A]]()) { 
+    (0 until (sortedPivots.length - 1)).foldRight(List[MachBBlock[A]]()) { 
       (i, blist) => {
         val index = entries(sortedPivots(i)).index
-        BasicBlock[A](unit, entries.slice(sortedPivots(i), sortedPivots(i + 1)),
+        new MachBBlock[A](unit, entries.slice(sortedPivots(i), sortedPivots(i + 1)),
             unit.deriveLabelForIndex(index)) :: blist
       }
     }
   }
   
   private def containingBlock[A <: MachArch](
-      bbs : Traversable[BasicBlock[A]], index : Long) =
+      bbs : Traversable[BBlock[A]], index : Long) =
     bbs.find { bb => bb.lastEntry.index >= index && bb.firstEntry.index <= index }
   
   private def buildCFGImpl[A <: MachArch](parent : MachProcedure[A],
-      entries : Seq[Entry[A]]) = {
+      entries : Seq[MachEntry[A]]) = {
     val sorted = entries.toVector.sorted[Entry[A]]
     val pivots = (0 until sorted.length).foldLeft(Vector[Int]()) {
       (vec, i) =>
         if (sorted(i).isTerminator) {
-          val term = sorted(i).asInstanceOf[Entry.Terminator[A]]
+          val term = sorted(i).asInstanceOf[Terminator[A]]
           val nvec = if (!term.isCall) vec :+ (i + 1) else vec
           if (term.isIntraprocedural && !term.isIndirect && term.isTargetConcrete)
             nvec :+ Entry.search(sorted, term.targetIndex)
@@ -62,7 +56,7 @@ object MachProcedure {
     val hasIndirectJump = bbs.foldLeft(false) {
       (has, bb) => has || (bb.lastEntry.isTerminator && bb.lastEntry.asTerminator.isIndirect)
     }
-    val edges = bbs.foldLeft(List[LDiEdge[BasicBlock[A]]]()) {
+    val edges = bbs.foldLeft(List[LDiEdge[BBlock[A]]]()) {
       (l, bb) => {
         val in = bb.lastEntry
         if (in.isTerminator) {
@@ -103,9 +97,19 @@ object MachProcedure {
     (hasIndirectJump, trimmedGraph, entry)
   }
   
-  def buildCFG[A <: MachArch](parent : MachProcedure[A],
-      entries : Seq[Entry[A]]) = {
+  private def buildCFG[A <: MachArch](parent : MachProcedure[A],
+      entries : Seq[MachEntry[A]]) = {
       val _t = buildCFGImpl(parent, entries)
       new CFG(parent, _t._3, _t._2, _t._1)
   }
+  
+}
+
+
+abstract class MachProcedure[A <: MachArch](machEntries: Seq[MachEntry[A]]) extends Procedure[A] {
+  
+  val mach: Machine[A]
+  val cfg = MachProcedure.buildCFG[A](this, machEntries)
+  def liftCFGToIR = mach.liftToIR(cfg)
+  
 }

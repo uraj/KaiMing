@@ -1,6 +1,22 @@
 package edu.psu.ist.plato.kaiming.aarch64
 
+import edu.psu.ist.plato.kaiming.MachFlag
+import edu.psu.ist.plato.kaiming.Arch.AArch64
+
 import enumeratum._
+
+sealed abstract class Condition(val dependentFlags: Set[Flag]) extends EnumEntry {
+  
+  def this(iv: Condition) {
+    this(iv.dependentFlags)
+  }
+  
+  final def invert = Condition.invert(this)
+  
+  // We need this because scala.collection.immutable.Set is invariant
+  val dependentMachFlags = dependentFlags.map { f => f.asInstanceOf[MachFlag[AArch64]] } 
+
+}
 
 object Condition extends Enum[Condition] {
   
@@ -43,16 +59,3 @@ object Condition extends Enum[Condition] {
   }
 
 }
-
-sealed abstract class Condition(dependentFlags: Set[Flag]) extends EnumEntry {
-  
-  def this(iv: Condition) {
-    this(iv.dependencies)
-  }
-  
-  val dependencies = dependentFlags
-  
-  final def invert = Condition.invert(this)
-
-}
-

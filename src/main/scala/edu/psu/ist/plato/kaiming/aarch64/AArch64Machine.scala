@@ -9,5 +9,8 @@ object AArch64Machine {
 }
 
 class AArch64Machine private extends Machine[AArch64] {
+  
   override def liftToIR(cfg: CFG[AArch64]) = null
+  override val returnRegister = Register.get(Register.Id.X0, None)
+  
 }

@@ -1,6 +1,6 @@
 package edu.psu.ist.plato.kaiming
 
-case class Loop[A <: Arch] private (header: BasicBlock[A], body: Set[BasicBlock[A]]) {
+case class Loop[A <: Arch] private (header: BBlock[A], body: Set[BBlock[A]]) {
   
   override def toString = {
     val b = new StringBuilder()
@@ -18,12 +18,12 @@ object Loop {
   
   def detectLoops[T <: Arch](cfg: CFG[T]): List[Loop[T]] = {
     val allBBs = cfg.blocks.toSet
-    val initDominators = allBBs.foldLeft(Map[BasicBlock[T], Set[BasicBlock[T]]]()) {
+    val initDominators = allBBs.foldLeft(Map[BBlock[T], Set[BBlock[T]]]()) {
       (map, bb) => map + (bb -> allBBs)
     }
     val singletons = allBBs.map { x => (x, Set(x)) }
-    def computeDoms(input: (Boolean, Map[BasicBlock[T], Set[BasicBlock[T]]]))
-     : Map[BasicBlock[T], Set[BasicBlock[T]]] = input match {
+    def computeDoms(input: (Boolean, Map[BBlock[T], Set[BBlock[T]]]))
+     : Map[BBlock[T], Set[BBlock[T]]] = input match {
       case (stop, in) =>
       if (stop)
         in
@@ -37,7 +37,7 @@ object Loop {
         })
     }
     val newDominators = computeDoms((false, initDominators))
-    val backEdges = newDominators.foldLeft(List[(BasicBlock[T], BasicBlock[T])]()) {
+    val backEdges = newDominators.foldLeft(List[(BBlock[T], BBlock[T])]()) {
       case (l, (k, v)) => l ++ (cfg.successors(k) & v).map { x => (k, x) }
     }
     backEdges.map { 
@@ -49,8 +49,8 @@ object Loop {
   }
   
   private def findLoopNodes[T <: Arch](cfg: CFG[T],
-      backEdge: (BasicBlock[T], BasicBlock[T]),
-      candidates: Set[BasicBlock[T]]): Loop[T] = {
+      backEdge: (BBlock[T], BBlock[T]),
+      candidates: Set[BBlock[T]]): Loop[T] = {
     new Loop(
         backEdge._2,
         candidates.foldLeft(Set(backEdge._1, backEdge._2)) {
@@ -58,13 +58,13 @@ object Loop {
             if (set.contains(bb))
               set
             else
-              reachable(cfg, bb, backEdge._1, candidates, set, Set[BasicBlock[T]]())._2 
+              reachable(cfg, bb, backEdge._1, candidates, set, Set[BBlock[T]]())._2 
     })
   }
   
-  private def reachable[T <: Arch](cfg: CFG[T], start: BasicBlock[T], end: BasicBlock[T],
-      candidates: Set[BasicBlock[T]], ret: Set[BasicBlock[T]],
-      visited: Set[BasicBlock[T]]): (Boolean, Set[BasicBlock[T]]) = {
+  private def reachable[T <: Arch](cfg: CFG[T], start: BBlock[T], end: BBlock[T],
+      candidates: Set[BBlock[T]], ret: Set[BBlock[T]],
+      visited: Set[BBlock[T]]): (Boolean, Set[BBlock[T]]) = {
     if (start.equals(end))
       (true, ret + start)
     else {

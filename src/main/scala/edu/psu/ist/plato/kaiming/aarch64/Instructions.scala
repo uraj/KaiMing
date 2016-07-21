@@ -126,7 +126,9 @@ object Instruction {
 }
 
 sealed abstract class Instruction(oplist: Operand*)
-  extends Entry[AArch64] with Iterable[Operand] {
+  extends MachEntry[AArch64] with Iterable[Operand] {
+  
+  val mach = AArch64Machine.instance
   
   val operands = oplist.toVector
   val addr: Long
@@ -171,7 +173,7 @@ case class UnaryArithInst(override val addr: Long, override val opcode: Opcode,
 
 // This is actually a pseudo instruction. In the original Java implementation,
 // ExtensionInst is a subclass of BitfieldMoveInst. In Scala, however, it
-// is not possible to inherit a case class
+// is not possible to inherit from a case class
 case class ExtensionInst(override val addr: Long, override val opcode: Opcode,
     dest: Register, src: Register) extends Instruction(dest, src) {
   
@@ -205,20 +207,18 @@ case class BitfieldMoveInst(override val addr: Long, override val opcode: Opcode
 
 object BranchInst {
   import scala.collection.mutable.Map
-  private val _belongs = Map[BranchInst, BasicBlock[AArch64]]()
+  private val _belongs = Map[BranchInst, BBlock[AArch64]]()
   private def loopUpRelocation(b: BranchInst) = _belongs.get(b)
-  private def relocateTarget(b: BranchInst, bb: BasicBlock[AArch64]) =
+  private def relocateTarget(b: BranchInst, bb: BBlock[AArch64]) =
     _belongs += (b->bb)
 }
 
 case class BranchInst(override val addr: Long, override val opcode: Opcode,
-    target: Operand)
-    extends Instruction(target) with Entry.Terminator[AArch64] {
+    target: Operand) extends Instruction(target) with Terminator[AArch64] {
   
   val condition = opcode.getCondition()
-  val isConditional = condition != Condition.AL
   val hasLink = opcode.mnemonic == Opcode.Mnemonic.BL
-  val dependencies = condition.dependencies
+  def dependentFlags = condition.dependentMachFlags
   
   override val isReturn = target.isRegister && target.asRegister.id == Register.Id.X30
   override val isCall = hasLink
@@ -232,10 +232,10 @@ case class BranchInst(override val addr: Long, override val opcode: Opcode,
         case Some(Left(imm)) => imm.value
         case _ => throw new UnsupportedOperationException()
     }
-  override def relocate(target: BasicBlock[AArch64]) = 
+  override def relocate(target: BBlock[AArch64]) = 
     BranchInst.relocateTarget(this, target)
 
-  def relocatedTarget = BranchInst.loopUpRelocation(this)
+  override def relocatedTarget = BranchInst.loopUpRelocation(this)
 }
 
 case class MoveInst(override val addr: Long, override val opcode: Opcode,

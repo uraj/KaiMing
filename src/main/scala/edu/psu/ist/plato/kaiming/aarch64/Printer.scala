@@ -4,13 +4,20 @@ import java.io.PrintWriter
 import java.io.OutputStream
 
 import edu.psu.ist.plato.kaiming.Label
-import edu.psu.ist.plato.kaiming.BasicBlock
+import edu.psu.ist.plato.kaiming.BBlock
 import edu.psu.ist.plato.kaiming.CFG
 import edu.psu.ist.plato.kaiming.Arch.AArch64
 
 import edu.psu.ist.plato.kaiming.exception._
 
-class Printer(ps: OutputStream, val parseMode: Boolean) extends PrintWriter(ps, true) {
+object Printer {
+  
+  val out = new Printer(Console.out)
+  val err = new Printer(Console.err)
+  
+}
+
+final class Printer(ps: OutputStream, val parseMode: Boolean) extends PrintWriter(ps, true) {
   
   def this(ps: OutputStream) = this(ps, false)
   
@@ -134,7 +141,7 @@ class Printer(ps: OutputStream, val parseMode: Boolean) extends PrintWriter(ps, 
     print(l.name)
   }
   
-  def printBasicBlock(bb: BasicBlock[AArch64]) {
+  def printBasicBlock(bb: BBlock[AArch64]) {
     if (!parseMode) {
       printLabel(bb.label)
       println(':')

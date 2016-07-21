@@ -6,19 +6,19 @@ import scala.collection.immutable.TreeSet
 import scalax.collection.Graph
 import scalax.collection.edge.LDiEdge
 
-class CFG[A <: Arch] (val parent : Procedure[A], val entryBlock: BasicBlock[A],
-    private val _graph: Graph[BasicBlock[A], LDiEdge], val hasIndirectJump: Boolean)
-    extends Iterable[BasicBlock[A]] {
+class CFG[A <: Arch] (val parent : Procedure[A], val entryBlock: BBlock[A],
+    private val _graph: Graph[BBlock[A], LDiEdge], val hasIndirectJump: Boolean)
+    extends Iterable[BBlock[A]] {
   
-  val blocks: SortedSet[BasicBlock[A]] =
-    TreeSet[BasicBlock[A]]() ++ _graph.nodes.map(_.value)
+  val blocks: SortedSet[BBlock[A]] =
+    TreeSet[BBlock[A]]() ++ _graph.nodes.map(_.value)
   def entries = 
-    blocks.foldLeft(List[BasicBlock[A]]()){ (a, b) => b::a }.flatMap(_.entries)
+    blocks.foldLeft(List[BBlock[A]]()){ (a, b) => b::a }.flatMap(_.entries)
   def iterator = blocks.iterator
   
-  def predecessors(bb : BasicBlock[A]): Set[BasicBlock[A]] = 
+  def predecessors(bb : BBlock[A]): Set[BBlock[A]] = 
     (_graph.get(bb) <~|) map {_.value}
-  def successors(bb : BasicBlock[A]): Set[BasicBlock[A]] = 
+  def successors(bb : BBlock[A]): Set[BBlock[A]] = 
     (_graph.get(bb) ~>|) map {_.value}
 
 }
