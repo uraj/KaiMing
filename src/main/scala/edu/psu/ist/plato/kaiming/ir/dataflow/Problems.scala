@@ -1,0 +1,92 @@
+package edu.psu.ist.plato.kaiming.ir.dataflow
+
+import edu.psu.ist.plato.kaiming._
+import edu.psu.ist.plato.kaiming.Arch.KaiMing
+import edu.psu.ist.plato.kaiming.ir._
+
+abstract class FlowInsensitiveProblem[T](ctx: Context) {
+  
+  protected def getInitialState: T
+  protected def process(e: Stmt, in: T): T
+  
+  final lazy val solve =
+    ctx.entries.foldLeft(getInitialState){ (state, stmt) => process(stmt, state) }
+}
+
+sealed trait Direction
+case object Forward extends Direction
+case object Backward extends Direction
+
+abstract class PathInsensitiveProblem[T](ctx: Context, dir: Direction, maxIterMultiplier: Int) {
+  
+  private type BB = BBlock[KaiMing]
+  
+  protected def getInitialEntryState(bb: BB): T
+  protected def transfer(bb: BB, in: T): T 
+  protected def confluence(dataSet: Set[T]): T
+  
+  final lazy val solve = {
+    val cfg = ctx.cfg
+    val stop = maxIterMultiplier * cfg.size
+    val (initEntryMap, initExitMap) = cfg.foldLeft((Map[BB, T](), Map[BB, T]())) {
+        (m, b) => {
+          val init = getInitialEntryState(b)
+          (m._1 + (b -> init), m._2 + (b -> transfer(b, init)))
+        }
+      }
+    def solveImpl(round: Int, entryMap: Map[BB, T], exitMap: Map[BB, T]): Map[BB, T] = {
+      require(round <= stop, "Problem cannot be solved with in limited time")
+      val (updated, entryMapNew, exitMapNew) =
+        cfg.foldLeft((false, entryMap, exitMap)) {
+          case ((dirty, enM, exM), bb) => {
+            val toConfluence = dir match {
+              case Forward => cfg.predecessors(bb).foldLeft(Set[T]()) {
+                  (set, pred) => set + exitMap.get(pred).get
+                }
+              case Backward => cfg.successors(bb).foldLeft(Set[T]()) {
+                  (set, succ) => set + exitMap.get(succ).get
+                }
+            }
+            val entryNew = confluence(toConfluence)
+            val dirtyNew = dirty || (entryNew != entryMap.get(bb).get)
+            if (dirtyNew)
+              (true, entryMap + (bb -> entryNew),
+                  exitMap + (bb -> transfer(bb, entryNew)))
+            else
+              (false, entryMap, exitMap)
+          }
+        }
+        if (updated)
+          solveImpl(round + 1, entryMapNew, exitMapNew)
+        else
+          exitMapNew
+      }
+    solveImpl(0, initEntryMap, initExitMap)
+  }
+  
+}
+
+import scala.collection.BitSet
+
+abstract class DataFlowProblem(ctx: Context, dir: Direction, maxIterMultiplier: Int)
+    extends PathInsensitiveProblem[BitSet](ctx, dir, maxIterMultiplier) {
+
+  private type BB = BBlock[KaiMing]
+  
+  protected def gen(bb: BB): BitSet
+  protected def kill(bb: BB): BitSet
+  protected val initialState: BitSet
+  
+  private val _genMap = ctx.cfg.foldLeft(Map[BB, BitSet]()) {
+    (m, bb) => m + (bb -> gen(bb))
+  }
+  private val _killMap = ctx.cfg.foldLeft(Map[BB, BitSet]()) {
+    (m, bb) => m + (bb -> kill(bb))
+  }
+
+  override protected final def getInitialEntryState(bb: BB) = initialState
+  
+  override protected final def transfer(bb: BB, in: BitSet) =
+    (in &~ _killMap.get(bb).get) | _genMap.get(bb).get
+  
+}
