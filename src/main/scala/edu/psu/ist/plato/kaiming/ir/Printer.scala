@@ -202,15 +202,13 @@ final class Printer(ps: OutputStream) extends PrintWriter(ps) {
   }
   
   def printBasicBlock(bb: BBlock[KaiMing]) {
-    print(bb.label.name)
-    println(":")
+    println(bb.label)
     bb.foreach { s => { printStmt(s); println() } }
   }
   
   def printIndentedBasicBlock(bb: BBlock[KaiMing]) {
     print('\t')
-    print(bb.label.name)
-    println(":")
+    println(bb.label)
     bb.foreach { s => { print("\t\t"); printStmt(s); println() } }
   }
   

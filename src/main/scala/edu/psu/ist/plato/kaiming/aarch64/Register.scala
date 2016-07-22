@@ -5,20 +5,10 @@ import edu.psu.ist.plato.kaiming.Arch.AArch64
 
 import enumeratum._
 
-object Shift {
-  sealed trait Type extends EnumEntry
-  object Type extends Enum[Type] {
-    
-    val values = findValues 
-    
-    case object ASR extends Type
-    case object LSL extends Type
-    case object ROR extends Type
-    
-  }
-}
-
-case class Shift(val ty: Shift.Type, val value: Int)
+sealed abstract class Shift { val value: Int }
+case class Asr(override val value: Int) extends Shift
+case class Lsl(override val value: Int) extends Shift
+case class Ror(override val value: Int) extends Shift
 
 object Register {
   

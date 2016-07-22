@@ -16,7 +16,7 @@ case class Loop[A <: Arch] private (header: BBlock[A], body: Set[BBlock[A]]) {
 
 object Loop {
   
-  def detectLoops[T <: Arch](cfg: CFG[T]): List[Loop[T]] = {
+  def detectLoops[T <: Arch](cfg: Cfg[T, BBlock[T]]): List[Loop[T]] = {
     val allBBs = cfg.blocks.toSet
     val initDominators = allBBs.foldLeft(Map[BBlock[T], Set[BBlock[T]]]()) {
       (map, bb) => map + (bb -> allBBs)
@@ -48,7 +48,7 @@ object Loop {
             })}
   }
   
-  private def findLoopNodes[T <: Arch](cfg: CFG[T],
+  private def findLoopNodes[T <: Arch](cfg: Cfg[T, BBlock[T]],
       backEdge: (BBlock[T], BBlock[T]),
       candidates: Set[BBlock[T]]): Loop[T] = {
     new Loop(
@@ -62,7 +62,7 @@ object Loop {
     })
   }
   
-  private def reachable[T <: Arch](cfg: CFG[T], start: BBlock[T], end: BBlock[T],
+  private def reachable[T <: Arch](cfg: Cfg[T, BBlock[T]], start: BBlock[T], end: BBlock[T],
       candidates: Set[BBlock[T]], ret: Set[BBlock[T]],
       visited: Set[BBlock[T]]): (Boolean, Set[BBlock[T]]) = {
     if (start.equals(end))

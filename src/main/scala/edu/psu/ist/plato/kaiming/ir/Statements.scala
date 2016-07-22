@@ -9,6 +9,7 @@ import edu.psu.ist.plato.kaiming.MachArch
 
 object Stmt {
   
+  import scala.language.implicitConversions
   implicit def toIRStmt(e: Entry[KaiMing]) = e.asInstanceOf[Stmt]
   
 }
@@ -21,7 +22,6 @@ case class StStmt(override val index: Long, override val host: MachEntry[_ <: Ma
     storeTo: Expr, storedExpr: Expr) extends Stmt(storeTo, storedExpr)
 
 object JmpStmt {
-  
   // FIXME: This is not a really good implementation of target relocation,
   // for it hinders garbage collection when a JmpStmt is not longer actually
   // in use. It can be a problem for IR because we plan to support IR
@@ -33,7 +33,7 @@ object JmpStmt {
     _relocationTable.put(js, bb)
 
   private def lookUpRelocation(js: JmpStmt) = _relocationTable.get(js)
-  
+
 }
 
 case class JmpStmt(override val index: Long,
@@ -48,12 +48,20 @@ case class JmpStmt(override val index: Long,
   
 }
 
-case class RetStmt(override val index: Long, override val host: MachEntry[_ <: MachArch])
-    extends Stmt()
+case class RetStmt(override val index: Long, override val host: MachEntry[_ <: MachArch],
+    target: Expr) extends Stmt(target)
 
 sealed abstract class DefStmt(usedExpr: Expr*) extends Stmt(usedExpr:_*) {
   
   def definedLval: Lval
+  
+}
+
+object AssignStmt {
+  
+  def apply(index: Long, host: MachEntry[_ <: MachArch],
+      lval: Lval, rval: Expr): AssignStmt =
+    AssignStmt(index, host, lval, rval, (0, lval.sizeInBits))
   
 }
 
@@ -83,7 +91,7 @@ case class SetFlgStmt(override val index: Long, override val host: MachEntry[_ <
 
 case class CallStmt(override val index: Long,
     override val host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
-    dependentFlags: Set[Flg], target: Expr) extends DefStmt(target) {
+    target: Expr) extends DefStmt(target) {
   
   override def definedLval = Reg(host.mach.returnRegister)
   

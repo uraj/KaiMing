@@ -4,8 +4,8 @@ import java.io.PrintWriter
 import java.io.OutputStream
 
 import edu.psu.ist.plato.kaiming.Label
-import edu.psu.ist.plato.kaiming.BBlock
-import edu.psu.ist.plato.kaiming.CFG
+import edu.psu.ist.plato.kaiming.MachBBlock
+import edu.psu.ist.plato.kaiming.Cfg
 import edu.psu.ist.plato.kaiming.Arch.AArch64
 
 import edu.psu.ist.plato.kaiming.exception._
@@ -17,9 +17,7 @@ object Printer {
   
 }
 
-final class Printer(ps: OutputStream, val parseMode: Boolean) extends PrintWriter(ps, true) {
-  
-  def this(ps: OutputStream) = this(ps, false)
+final class Printer(ps: OutputStream) extends PrintWriter(ps, true) {
   
   private def printSignedHex(value: Long) {
     if (value < 0)
@@ -38,7 +36,7 @@ final class Printer(ps: OutputStream, val parseMode: Boolean) extends PrintWrite
     reg.shift match {
       case Some(shift) =>
         print(", ")
-        print(shift.ty.entryName)
+        print(shift.getClass.getSimpleName.toUpperCase)
         print(", ")
         print(shift.value)
       case None => 
@@ -72,10 +70,6 @@ final class Printer(ps: OutputStream, val parseMode: Boolean) extends PrintWrite
   }
   
   def printInstruction(i: Instruction) {
-    if (parseMode) {
-      printSignedHex(i.addr)
-      print('\t')
-    }
     print(i.opcode.rawcode)
     print('\t')
     i match {
@@ -93,7 +87,7 @@ final class Printer(ps: OutputStream, val parseMode: Boolean) extends PrintWrite
           }
         }
       case _ => {
-        import Instruction.AddressingMode._
+        import AddressingMode._
         val (indexingOperand, addressingMode) = 
           if (i.isInstanceOf[LoadStoreInst]) {
             val lsi = i.asInstanceOf[LoadStoreInst]
@@ -134,22 +128,14 @@ final class Printer(ps: OutputStream, val parseMode: Boolean) extends PrintWrite
   }
   
   def printLabel(l: Label) {
-    if (parseMode) {
-      printSignedHex(l.addr)
-      print('\t')
-    }
     print(l.name)
   }
   
-  def printBasicBlock(bb: BBlock[AArch64]) {
-    if (!parseMode) {
-      printLabel(bb.label)
-      println(':')
-    }
+  def printBasicBlock(bb: MachBBlock[AArch64]) {
     bb.foreach { i => printInstruction(i); println() }
   }
   
-  def printCFG(cfg: CFG[AArch64]) {
+  def printCFG(cfg: Cfg[AArch64, MachBBlock[AArch64]]) {
     printLabel(cfg.parent.label)
     println(':');
     cfg.foreach { bb => printBasicBlock(bb) }

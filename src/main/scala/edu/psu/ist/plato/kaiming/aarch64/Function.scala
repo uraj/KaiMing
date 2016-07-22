@@ -8,7 +8,7 @@ class Function(override val label: Label, insts: Seq[Instruction])
   val mach = Machine.aarch64
   
   override def deriveLabelForIndex(index: Long) = {
-    Label("_sub_" + index.toHexString, index)
+    Label("_sub_" + index.toHexString)
   }
   
 }

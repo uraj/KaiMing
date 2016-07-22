@@ -1,9 +1,11 @@
 package edu.psu.ist.plato.kaiming
 
+import edu.psu.ist.plato.kaiming.ir.Context
+
 abstract class Procedure[A <: Arch] {
 
   val label: Label
-  val cfg: CFG[A]
+  val cfg: Cfg[A, _ <: BBlock[A]]
   def name = label.name
   def entries: List[Entry[A]] = cfg.entries
   def deriveLabelForIndex(index: Long): Label
@@ -18,7 +20,7 @@ object MachProcedure {
   import scalax.collection.edge.LDiEdge
   import scalax.collection.edge.Implicits._
   
-    private def split[A <: MachArch](unit : MachProcedure[A],
+  private def split[A <: MachArch](unit : MachProcedure[A],
       entries : Seq[MachEntry[A]], pivots : Seq[Int]) = {
     val sortedPivots = (TreeSet[Int]() ++ pivots + 0 + entries.length).toVector
     require(sortedPivots.head == 0 && sortedPivots.last <= entries.length)
@@ -32,7 +34,7 @@ object MachProcedure {
   }
   
   private def containingBlock[A <: MachArch](
-      bbs : Traversable[BBlock[A]], index : Long) =
+      bbs : Traversable[MachBBlock[A]], index : Long) =
     bbs.find { bb => bb.lastEntry.index >= index && bb.firstEntry.index <= index }
   
   private def buildCFGImpl[A <: MachArch](parent : MachProcedure[A],
@@ -56,7 +58,7 @@ object MachProcedure {
     val hasIndirectJump = bbs.foldLeft(false) {
       (has, bb) => has || (bb.lastEntry.isTerminator && bb.lastEntry.asTerminator.isIndirect)
     }
-    val edges = bbs.foldLeft(List[LDiEdge[BBlock[A]]]()) {
+    val edges = bbs.foldLeft(List[LDiEdge[MachBBlock[A]]]()) {
       (l, bb) => {
         val in = bb.lastEntry
         if (in.isTerminator) {
@@ -100,7 +102,7 @@ object MachProcedure {
   private def buildCFG[A <: MachArch](parent : MachProcedure[A],
       entries : Seq[MachEntry[A]]) = {
       val _t = buildCFGImpl(parent, entries)
-      new CFG(parent, _t._3, _t._2, _t._1)
+      new MachCFG(parent, _t._3, _t._2, _t._1)
   }
   
 }
@@ -110,6 +112,6 @@ abstract class MachProcedure[A <: MachArch](machEntries: Seq[MachEntry[A]]) exte
   
   val mach: Machine[A]
   val cfg = MachProcedure.buildCFG[A](this, machEntries)
-  def liftCFGToIR = mach.liftToIR(cfg)
+  def liftCFGToIR(ctx: Context) = mach.liftToIR(ctx, cfg)
   
 }

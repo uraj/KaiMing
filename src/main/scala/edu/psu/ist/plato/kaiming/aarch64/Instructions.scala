@@ -3,25 +3,21 @@ package edu.psu.ist.plato.kaiming.aarch64
 import edu.psu.ist.plato.kaiming._
 import edu.psu.ist.plato.kaiming.Arch.AArch64
 
-import enumeratum._
+sealed trait AddressingMode
+object AddressingMode {
+  
+  case object PreIndex extends AddressingMode
+  case object PostIndex extends AddressingMode
+  case object Regular extends AddressingMode
+  
+}
 
 object Instruction {
   
+  import scala.language.implicitConversions
   implicit def toInstruction(entry: Entry[AArch64]) = 
     entry.asInstanceOf[Instruction]
-
-  sealed trait AddressingMode extends EnumEntry
-  
-  object AddressingMode extends Enum[AddressingMode] {
     
-    def values = findValues
-    
-    case object PreIndex extends AddressingMode
-    case object PostIndex extends AddressingMode
-    case object Regular extends AddressingMode
-    
-  }
-  
   def create(addr: Long, opcode: Opcode, oplist: Vector[Operand],
       cond: Option[Condition], preidx: Boolean): Instruction = {
     val condition = cond.getOrElse(Condition.AL)
@@ -128,7 +124,7 @@ object Instruction {
 sealed abstract class Instruction(oplist: Operand*)
   extends MachEntry[AArch64] with Iterable[Operand] {
   
-  val mach = AArch64Machine.instance
+  val mach = AArch64Machine
   
   val operands = oplist.toVector
   val addr: Long
@@ -136,8 +132,6 @@ sealed abstract class Instruction(oplist: Operand*)
   
   protected final def operand(idx: Int) = operands(idx)
   protected final def numOfOperands = operands.length
-  
-  def fillLabelInformation(name: String) = Label(name, addr)
   
   // This method should not be used inside Instruction and its subclasses.
   // By override this method, specific instructions can ``hide'' certain 
@@ -185,7 +179,10 @@ case class ExtensionInst(override val addr: Long, override val opcode: Opcode,
       Extension.Unsigned
     else
       Extension.NoExtension
+      
   }
+  
+  require(extension != Extension.NoExtension)
   
 }
 
@@ -248,7 +245,7 @@ case class MoveInst(override val addr: Long, override val opcode: Opcode,
 case class CompareInst(override val addr: Long, override val opcode: Opcode,
     left: Register, right: Operand, val isTest: Boolean) extends Instruction(left, right)
 
-sealed abstract class LoadStoreInst(val addressingMode: Instruction.AddressingMode,
+sealed abstract class LoadStoreInst(val addressingMode: AddressingMode,
     oplist: Operand*) extends Instruction(oplist:_*) {
   
   def indexingOperandIndex: Int
@@ -257,7 +254,7 @@ sealed abstract class LoadStoreInst(val addressingMode: Instruction.AddressingMo
 }
 
 case class LoadInst(override val addr: Long, override val opcode: Opcode,
-    dest: Register, mem: Memory, mode: Instruction.AddressingMode)
+    dest: Register, mem: Memory, mode: AddressingMode)
     extends LoadStoreInst(mode, dest, mem) {
   
   override val indexingOperandIndex = 1
@@ -266,14 +263,14 @@ case class LoadInst(override val addr: Long, override val opcode: Opcode,
 
 case class LoadPairInst(override val addr: Long, override val opcode: Opcode,
     destLeft: Register, destRight: Register, mem: Memory,
-    mode: Instruction.AddressingMode) extends LoadStoreInst(mode, destLeft, destRight, mem) {
+    mode: AddressingMode) extends LoadStoreInst(mode, destLeft, destRight, mem) {
   
   override val indexingOperandIndex = 2
 
 }
 
 case class StoreInst(override val addr: Long, override val opcode: Opcode,
-    src: Register, mem: Memory, mode: Instruction.AddressingMode)
+    src: Register, mem: Memory, mode: AddressingMode)
     extends LoadStoreInst(mode, src, mem) {
   
   override val indexingOperandIndex = 1
@@ -282,7 +279,7 @@ case class StoreInst(override val addr: Long, override val opcode: Opcode,
 
 case class StorePairInst(override val addr: Long, override val opcode: Opcode,
     srcLeft: Register, srcRight: Register, mem: Memory,
-    mode: Instruction.AddressingMode) extends LoadStoreInst(mode, srcLeft, srcRight, mem) {
+    mode: AddressingMode) extends LoadStoreInst(mode, srcLeft, srcRight, mem) {
   
   override val indexingOperandIndex = 2
 
