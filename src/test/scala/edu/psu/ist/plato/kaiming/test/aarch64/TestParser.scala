@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.test.arm64
+package edu.psu.ist.plato.kaiming.test.aarch64
 
 import scala.io.Source
 import java.io.File

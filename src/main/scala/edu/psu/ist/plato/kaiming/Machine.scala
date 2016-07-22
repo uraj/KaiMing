@@ -7,12 +7,6 @@ import edu.psu.ist.plato.kaiming.ir.Context
 
 import edu.psu.ist.plato.kaiming.aarch64.AArch64Machine
 
-object Machine {
-
-  val aarch64 = AArch64Machine
-
-}
-
 abstract class Machine[A <: MachArch] {
 
   val returnRegister: MachRegister[A]
