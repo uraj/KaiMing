@@ -150,6 +150,8 @@ object Expr {
     
     override protected def visitLval(lvals: Set[Lval], lv: Lval) = 
       SkipChildren(lvals + lv)
+      
+    def probe(e: Expr) = visit(Set(), e)._1
   }
   
 }
@@ -185,7 +187,7 @@ sealed abstract class Expr(sub: Expr*) {
       case _ => false
     }
   
-  final def enumLvals = Expr.LvalProbe.visit(Set(), this)._1
+  final def enumLvals = Expr.LvalProbe.probe(this)
   
   final def isCompound = this.isInstanceOf[CompoundExpr]
   

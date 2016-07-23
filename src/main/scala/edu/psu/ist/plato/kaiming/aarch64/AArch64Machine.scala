@@ -99,7 +99,11 @@ object AArch64Machine extends Machine[AArch64] {
       case AND => inst.srcLeft.and(inst.srcRight)
       case _ => throw new UnreachableCodeException()
     }
-    updateFlags(inst, rval, builder + AssignStmt(builder.nextIndex, inst, lval, rval))
+    val nbuilder = builder + AssignStmt(builder.nextIndex, inst, lval, rval)
+    if (inst.updateFlags)
+      updateFlags(inst, rval, nbuilder)
+    else
+      nbuilder
   }
   
   private def toIR(inst: ExtensionInst, builder: IRBuilder) = {

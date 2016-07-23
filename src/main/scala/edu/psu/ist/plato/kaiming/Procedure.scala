@@ -4,8 +4,8 @@ import edu.psu.ist.plato.kaiming.ir.Context
 
 abstract class Procedure[A <: Arch] {
 
-  val label: Label
-  val cfg: Cfg[A, _ <: BBlock[A]]
+  def label: Label
+  def cfg: Cfg[A, _ <: BBlock[A]]
   def name = label.name
   def entries: List[Entry[A]] = cfg.entries
   def deriveLabelForIndex(index: Long): Label
@@ -68,15 +68,13 @@ object MachProcedure {
             val targetBBOpt = containingBlock(bbs, targetAddr)
             if (targetBBOpt.isDefined) {
               val targetBB = targetBBOpt.get
-              assert(targetBB.firstEntry.index == targetAddr)
-              term.relocate(targetBB)
               (bb ~+> targetBB)(false) :: l
             } else l
           } else l
         } else l
       }
     }
-    edges.foreach { e => e._1.lastEntry }
+    edges.foreach { e => e._1.lastEntry.asTerminator.relocate(e._2) }
     val edgesWithFallThrough = bbs.tail.foldLeft((edges, bbs.head))({
       case ((l, prev), next) => {
         if (prev.lastEntry.isTerminator) {
@@ -84,7 +82,7 @@ object MachProcedure {
           if (term.isCall || term.isConditional)
             ((prev ~+> next)(true) :: l, next)
           else (l, next)
-        } else (l, next)
+        } else ((prev ~+> next)(true) :: l, next)
       }
     })._1
     
@@ -107,10 +105,9 @@ object MachProcedure {
   
 }
 
-
 abstract class MachProcedure[A <: MachArch](machEntries: Seq[MachEntry[A]]) extends Procedure[A] {
   
-  val mach: Machine[A]
+  def mach: Machine[A]
   val cfg = MachProcedure.buildCFG[A](this, machEntries)
   def liftCFGToIR(ctx: Context) = mach.liftToIR(ctx, cfg)
   

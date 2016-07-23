@@ -7,15 +7,14 @@ import edu.psu.ist.plato.kaiming.BBlock
 import edu.psu.ist.plato.kaiming.Arch.KaiMing
 import edu.psu.ist.plato.kaiming.MachArch
 
-object Stmt {
-  
-  import scala.language.implicitConversions
-  implicit def toIRStmt(e: Entry[KaiMing]) = e.asInstanceOf[Stmt]
-  
-}
-
 sealed abstract class Stmt(val usedExpr: Expr*) extends Entry[KaiMing] {
+  
   val host: MachEntry[_ <: MachArch]
+  
+  final def usedLvals = usedExpr.foldLeft(Set[Lval]()) {
+    (s, e) => s | e.enumLvals 
+  }
+  
 }
 
 case class StStmt(override val index: Long, override val host: MachEntry[_ <: MachArch],

@@ -1,18 +1,23 @@
 package edu.psu.ist.plato.kaiming.test.aarch64
 
 import scala.io.Source
+
 import java.io.File
 import java.io.ByteArrayOutputStream
+
 import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfter
 import org.scalatest.junit.JUnitRunner
+
 import org.junit.runner.RunWith
+
 import edu.psu.ist.plato.kaiming.aarch64.Function
-import edu.psu.ist.plato.kaiming.aarch64.Printer
-import edu.psu.ist.plato.kaiming.aarch64.parsing.ARMParser
+import edu.psu.ist.plato.kaiming.aarch64.parsing.AArch64Parser
+
+import edu.psu.ist.plato.kaiming.ir.Context
 
 @RunWith(classOf[JUnitRunner])
-class TestParser extends FunSuite with BeforeAndAfter {
+class Test extends FunSuite with BeforeAndAfter {
   
   var testdir: File = null
   var testfiles: Array[File] = null
@@ -20,13 +25,16 @@ class TestParser extends FunSuite with BeforeAndAfter {
   var failure = 0
   
   before {
-    testdir = new File(getClass.getResource("/TestParser/arm64").toURI())
+    testdir = new File(getClass.getResource("/test/arm64").toURI())
     testfiles = testdir.listFiles().filter { x => x.isFile() && !x.isHidden()}
     testfiles = testfiles.sortWith {(x, y)=> x.getName < y.getName}
     total = testfiles.size
   }
   
-  test("Test edu.psu.ist.plato.kaiming.arm64.parsing.Parser") {
+  var testFuncs = Vector[Function]()
+  
+  test("Testing AArch64 parser and CFG construction") {
+    import edu.psu.ist.plato.kaiming.aarch64.Printer
     
     if (!testdir.isDirectory())
       assert(false)
@@ -36,10 +44,12 @@ class TestParser extends FunSuite with BeforeAndAfter {
       val source = Source.fromFile(file, "UTF-8")
       val input = source.mkString
       print("Parsing " + file.getName() + " : ")
-      val result: (Option[List[Function]], String) = ARMParser.parseAll(ARMParser.binaryunit, input) match {
-        case ARMParser.Success(value, _) => (Some(value), "")
-        case ARMParser.NoSuccess(msg, next) => (None, msg + " " +  next.offset + " " + next.pos)
-      }
+      val result: (Option[List[Function]], String) = 
+        AArch64Parser.parseAll(AArch64Parser.binaryunit, input) match {
+          case AArch64Parser.Success(value, _) => (Some(value), "")
+          case AArch64Parser.NoSuccess(msg, next) =>
+            (None, msg + " " +  next.offset + " " + next.pos)
+        }
       result match {
         case (None, msg) =>
           failure += 1
@@ -51,6 +61,7 @@ class TestParser extends FunSuite with BeforeAndAfter {
           for (func <- funcs) {
             printer.printCFG(func.cfg)
           }
+          testFuncs ++= funcs
           source.close()
           printer.close()
           println(baos.toString())
@@ -58,8 +69,20 @@ class TestParser extends FunSuite with BeforeAndAfter {
     }
   }
   
+  test("Testing AArch64 IR lifting and UD analysis") {
+    import edu.psu.ist.plato.kaiming.ir.Printer
+    
+    failure = 2
+    for (func <- testFuncs) {
+      val ctx = new Context(func)
+      Printer.out.printContextWithUDInfo(ctx)
+      failure -= 1
+    }
+    
+  }
+  
   after {
-    println((total - failure) + "/" + total + " tests passed.")
+    println((total - failure) + "/" + total + " parsing tests passed.")
   }
     
 }

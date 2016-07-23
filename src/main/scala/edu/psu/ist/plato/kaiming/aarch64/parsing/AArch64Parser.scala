@@ -13,7 +13,7 @@ import edu.psu.ist.plato.kaiming.exception.UnreachableCodeException
 
 import edu.psu.ist.plato.kaiming.aarch64._
 
-object ARMParser extends RegexParsers() {
+object AArch64Parser extends RegexParsers() {
   override val whiteSpace = """[\t \r]+""".r
   
   private def nl: Parser[String] = """\n+""".r 

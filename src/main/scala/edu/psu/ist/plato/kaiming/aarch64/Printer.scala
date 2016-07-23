@@ -1,6 +1,6 @@
 package edu.psu.ist.plato.kaiming.aarch64
 
-import java.io.PrintWriter
+import java.io.PrintStream
 import java.io.OutputStream
 
 import edu.psu.ist.plato.kaiming.Label
@@ -17,7 +17,7 @@ object Printer {
   
 }
 
-final class Printer(ps: OutputStream) extends PrintWriter(ps, true) {
+final class Printer(ps: OutputStream) extends PrintStream(ps) {
   
   private def printSignedHex(value: Long) {
     if (value < 0)
@@ -76,7 +76,7 @@ final class Printer(ps: OutputStream) extends PrintWriter(ps, true) {
       case b: BranchInst =>
         if (!b.isReturn) {
           b.relocatedTarget match {
-            case Some(b) => printLabel(b.label)
+            case Some(b) => print(b.label.name)
             case None => 
               b.target match {
                 case r: Register => printOpRegister(r)
@@ -127,23 +127,18 @@ final class Printer(ps: OutputStream) extends PrintWriter(ps, true) {
     }
   }
   
-  def printLabel(l: Label) {
-    print(l.name)
-  }
-  
   def printBasicBlock(bb: MachBBlock[AArch64]) {
-    bb.foreach { i => printInstruction(i); println() }
+    println(bb.label)
+    bb.foreach { i => print('\t'); printInstruction(i); println() }
   }
   
   def printCFG(cfg: Cfg[AArch64, MachBBlock[AArch64]]) {
-    printLabel(cfg.parent.label)
-    println(':');
-    cfg.foreach { bb => printBasicBlock(bb) }
+    println(cfg.parent.label)
+    for (bb <- cfg) { printBasicBlock(bb) }
   }
   
   def printFunction(f: Function) {
-    printLabel(f.label)
-    println(':')
+    println(f.label)
     f.entries.foreach { i => printInstruction(i); println() }
   }
   

@@ -1,6 +1,6 @@
 package edu.psu.ist.plato.kaiming.ir
 
-import java.io.PrintWriter
+import java.io.PrintStream
 import java.io.OutputStream
 
 import edu.psu.ist.plato.kaiming.BBlock
@@ -15,7 +15,7 @@ object Printer {
   
 }
 
-final class Printer(ps: OutputStream) extends PrintWriter(ps) {
+final class Printer(ps: OutputStream) extends PrintStream(ps) {
   
   private def EOS = print(Printer.endOfStmt)
   
@@ -207,15 +207,48 @@ final class Printer(ps: OutputStream) extends PrintWriter(ps) {
   }
   
   def printIndentedBasicBlock(bb: BBlock[KaiMing]) {
-    print('\t')
     println(bb.label)
-    bb.foreach { s => { print("\t\t"); printStmt(s); println() } }
+    bb.foreach { s => { print("\t"); printStmt(s); println() } }
   }
   
   def printContext(ctx: Context) {
     print(ctx.name);
     println(" {")
-    ctx.cfg.blocks.foreach { bb => printBasicBlock(bb) }
+    ctx.cfg.blocks.foreach { bb => printIndentedBasicBlock(bb) }
+    println('}')
+  }
+  
+  def printContextWithUDInfo(ctx: Context) {
+    print(ctx.name)
+    println(" {")
+    for (bb <- ctx.cfg) {
+      println(bb.label)
+      for (s <- bb) {
+        print('\t')
+        printStmt(s)
+        print("\t#")
+        print(s.host.index.toHexString)
+        print(' ')
+        println(s.index)
+        ctx.definitionFor(s) match {
+          case None => printStmt(s); println;
+          case _ =>
+        }
+        for ((lv, defs) <- ctx.definitionFor(s).get) {
+          print("\t\t# ")
+          printLval(lv)
+          print(" -- ")
+          for (definition <- defs) {
+            definition match {
+              case Context.Def(d) => print(d.index)
+              case Context.Init => print(Context.Init)
+            }
+            print(',')
+          }
+          println()
+        }
+      }
+    }
     println('}')
   }
   

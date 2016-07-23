@@ -98,7 +98,6 @@ object Register {
 case class Register(id: Register.Id, shift: Option[Shift])
   extends MachRegister[AArch64] with Operand {
   
-  // implemention of abstract defs in MachRegister
   override val name = id.entryName
   override val sizeInBits = if (name == "SP" || name.startsWith("X")) 64 else 32
   override lazy val containingRegister = 
