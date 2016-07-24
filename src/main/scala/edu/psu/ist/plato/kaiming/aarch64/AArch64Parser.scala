@@ -1,17 +1,21 @@
-package edu.psu.ist.plato.kaiming.aarch64.parsing
+package edu.psu.ist.plato.kaiming.aarch64
 
 import scala.util.parsing.combinator.RegexParsers
-
-import scala.language.postfixOps
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.JavaConversions.bufferAsJavaList
 
+import scala.language.postfixOps
+
 import edu.psu.ist.plato.kaiming.Label
+
 import edu.psu.ist.plato.kaiming.exception.ParsingException
 import edu.psu.ist.plato.kaiming.exception.UnreachableCodeException
 
-import edu.psu.ist.plato.kaiming.aarch64._
+import scala.Ordering
+import scala.Vector
+
+
 
 object AArch64Parser extends RegexParsers() {
   override val whiteSpace = """[\t \r]+""".r

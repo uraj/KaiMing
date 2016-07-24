@@ -12,7 +12,7 @@ import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
 
 import edu.psu.ist.plato.kaiming.aarch64.Function
-import edu.psu.ist.plato.kaiming.aarch64.parsing.AArch64Parser
+import edu.psu.ist.plato.kaiming.aarch64.AArch64Parser
 
 import edu.psu.ist.plato.kaiming.ir.Context
 
