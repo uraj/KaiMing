@@ -4,3 +4,5 @@
 /target/
 .cache-*
 /project/*/*
+.classpath
+.project
