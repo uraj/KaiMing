@@ -34,7 +34,7 @@ final class Elf(input: ByteVector) {
      } ElfN_Ehdr;
    * 
    */
-  class Header(identifier : ByteVector, bytes: ByteVector) {
+  class Header(identifier: ByteVector, bytes: ByteVector) {
     
     val size = headerSize
     
@@ -258,24 +258,24 @@ final class Elf(input: ByteVector) {
   val header = new Header(identifier, input.slice(identifierSize, headerSize))
   
   private def parseMany[A](bytes: ByteVector, start: Int, step: Int, num: Int,
-      constructor: ByteVector => A, result: Vector[A]) : Vector[A] =
+      constructor: ByteVector => A, result: Vector[A]): Vector[A] =
       if (num == 0) result
       else {
         parseMany[A](bytes, start + step, step, num - 1,
-            constructor, result :+ constructor(bytes.slice(start, start + step)))
+            constructor, result:+ constructor(bytes.slice(start, start + step)))
       }
     
-  val progHeaders : Vector[ProgramHeader] =
+  val progHeaders: Vector[ProgramHeader] =
     parseMany(stream, header.e_phoff.toInt, progHeaderSize, header.e_phnum, 
         bytes => new ProgramHeader(bytes), Vector.empty)
   
-  val secHeaders : Vector[SectionHeader] = 
+  val secHeaders: Vector[SectionHeader] = 
     parseMany(stream, header.e_shoff.toInt, secHeaderSize, header.e_shnum,
         bytes => new SectionHeader(bytes), Vector.empty)
 
-  def withinValidRange(imm : Long) : Boolean = {
-    def eachSec(headers : Vector[SectionHeader]) : Boolean = headers match {
-      case xs :+ x => {
+  def withinValidRange(imm: Long): Boolean = {
+    def eachSec(headers: Vector[SectionHeader]): Boolean = headers match {
+      case xs:+ x => {
         (x.sh_addr <= imm && x.sh_addr + x.sh_size >= imm) || eachSec(xs)
       }
       case _ => false

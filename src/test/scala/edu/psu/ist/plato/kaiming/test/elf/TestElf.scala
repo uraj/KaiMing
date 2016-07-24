@@ -9,7 +9,7 @@ import edu.psu.ist.plato.kaiming.elf.Elf
 
 import scodec.bits._
 
-//@RunWith(classOf[JUnitRunner])
+@RunWith(classOf[JUnitRunner])
 class TestElf extends FunSuite {
   test("") {
     val input = 
