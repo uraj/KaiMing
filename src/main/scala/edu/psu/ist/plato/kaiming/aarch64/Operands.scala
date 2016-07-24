@@ -5,6 +5,23 @@ import edu.psu.ist.plato.kaiming.Arch.AArch64
 
 import enumeratum._
 
+sealed trait Operand {
+  
+  def isRegister = this.isInstanceOf[Register]
+  def isMemory = this.isInstanceOf[Memory]
+  def isImmediate = this.isInstanceOf[Immediate]
+  
+  def asImmediate: Immediate = 
+    throw new UnsupportedOperationException(this + "is not an immediate operand") 
+
+  def asMemory: Memory = 
+    throw new UnsupportedOperationException(this + "is not a memory operand") 
+  
+  def asRegister: Register = 
+    throw new UnsupportedOperationException(this + "is not a register operand") 
+  
+}
+
 sealed abstract class Shift { val value: Int }
 case class Asr(override val value: Int) extends Shift
 case class Lsl(override val value: Int) extends Shift
@@ -117,4 +134,31 @@ case class Register(id: Register.Id, shift: Option[Shift])
   
 }
 
+object Memory {
+    
+  def get(base: Register) = Memory(Some(base), None)
+  def get(imm: Immediate) = Memory(None, Some(Left(imm)))
+  def get(base: Register, imm: Immediate) = Memory(Some(base), Some(Left(imm)))
+  def get(base: Register, off: Register) = Memory(Some(base), Some(Right(off)))
+  
+}
+
+case class Memory(base: Option[Register], off: Option[Either[Immediate, Register]])
+  extends Operand {
+  
+  override def asMemory = asInstanceOf[Memory]
+  
+}
+
+object Immediate {
+  
+  def get(value: Long) = Immediate(value) 
+
+}
+
+case class Immediate(val value: Long) extends Operand {
+  
+  override def asImmediate = asInstanceOf[Immediate]
+  
+}
 
