@@ -97,8 +97,7 @@ object MachProcedure {
     (hasIndirectJump, trimmedGraph, entry)
   }
   
-  private def buildCFG[A <: MachArch](parent : MachProcedure[A],
-      entries : Seq[MachEntry[A]]) = {
+  private def buildCFG[A <: MachArch](parent : MachProcedure[A], entries : Seq[MachEntry[A]]) = {
       val _t = buildCFGImpl(parent, entries)
       new MachCFG(parent, _t._3, _t._2, _t._1)
   }
