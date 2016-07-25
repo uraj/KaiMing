@@ -45,36 +45,36 @@ object Opcode {
   import Mnemonic._
   private val rawToMnem = Mnemonic.values.foldLeft(Map[String, Mnemonic]()) {
     (map, mnem) => map ++ (mnem match {  
-      case LDR => Vector("LDR", "LDUR", "LDRSW", "LDURB").map { x => (x -> mnem) }
-      case LDP => Vector("LDP").map { x => (x -> mnem) }
-      case STP => Vector("STP").map { x => (x -> mnem) }
-      case STR => Vector("STR", "STUR", "SXTW", "STURB").map { x => (x -> mnem) }
-      case ADD => Vector("ADD", "ADDS", "ADC", "ADCS").map { x => (x -> mnem) }
-      case SUB => Vector("SUB", "SUBS").map { x => (x -> mnem) }
-      case ADR => Vector("ADR", "ADRP").map { x => (x -> mnem) }
-      case AND => Vector("AND", "ANDS").map { x => (x -> mnem) }
-      case TST => Vector("TST").map { x => (x -> mnem) }
-      case ASR => Vector("ASR").map { x => (x -> mnem) }
-      case B => Vector("B", "BR", "RET").map { x => (x -> mnem) }
-      case BL => Vector("BL", "BLR").map { x => (x -> mnem) }
-      case CMP => Vector("CMP").map { x => (x -> mnem) }
-      case CMN => Vector("CMN").map { x => (x -> mnem) }
-      case CSEL => Vector("CSEL").map { x => (x -> mnem) }
-      case CSINC => Vector("CSINC").map { x => (x -> mnem) }
-      case CINC => Vector("CINC").map { x => (x -> mnem) }
-      case CSET => Vector("CSET").map { x => (x -> mnem) }
-      case LSL => Vector("LSL").map { x => (x -> mnem) }
-      case LSR => Vector("LSR").map { x => (x -> mnem) }
-      case MOV => Vector("MOV").map { x => (x -> mnem) }
-      case MOVK => Vector("MOVK").map { x => (x -> mnem) }
-      case EXT => Vector("SXTW", "SXTH", "SXTB", "UXTW", "UXTH", "UXTB").map { x => (x -> mnem) }
-      case BFM => Vector("SBFX", "SBFM", "UBFX", "UBFM").map { x => (x -> mnem) }
-      case MUL => Vector("MUL", "UMUL").map { x => (x -> mnem) }
-      case DIV => Vector("SDIV", "UDIV").map { x => (x -> mnem) }
-      case NEG => Vector("NEG").map { x => (x -> mnem) }
-      case ORR => Vector("ORR").map { x => (x -> mnem) }
-      case ORN => Vector("ORN").map { x => (x -> mnem) }
-      case NOP => Vector("NOP").map { x => (x -> mnem) }
+      case LDR => List("LDR", "LDUR", "LDRSW", "LDURB").map((_ -> mnem))
+      case LDP => List("LDP").map((_ -> mnem))
+      case STP => List("STP").map((_ -> mnem))
+      case STR => List("STR", "STUR", "SXTW", "STURB").map((_ -> mnem))
+      case ADD => List("ADD", "ADDS", "ADC", "ADCS").map((_ -> mnem))
+      case SUB => List("SUB", "SUBS").map((_ -> mnem))
+      case ADR => List("ADR", "ADRP").map((_ -> mnem))
+      case AND => List("AND", "ANDS").map((_ -> mnem))
+      case TST => List("TST").map((_ -> mnem))
+      case ASR => List("ASR").map((_ -> mnem))
+      case B => List("B", "BR", "RET").map((_ -> mnem))
+      case BL => List("BL", "BLR").map((_ -> mnem))
+      case CMP => List("CMP").map((_ -> mnem))
+      case CMN => List("CMN").map((_ -> mnem))
+      case CSEL => List("CSEL").map((_ -> mnem))
+      case CSINC => List("CSINC").map((_ -> mnem))
+      case CINC => List("CINC").map((_ -> mnem))
+      case CSET => List("CSET").map((_ -> mnem))
+      case LSL => List("LSL").map((_ -> mnem))
+      case LSR => List("LSR").map((_ -> mnem))
+      case MOV => List("MOV").map((_ -> mnem))
+      case MOVK => List("MOVK").map((_ -> mnem))
+      case EXT => List("SXTW", "SXTH", "SXTB", "UXTW", "UXTH", "UXTB").map((_ -> mnem))
+      case BFM => List("SBFX", "SBFM", "UBFX", "UBFM").map((_ -> mnem))
+      case MUL => List("MUL", "UMUL").map((_ -> mnem))
+      case DIV => List("SDIV", "UDIV").map((_ -> mnem))
+      case NEG => List("NEG").map((_ -> mnem))
+      case ORR => List("ORR").map((_ -> mnem))
+      case ORN => List("ORN").map((_ -> mnem))
+      case NOP => List("NOP").map((_ -> mnem))
     })
   }
 

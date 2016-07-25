@@ -87,8 +87,20 @@ object AArch64Machine extends Machine[AArch64] {
     val lval = Reg(inst.dest.asRegister)
     import edu.psu.ist.plato.kaiming.aarch64.Opcode.Mnemonic._
     val rval = inst.opcode.mnemonic match {
-      case ADD => inst.srcLeft.add(inst.srcRight)
-      case SUB => inst.srcLeft.sub(inst.srcRight)
+      case ADD => {
+        val add = inst.srcLeft.add(inst.srcRight)
+        if (inst.opcode.rawcode.charAt(2) == 'C')
+          add.add(Flg(Flag.C))
+        else
+          add
+      }
+      case SUB => {
+        val sub = inst.srcLeft.sub(inst.srcRight)
+        if (inst.opcode.rawcode.charAt(2) == 'C')
+          sub.sub(Flg(Flag.C))
+        else
+          sub
+      }
       case MUL => inst.srcLeft.mul(inst.srcRight)
       case DIV => inst.srcLeft.div(inst.srcRight)
       case ASR => inst.srcLeft.sar(inst.srcRight)

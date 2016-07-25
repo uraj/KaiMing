@@ -249,7 +249,7 @@ case class BranchInst(override val addr: Long, override val opcode: Opcode,
 case class MoveInst(override val addr: Long, override val opcode: Opcode,
     dest: Register, src: Operand) extends Instruction(dest, src) {
   
-  val doesKeep = opcode.mnemonic == Opcode.Mnemonic.MOVK 
+  val doesKeep = opcode.mnemonic == Opcode.Mnemonic.MOVK
   
 }
 

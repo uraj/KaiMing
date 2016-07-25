@@ -25,7 +25,7 @@ class Test extends FunSuite with BeforeAndAfter {
   var failure = 0
   
   before {
-    testdir = new File(getClass.getResource("/test/arm64").toURI())
+    testdir = new File(getClass.getResource("/test/aarch64").toURI())
     testfiles = testdir.listFiles().filter { x => x.isFile() && !x.isHidden()}
     testfiles = testfiles.sortWith {(x, y)=> x.getName < y.getName}
     total = testfiles.size
