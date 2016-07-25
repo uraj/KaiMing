@@ -41,6 +41,6 @@ trait Terminator[A <: MachArch] {
   def dependentFlags: Set[MachFlag[A]]
   final def isConditional = !dependentFlags.isEmpty
   def targetIndex: Long
-  def relocate(target: BBlock[A]): Unit
-  def relocatedTarget: Option[BBlock[A]]
+  def relocate(target: MachBBlock[A]): Unit
+  def relocatedTarget: Option[MachBBlock[A]]
 }

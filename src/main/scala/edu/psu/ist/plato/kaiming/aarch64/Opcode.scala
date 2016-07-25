@@ -43,40 +43,41 @@ object Opcode {
   }
   
   import Mnemonic._
-  private val rawToMnem = Vector(
-      (LDR, Vector("LDR", "LDUR", "LDRSW", "LDURB")),
-      (LDP, Vector("LDP")),
-      (STP, Vector("STP")),
-      (STR, Vector("STR", "STUR", "SXTW", "STURB")),
-      (ADD, Vector("ADD", "ADDS", "ADC", "ADCS")),
-      (SUB, Vector("SUB", "SUBS")),
-      (ADR, Vector("ADR", "ADRP")),
-      (AND, Vector("AND", "ANDS")),
-      (TST, Vector("TST")),
-      (ASR, Vector("ASR")),
-      (B, Vector("B", "BR", "RET")),
-      (BL, Vector("BL", "BLR")),
-      (CMP, Vector("CMP")),
-      (CMN, Vector("CMN")),
-      (CSEL, Vector("CSEL")),
-      (CSINC, Vector("CSINC")),
-      (CINC, Vector("CINC")),
-      (CSET, Vector("CSET")),
-      (LSL, Vector("LSL")),
-      (LSR, Vector("LSR")),
-      (MOV, Vector("MOV")),
-      (MOVK, Vector("MOVK")),
-      (EXT, Vector("SXTW", "SXTH", "SXTB", "UXTW", "UXTH", "UXTB")),
-      (BFM, Vector("SBFX", "SBFM", "UBFX", "UBFM")),
-      (MUL, Vector("MUL", "UMUL")),
-      (DIV, Vector("SDIV", "UDIV")),
-      (NEG, Vector("NEG")),
-      (ORR, Vector("ORR")),
-      (ORN, Vector("ORN")),
-      (NOP, Vector("NOP"))).foldLeft(Map[String, Mnemonic]()) {
-        case (map, (mnem, vstr)) => map ++ vstr.map { x => (x -> mnem) }
-      }
-  
+  private val rawToMnem = Mnemonic.values.foldLeft(Map[String, Mnemonic]()) {
+    (map, mnem) => map ++ (mnem match {  
+      case LDR => Vector("LDR", "LDUR", "LDRSW", "LDURB").map { x => (x -> mnem) }
+      case LDP => Vector("LDP").map { x => (x -> mnem) }
+      case STP => Vector("STP").map { x => (x -> mnem) }
+      case STR => Vector("STR", "STUR", "SXTW", "STURB").map { x => (x -> mnem) }
+      case ADD => Vector("ADD", "ADDS", "ADC", "ADCS").map { x => (x -> mnem) }
+      case SUB => Vector("SUB", "SUBS").map { x => (x -> mnem) }
+      case ADR => Vector("ADR", "ADRP").map { x => (x -> mnem) }
+      case AND => Vector("AND", "ANDS").map { x => (x -> mnem) }
+      case TST => Vector("TST").map { x => (x -> mnem) }
+      case ASR => Vector("ASR").map { x => (x -> mnem) }
+      case B => Vector("B", "BR", "RET").map { x => (x -> mnem) }
+      case BL => Vector("BL", "BLR").map { x => (x -> mnem) }
+      case CMP => Vector("CMP").map { x => (x -> mnem) }
+      case CMN => Vector("CMN").map { x => (x -> mnem) }
+      case CSEL => Vector("CSEL").map { x => (x -> mnem) }
+      case CSINC => Vector("CSINC").map { x => (x -> mnem) }
+      case CINC => Vector("CINC").map { x => (x -> mnem) }
+      case CSET => Vector("CSET").map { x => (x -> mnem) }
+      case LSL => Vector("LSL").map { x => (x -> mnem) }
+      case LSR => Vector("LSR").map { x => (x -> mnem) }
+      case MOV => Vector("MOV").map { x => (x -> mnem) }
+      case MOVK => Vector("MOVK").map { x => (x -> mnem) }
+      case EXT => Vector("SXTW", "SXTH", "SXTB", "UXTW", "UXTH", "UXTB").map { x => (x -> mnem) }
+      case BFM => Vector("SBFX", "SBFM", "UBFX", "UBFM").map { x => (x -> mnem) }
+      case MUL => Vector("MUL", "UMUL").map { x => (x -> mnem) }
+      case DIV => Vector("SDIV", "UDIV").map { x => (x -> mnem) }
+      case NEG => Vector("NEG").map { x => (x -> mnem) }
+      case ORR => Vector("ORR").map { x => (x -> mnem) }
+      case ORN => Vector("ORN").map { x => (x -> mnem) }
+      case NOP => Vector("NOP").map { x => (x -> mnem) }
+    })
+  }
+
 }
 
 case class Opcode(rawcode: String) {

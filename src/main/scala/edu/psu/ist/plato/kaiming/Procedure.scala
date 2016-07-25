@@ -8,7 +8,7 @@ abstract class Procedure[A <: Arch] {
   def cfg: Cfg[A, _ <: BBlock[A]]
   def name = label.name
   def entries: List[Entry[A]] = cfg.entries
-  def deriveLabelForIndex(index: Long): Label
+  def deriveLabelForIndex(index: Long): Label = Label("_sub_" + index.toHexString)
   
 }
 

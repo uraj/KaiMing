@@ -107,9 +107,15 @@ class Context (val proc: MachProcedure[_ <: MachArch])
     }
   }
   
-  def getNewTempVar = getNewVar(_tempVarPrefix + _varMap.size)
-  def getNewTempVar(sizeInBits: Int) =
-    getNewVar(_tempVarPrefix + _varMap.size, sizeInBits)
+  def getNewTempVar(sizeInBits: Int) = {
+    def tryUntilSuccess(number: Int): Var =
+      getNewVar(_tempVarPrefix + number, sizeInBits) match {
+        case Some(v) => v
+        case None => tryUntilSuccess(number + 1)
+      }
+    tryUntilSuccess(_varMap.size)
+  }
+  def getNewTempVar: Var = getNewTempVar(mach.wordSizeInBits)
        
   final lazy val useDefMap = Context.useDefAnalysis(this)
   final def definitionFor(s: Stmt) = useDefMap.get(s)

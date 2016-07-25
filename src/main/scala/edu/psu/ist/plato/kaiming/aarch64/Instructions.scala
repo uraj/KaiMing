@@ -2,6 +2,7 @@ package edu.psu.ist.plato.kaiming.aarch64
 
 import edu.psu.ist.plato.kaiming._
 import edu.psu.ist.plato.kaiming.Arch.AArch64
+import edu.psu.ist.plato.kaiming.exception.UnreachableCodeException
 
 sealed trait AddressingMode
 object AddressingMode {
@@ -74,7 +75,7 @@ object Instruction {
       case TST | CMP | CMN =>
         require(oplist.length == 2)
         require(oplist(0).isRegister && (oplist(1).isRegister || oplist(1).isImmediate))
-        CompareInst(addr, opcode, oplist(0).asRegister, oplist(1), opcode.mnemonic == TST)
+        CompareInst(addr, opcode, oplist(0).asRegister, oplist(1))
       case CSEL | CSINC =>
         require(oplist.length == 3)
         require(oplist(0).isRegister && oplist(1).isRegister && oplist(2).isRegister)
@@ -165,6 +166,16 @@ case class UnaryArithInst(override val addr: Long, override val opcode: Opcode,
   
 }
 
+sealed trait Extension
+
+object Extension {
+  
+  case object Signed extends Extension 
+  case object Unsigned extends Extension 
+  case object NoExtension extends Extension
+  
+}
+
 // This is actually a pseudo instruction. In the original Java implementation,
 // ExtensionInst is a subclass of BitfieldMoveInst. In Scala, however, it
 // is not possible to inherit from a case class
@@ -204,9 +215,9 @@ case class BitfieldMoveInst(override val addr: Long, override val opcode: Opcode
 
 object BranchInst {
   import scala.collection.mutable.Map
-  private val _belongs = Map[BranchInst, BBlock[AArch64]]()
+  private val _belongs = Map[BranchInst, MachBBlock[AArch64]]()
   private def loopUpRelocation(b: BranchInst) = _belongs.get(b)
-  private def relocateTarget(b: BranchInst, bb: BBlock[AArch64]) =
+  private def relocateTarget(b: BranchInst, bb: MachBBlock[AArch64]) =
     _belongs += (b->bb)
 }
 
@@ -229,7 +240,7 @@ case class BranchInst(override val addr: Long, override val opcode: Opcode,
         case Some(Left(imm)) => imm.value
         case _ => throw new UnsupportedOperationException()
     }
-  override def relocate(target: BBlock[AArch64]) = 
+  override def relocate(target: MachBBlock[AArch64]) = 
     BranchInst.relocateTarget(this, target)
 
   override def relocatedTarget = BranchInst.loopUpRelocation(this)
@@ -242,8 +253,20 @@ case class MoveInst(override val addr: Long, override val opcode: Opcode,
   
 }
 
+sealed trait CompareCode
+case object Compare extends CompareCode
+case object Test extends CompareCode
+case object CompareNeg extends CompareCode
+
 case class CompareInst(override val addr: Long, override val opcode: Opcode,
-    left: Register, right: Operand, val isTest: Boolean) extends Instruction(left, right)
+    left: Register, right: Operand) extends Instruction(left, right) {
+  val code = opcode.mnemonic match {
+    case Opcode.Mnemonic.CMP => Compare
+    case Opcode.Mnemonic.CMN => CompareNeg
+    case Opcode.Mnemonic.TST => Test
+    case _ => throw new UnreachableCodeException()
+  }
+}
 
 sealed abstract class LoadStoreInst(val addressingMode: AddressingMode,
     oplist: Operand*) extends Instruction(oplist:_*) {

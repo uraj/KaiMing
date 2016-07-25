@@ -124,11 +124,11 @@ object AArch64Machine extends Machine[AArch64] {
       if (shift >= rotate) (0, shift - rotate, rotate, shift)
       else (size - rotate, size + shift - rotate, 0, shift)
     val assigned: Expr = if (srcInsig > 0) inst.src.shr(Const(srcInsig)) else inst.src
-    val tmp = ctx.getNewTempVar(srcSig - srcInsig + 1).get
+    val tmp = ctx.getNewTempVar(srcSig - srcInsig + 1)
     val b = builder + AssignStmt(builder.nextIndex, inst, tmp, Const(0))
     val (assigned2, b2) =
       if (srcInsig > 0) {
-        val tmp2 = ctx.getNewTempVar(srcInsig).get
+        val tmp2 = ctx.getNewTempVar(srcInsig)
         (tmp.concat(tmp2), b + AssignStmt(b.nextIndex, inst, tmp2, Const(0))) 
       } else {
         (tmp, b) 
@@ -148,7 +148,11 @@ object AArch64Machine extends Machine[AArch64] {
   }
   
   private def toIR(inst: CompareInst, builder: IRBuilder) = {
-    val cmp = if (inst.isTest) inst.left.and(inst.right) else inst.left.sub(inst.right)
+    val cmp = inst.code match {
+      case Test => inst.left.and(inst.right)
+      case Compare => inst.left.sub(inst.right)
+      case CompareNeg => inst.left.add(inst.right)
+    }
     updateFlags(inst, cmp, builder)
   }
   
@@ -224,7 +228,7 @@ object AArch64Machine extends Machine[AArch64] {
   
   override protected def toIRStatements(ctx: Context, inst: MachEntry[AArch64],
       builder: IRBuilder) = {
-    inst match {
+    inst.asInstanceOf[Instruction] match {
       case i: BinaryArithInst => toIR(i, builder)
       case i: UnaryArithInst => toIR(i, builder)
       case i: BitfieldMoveInst => toIR(ctx, i, builder)
