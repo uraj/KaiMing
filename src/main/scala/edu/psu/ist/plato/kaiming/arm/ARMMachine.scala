@@ -170,31 +170,35 @@ object ARMMachine extends Machine[ARM] {
   }
   
   private def toIR(ctx: Context, inst: LoadStoreInst, builder: IRBuilder) = {
-    import AddressingMode._
-    val addr: Expr = inst.addressingMode match {
-      case PostIndex => inst.indexingOperand.base.get
-      case PreIndex | Regular => inst.indexingOperand
-    }
     inst match {
-      case l: LoadInst => processLoadStore(l, addr, builder)
-      case l: LoadMultipleInst => processLoadStore(l, addr, builder)
-      case l: StoreInst => processLoadStore(l, addr, builder)
-      case l: StoreMultipleInst => processLoadStore(l, addr, builder)
+      case l: LoadInst => processLoadStore(l, builder)
+      case l: LoadMultipleInst => processLoadStore(l, builder)
+      case l: StoreInst => processLoadStore(l, builder)
+      case l: StoreMultipleInst => processLoadStore(l, builder)
     }
   }
   
-  private def processLoadStore(inst: LoadInst, addr: Expr, builder: IRBuilder) = {
-    val b = builder + LdStmt(builder.nextIndex, inst, Reg(inst.dest), addr)
+  private def processLoadStore(inst: LoadInst, builder: IRBuilder) = {
+    import AddressingMode._
+    val (addr, b) = inst.addressingMode match {
+      case PostIndex => (inst.indexingOperand.base.get: Expr, builder)
+      case PreIndex => {
+        val ea: Expr = inst.indexingOperand
+        (ea, builder + AssignStmt(builder.nextIndex, inst, Reg(inst.indexingOperand.base.get), ea))  
+      }
+      case Regular => (inst.indexingOperand: Expr, builder)
+    }
+    val bb = b + LdStmt(b.nextIndex, inst, Reg(inst.dest), addr)
     if (inst.addressingMode != AddressingMode.Regular)
-      b + AssignStmt(b.nextIndex, inst, Reg(inst.indexingOperand.base.get), addr)
+      bb + AssignStmt(bb.nextIndex, inst, Reg(inst.indexingOperand.base.get), addr)
     else
-      b
+      bb
   }
   
-  private def processLoadStore(inst: LoadMultipleInst, addr: Expr, builder: IRBuilder) = {
+  private def processLoadStore(inst: LoadMultipleInst, builder: IRBuilder) = {
     // ARM usually uses POP PC as return 
     val sizeInBytes = wordSizeInBits / 8
-    val base = addr.asInstanceOf[Reg]
+    val base: Reg = Reg(inst.base.base.get)
     val load = inst.destList.foldLeft(builder) {
       case (b, reg) => {
         val stb = b + LdStmt(b.nextIndex, inst, Reg(reg), base)
@@ -210,17 +214,26 @@ object ARMMachine extends Machine[ARM] {
       load
   }
   
-  private def processLoadStore(inst: StoreInst, addr: Expr, builder: IRBuilder) = {
-    val b = builder + StStmt(builder.nextIndex, inst, addr, inst.src)
+  private def processLoadStore(inst: StoreInst, builder: IRBuilder) = {
+    import AddressingMode._
+    val (addr, b) = inst.addressingMode match {
+      case PostIndex => (inst.indexingOperand.base.get: Expr, builder)
+      case PreIndex => {
+        val ea: Expr = inst.indexingOperand
+        (ea, builder + AssignStmt(builder.nextIndex, inst, Reg(inst.indexingOperand.base.get), ea))
+      }
+      case Regular => (inst.indexingOperand: Expr, builder)
+    }
+    val bb = b + StStmt(b.nextIndex, inst, addr, inst.src)
     if (inst.addressingMode != AddressingMode.Regular)
-      b + AssignStmt(b.nextIndex, inst, Reg(inst.indexingOperand.base.get), addr)
+      bb + AssignStmt(bb.nextIndex, inst, Reg(inst.indexingOperand.base.get), addr)
     else
-      b
+      bb
   }
   
-  private def processLoadStore(inst: StoreMultipleInst, addr: Expr, builder: IRBuilder) = {
+  private def processLoadStore(inst: StoreMultipleInst, builder: IRBuilder) = {
     val sizeInBytes = wordSizeInBits / 8
-    val base = addr.asInstanceOf[Reg]
+    val base = Reg(inst.base.base.get)
     inst.srcList.foldLeft(builder) {
       case (b, reg) => {
         val stb = b + StStmt(b.nextIndex, inst, Reg(reg), base)

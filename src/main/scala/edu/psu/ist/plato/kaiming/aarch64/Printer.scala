@@ -91,9 +91,7 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
         val (indexingOperand, addressingMode) = 
           if (i.isInstanceOf[LoadStoreInst]) {
             val lsi = i.asInstanceOf[LoadStoreInst]
-            val m = lsi.addressingMode
-            val idx = lsi.indexingOperand
-            (if (m == Regular) -1 else idx, m)
+            (lsi.indexingOperandIndex, lsi.addressingMode)
           } else {
             (-1, Regular)
           }
@@ -111,7 +109,7 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
                   printOpImmediate(next.off.get.left.get)
                 }
                 case Regular =>
-                  throw new UnreachableCodeException()
+                  printOperand(i.operands(n))
               }
             } else {
               printOperand(i.operands(n))

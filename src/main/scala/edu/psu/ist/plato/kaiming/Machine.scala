@@ -4,6 +4,8 @@ import edu.psu.ist.plato.kaiming.Arch._
 
 import edu.psu.ist.plato.kaiming.ir.Stmt
 import edu.psu.ist.plato.kaiming.ir.Context
+import edu.psu.ist.plato.kaiming.ir.IRBBlock
+import edu.psu.ist.plato.kaiming.ir.IRCfg
 
 import edu.psu.ist.plato.kaiming.aarch64.AArch64Machine
 
@@ -23,24 +25,25 @@ abstract class Machine[A <: MachArch] {
   
   protected def toIRStatements(ctx: Context, inst: MachEntry[A], builder: IRBuilder): IRBuilder
   
-  def liftToIR(ctx: Context, cfg: MachCFG[A]) : Cfg.IRCfg = {
+  def liftToIR(ctx: Context, cfg: MachCFG[A]):
+      (IRCfg, Map[IRBBlock, BBlock[A]]) = {
     import scalax.collection.Graph
     import scalax.collection.edge.Implicits._
     import scalax.collection.edge.LDiEdge
     import edu.psu.ist.plato.kaiming.ir.JmpStmt
     
     val (bbs, bbmap, nStmts) = cfg.blocks.foldLeft(
-      (List[BBlock[KaiMing]](), Map[MachBBlock[A], BBlock[KaiMing]](), 0L)) {
+      (List[IRBBlock](), Map[MachBBlock[A], IRBBlock](), 0L)) {
         case ((bblist, map, start), bb) => {
           val builder = bb.foldLeft(IRBuilder(start, Nil)) {
             (b, inst) => toIRStatements(ctx, inst, b)
           }
           val irlist = builder.get
-          val irbb = new BBlock[KaiMing](ctx, irlist, Label("L_" + bblist.size))
+          val irbb = new IRBBlock(ctx, irlist, Label("L_" + bblist.size))
           (irbb::bblist, map + (bb -> irbb), builder.nextIndex)
         }
       }
-    val graph = cfg.blocks.foldLeft(Graph[BBlock[KaiMing], LDiEdge]()) {
+    val graph = cfg.blocks.foldLeft(Graph[IRBBlock, LDiEdge]()) {
       (g, bb) => {
         val irbb = bbmap.get(bb).get
         val edges = cfg.labeledPredecessors(bb).map { 
@@ -55,7 +58,8 @@ abstract class Machine[A <: MachArch] {
         if (edges.isEmpty) g + irbb else g ++ edges 
       }
     }
-    new Cfg.IRCfg(ctx, bbmap.get(cfg.entryBlock).get, graph, cfg.hasIndirectJump)
+    (new IRCfg(ctx, bbmap.get(cfg.entryBlock).get, graph, cfg.hasIndirectJump),
+        bbmap.toList.map { case (a, b) => (b, a) }.toMap)
   }
 
 }

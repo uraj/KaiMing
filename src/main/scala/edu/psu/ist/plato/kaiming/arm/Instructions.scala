@@ -334,7 +334,7 @@ case class LoadMultipleInst(override val addr: Long, override val opcode: Opcode
   
   override val indexingOperandIndex = 0
   val mode = LSMultipleMode.withName(opcode.rawcode.substring(3))
-
+  
 }
 
 case class StoreMultipleInst(override val addr: Long, override val opcode: Opcode, base: Memory, preindex: Boolean,

@@ -8,12 +8,6 @@ import scalax.collection.edge.LDiEdge
 
 import edu.psu.ist.plato.kaiming.Arch.KaiMing
 
-object Cfg {
-  
-  type IRCfg = Cfg[KaiMing, BBlock[KaiMing]]
-  
-}
-
 class Cfg[A <: Arch, B <: BBlock[A]] (val parent : Procedure[A], val entryBlock: BBlock[A],
     private val _graph: Graph[B, LDiEdge], val hasIndirectJump: Boolean)
     extends Iterable[B] {

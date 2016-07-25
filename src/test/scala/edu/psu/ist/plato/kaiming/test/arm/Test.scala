@@ -11,6 +11,9 @@ import org.scalatest.junit.JUnitRunner
 
 import org.junit.runner.RunWith
 
+import edu.psu.ist.plato.kaiming.Cfg
+import edu.psu.ist.plato.kaiming.ir.Loop
+
 import edu.psu.ist.plato.kaiming.arm.Function
 import edu.psu.ist.plato.kaiming.arm.ARMParser
 
@@ -69,6 +72,7 @@ class Test extends FunSuite with BeforeAndAfter {
     }
   }
   
+  var ctxList = Vector[Context]()
   test("Testing ARM IR lifting and UD analysis") {
     import edu.psu.ist.plato.kaiming.ir.Printer
     
@@ -77,8 +81,20 @@ class Test extends FunSuite with BeforeAndAfter {
       val ctx = new Context(func)
       Printer.out.printContextWithUDInfo(ctx)
       failure -= 1
+      ctxList = ctxList :+ ctx
     }
     
+  }
+  
+  test("Testing ARM loop detection") {
+    for (ctx <- ctxList) {
+      val loops = Loop.detectLoops(ctx.cfg)
+      print(loops.size)
+      println(" loop(s) detected in " + ctx.label)
+      for (l <- loops) {
+        println(l)
+      }
+    }
   }
   
   after {
