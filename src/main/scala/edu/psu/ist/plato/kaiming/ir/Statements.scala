@@ -7,13 +7,13 @@ import edu.psu.ist.plato.kaiming.BBlock
 import edu.psu.ist.plato.kaiming.Arch.KaiMing
 import edu.psu.ist.plato.kaiming.MachArch
 
-sealed abstract class Stmt(val usedExpr: Expr*) extends Entry[KaiMing] {
+sealed abstract class Stmt(val usedExpr: Vector[Expr]) extends Entry[KaiMing] {
+  
+  def this(exprs: Expr*) = this(exprs.toVector)
   
   val host: MachEntry[_ <: MachArch]
   
-  final def usedLvals = usedExpr.foldLeft(Set[Lval]()) {
-    (s, e) => s | e.enumLvals 
-  }
+  final def usedLvals = usedExpr.map(_.enumLvals).fold(Set[Lval]())(_|_)
   
 }
 
@@ -37,10 +37,10 @@ object JmpStmt {
 
 case class JmpStmt(override val index: Long,
     override val host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
-    target: Expr) extends Stmt(target) {
+    target: Expr) extends Stmt(target +: host.dependentFlags.map(Flg(_)).toVector) {
   
-  def dependentFlags = host.dependentFlags
-  def isConditional = !dependentFlags.isEmpty
+  def dependentFlags = host.dependentFlags.map(Flg(_))
+  def isConditional = !host.dependentFlags.isEmpty
   
   def relocate(bb: BBlock[KaiMing]) = JmpStmt.relocate(this, bb)
   def relocatedTarget = JmpStmt.lookUpRelocation(this)
@@ -50,7 +50,9 @@ case class JmpStmt(override val index: Long,
 case class RetStmt(override val index: Long, override val host: MachEntry[_ <: MachArch],
     target: Expr) extends Stmt(target)
 
-sealed abstract class DefStmt(usedExpr: Expr*) extends Stmt(usedExpr:_*) {
+sealed abstract class DefStmt(usedExpr: Vector[Expr]) extends Stmt(usedExpr) {
+  
+  def this(exprs: Expr*) = this(exprs.toVector)
   
   def definedLval: Lval
   

@@ -136,7 +136,7 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
     print("jmp")
     if (s.isConditional) {
       print('[')
-      print(s.dependentFlags.map { f => f.name }.mkString(","))
+      print(s.dependentFlags.map(_.mflag.name).mkString(","))
       print(']')
     }
     print(" ")

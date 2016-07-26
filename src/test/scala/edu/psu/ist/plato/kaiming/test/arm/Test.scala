@@ -22,16 +22,11 @@ import edu.psu.ist.plato.kaiming.ir.Context
 @RunWith(classOf[JUnitRunner])
 class Test extends FunSuite with BeforeAndAfter {
   
-  var testdir: File = null
-  var testfiles: Array[File] = null
   var total = 0
   var failure = 0
   
   before {
-    testdir = new File(getClass.getResource("/test/arm").toURI())
-    testfiles = testdir.listFiles().filter { x => x.isFile() && !x.isHidden()}
-    testfiles = testfiles.sortWith {(x, y)=> x.getName < y.getName}
-    total = testfiles.size
+
   }
   
   var testFuncs = Vector[Function]()
@@ -39,14 +34,19 @@ class Test extends FunSuite with BeforeAndAfter {
   test("Testing ARM parser and CFG construction") {
     import edu.psu.ist.plato.kaiming.arm.Printer
     
-    if (!testdir.isDirectory())
+    val testdir = new File(getClass.getResource("/test/arm").toURI)
+    val testfiles = 
+      testdir.listFiles.filter { x => x.isFile && !x.isHidden }.sortWith { _.getName < _.getName }
+    total = testfiles.size
+    
+    if (!testdir.isDirectory)
       assert(false)
 
     for (file <- testfiles) {
       println(file.getName)
       val source = Source.fromFile(file, "UTF-8")
       val input = source.mkString
-      print("Parsing " + file.getName() + " : ")
+      print("Parsing " + file.getName + " : ")
       val result: (Option[List[Function]], String) = 
         ARMParser.parseAll(ARMParser.binaryunit, input) match {
           case ARMParser.Success(value, _) => (Some(value), "")
@@ -65,9 +65,9 @@ class Test extends FunSuite with BeforeAndAfter {
             printer.printCFG(func.cfg)
           }
           testFuncs ++= funcs
-          source.close()
-          printer.close()
-          println(baos.toString())
+          source.close
+          printer.close
+          println(baos.toString)
       }
     }
   }

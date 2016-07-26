@@ -49,7 +49,7 @@ object Context {
                 case Reg(r) if !map.contains(lv) => Reg(r.containingRegister)
                 case _ => lv
               }
-              val mapp = if (!map.contains(key)) (map + (key -> Set[Definition](Init))) else map
+              val mapp = if (!map.contains(key)) (map + (key -> Set[Definition]())) else map
               _UDMap += (stmt -> (_UDMap.get(stmt).get + (lv -> mapp.get(key).get)))
               mapp
             }
