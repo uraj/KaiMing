@@ -1,12 +1,32 @@
 package edu.psu.ist.plato.kaiming.ir
 
 import edu.psu.ist.plato.kaiming._
+import edu.psu.ist.plato.kaiming.Arch.KaiMing
 import edu.psu.ist.plato.kaiming.ir.dataflow.PathInsensitiveProblem
 import edu.psu.ist.plato.kaiming.ir.dataflow.Forward
 
+import scalax.collection.Graph
+import scalax.collection.edge.LDiEdge
+
+class IRCfg(override val parent : Context, override val entryBlock: IRBBlock,
+    graph: Graph[IRBBlock, LDiEdge], hasIndirectJump: Boolean,
+    private val _bbmap: Map[IRBBlock, MachBBlock[_]])
+    extends Cfg[KaiMing, IRBBlock](parent, entryBlock, graph, hasIndirectJump) {
+  
+  def getMachBBlock(irbb: IRBBlock) = _bbmap.get(irbb)
+  
+}
+
 object Context {
   
-  sealed trait Definition
+  sealed trait Definition {
+    
+    def get = this match {
+      case Def(s) => s
+      case Init => throw new NoSuchElementException
+    }
+    
+  }
   case class Def(s: DefStmt) extends Definition
   case object Init extends Definition
   
@@ -18,13 +38,11 @@ object Context {
   private class ReachingDefinition(ctx: Context)
       extends PathInsensitiveProblem[UseDefChain](ctx, Forward, Int.MaxValue) {
     
-    private type BB = BBlock[Arch.KaiMing]
-    
     // There is a way to implement this in a more functional way, but
     // that takes too much effort which is not quite worth it
     private var _UDMap = ctx.entries.map { s => (s -> UseDefChain()) }.toMap
     
-    override protected def getInitialEntryState(bb: BB) = {
+    override protected def getInitialEntryState(bb: IRBBlock) = {
       if (ctx.cfg.entryBlock == bb)
         ctx.mach.registers.map { r => (Reg(r) -> Set[Definition](Init)) }.toMap
       else
@@ -39,7 +57,7 @@ object Context {
       }
     }
     
-    override protected def transfer(bb: BB, in: UseDefChain) = {
+    override protected def transfer(bb: IRBBlock, in: UseDefChain) = {
       bb.foldLeft(in) {
         (udc, entry) => {
           val stmt: Stmt = entry
@@ -91,7 +109,7 @@ class Context (val proc: MachProcedure[_ <: MachArch])
   private val _varMap = scala.collection.mutable.Map[String, Var]()
   
   override val label = proc.label
-  val (cfg, mapToMachBBlock) = proc.liftCFGToIR(this)
+  val cfg = proc.liftCFGToIR(this)
 
   override def deriveLabelForIndex(index: Long) = {
     Label("_sub_" + index.toHexString)

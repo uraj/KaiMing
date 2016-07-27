@@ -25,8 +25,7 @@ abstract class Machine[A <: MachArch] {
   
   protected def toIRStatements(ctx: Context, inst: MachEntry[A], builder: IRBuilder): IRBuilder
   
-  def liftToIR(ctx: Context, cfg: MachCFG[A]):
-      (IRCfg, Map[IRBBlock, BBlock[A]]) = {
+  def liftToIR(ctx: Context, cfg: MachCFG[A]): IRCfg = {
     import scalax.collection.Graph
     import scalax.collection.edge.Implicits._
     import scalax.collection.edge.LDiEdge
@@ -58,7 +57,7 @@ abstract class Machine[A <: MachArch] {
         if (edges.isEmpty) g + irbb else g ++ edges 
       }
     }
-    (new IRCfg(ctx, bbmap.get(cfg.entryBlock).get, graph, cfg.hasIndirectJump),
+    new IRCfg(ctx, bbmap.get(cfg.entryBlock).get, graph, cfg.hasIndirectJump,
         bbmap.toList.map { case (a, b) => (b, a) }.toMap)
   }
 

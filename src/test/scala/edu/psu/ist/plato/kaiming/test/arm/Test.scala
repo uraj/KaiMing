@@ -93,6 +93,7 @@ class Test extends FunSuite with BeforeAndAfter {
       println(" loop(s) detected in " + ctx.label)
       for (l <- loops) {
         println(l)
+        Deflat.deflatten(ctx, l)
       }
     }
   }

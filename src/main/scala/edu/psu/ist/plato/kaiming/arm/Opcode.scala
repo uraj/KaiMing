@@ -33,7 +33,6 @@ object Opcode {
     case object POP extends Mnemonic
     case object CMP extends Mnemonic
     case object CMN extends Mnemonic
-    case object SEL extends Mnemonic
     case object MOV extends Mnemonic
     case object MOVT extends Mnemonic
     case object B extends Mnemonic
@@ -44,6 +43,7 @@ object Opcode {
     case object TST extends Mnemonic
     case object TEQ extends Mnemonic
     case object CLZ extends Mnemonic
+    case object ADR extends Mnemonic
   }
   
   import Mnemonic._
@@ -53,6 +53,7 @@ object Opcode {
       case STR => List("STR", "STRB", "STRSB", "STRH", "STRSH").map((_ -> mnem))
       case PUSH => List("PUSH").map((_ -> mnem))
       case POP => List("POP").map((_ -> mnem))
+      case ADR => List("ADR").map((_ -> mnem))
       case ADD => List("ADD", "ADDS", "ADC", "ADCS").map((_ -> mnem))
       case SUB => List("SUB", "SUBS", "SBC", "SBCS", "RSB", "RSBS", "RSC", "RSCS").map((_ -> mnem))
       case AND => List("AND", "ANDS").map((_ -> mnem))
@@ -65,7 +66,6 @@ object Opcode {
       case BL => List("BL", "BLX").map((_ -> mnem))
       case CMP => List("CMP").map((_ -> mnem))
       case CMN => List("CMN").map((_ -> mnem))
-      case SEL => List("SEL").map((_ -> mnem))
       case LSL => List("LSL").map((_ -> mnem))
       case LSR => List("LSR").map((_ -> mnem))
       case RRX => List("RRX").map((_ -> mnem))
@@ -80,10 +80,7 @@ object Opcode {
       case EOR => List("EOR").map((_ -> mnem))
       case BIC => List("BIC").map((_ -> mnem))
       case NOP => List("NOP").map((_ -> mnem))
-      // FIXME: Any ARM instruction can have an optional condition code, but
-      // it is mostly seen in MOV. In case of other appearances, we should make the
-      // parser handle it specially
-      case MOV =>  ("MOV"+:(Condition.values.map("MOV" + _.entryName))).map((_ -> mnem))
+      case MOV => List("MOV").map((_ -> mnem))
       case LDM => LSMultipleMode.values.map("LDM" + _.entryName).map((_ -> mnem))
       case STM => LSMultipleMode.values.map("STM" + _.entryName).map((_ -> mnem))
     })
@@ -93,19 +90,14 @@ object Opcode {
 
 case class Opcode(rawcode: String) {
   
+  // FIXME: Not all ARM instructions have the optional condition code at the end.
   val (mnemonic, condition) = {
-    if (rawcode.contains('.')) {
-      val parts = rawcode.split("\\.")
-      assert(parts.length <= 2 && parts(0).equals("B"))
-      (Opcode.Mnemonic.B, Condition.withName(parts(1).toUpperCase()))
-    } else {
-      Opcode._rawToMnem.get(rawcode) match {
-        case Some(mnem) => (mnem, Condition.AL)
-        case None => { 
-          val len = rawcode.length
-          (Opcode._rawToMnem.get(rawcode.substring(0, len - 2)).get,
-              Condition.withName(rawcode.substring(len - 2)))
-        }
+    Opcode._rawToMnem.get(rawcode) match {
+      case Some(mnem) => (mnem, Condition.AL)
+      case None => { 
+        val len = rawcode.length
+        (Opcode._rawToMnem.get(rawcode.substring(0, len - 2)).get,
+            Condition.withName(rawcode.substring(len - 2)))
       }
     }
   }

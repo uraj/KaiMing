@@ -67,8 +67,11 @@ object AssignStmt {
 }
 
 case class AssignStmt(override val index: Long, override val host: MachEntry[_ <: MachArch],
-    override val definedLval: Lval, usedRval: Expr, range: (Int, Int))
-    extends DefStmt(usedRval) {
+    override val definedLval: Lval, usedRval: Expr, range: (Int, Int)) extends DefStmt(
+        if (range._1 == 0 && range._2 == definedLval.sizeInBits)
+          Vector(usedRval)
+        else
+          Vector(definedLval, usedRval)) {
   
   def isPartial = range._1 != 0 || range._2 != definedLval.sizeInBits
   

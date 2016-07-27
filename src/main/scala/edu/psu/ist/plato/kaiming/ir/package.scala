@@ -7,6 +7,5 @@ package object ir {
   implicit def toIRStmt(e: Entry[KaiMing]) = e.asInstanceOf[Stmt]
   
   type IRBBlock = BBlock[KaiMing]
-  type IRCfg = Cfg[KaiMing, IRBBlock]
   
 }

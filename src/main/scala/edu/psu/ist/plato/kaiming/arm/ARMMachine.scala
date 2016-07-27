@@ -144,8 +144,13 @@ object ARMMachine extends Machine[ARM] {
   
   private def toIR(inst: MoveInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
-    val boundSig = if (inst.doesKeep) 16 else lv.sizeInBits
-    builder + AssignStmt(builder.nextIndex, inst, lv, inst.src, (0, boundSig))
+    if (inst.isConditional) {
+      builder + SelStmt(builder.nextIndex, inst, lv, inst.condition, inst.src, lv)
+    }
+    else {
+      val boundInsig = if (inst.isMoveTop) 16 else 0
+      builder + AssignStmt(builder.nextIndex, inst, lv, inst.src, (boundInsig, 32))
+    }
   }
   
   private def toIR(inst: CompareInst, builder: IRBuilder) = {
@@ -251,14 +256,10 @@ object ARMMachine extends Machine[ARM] {
     builder + {
       inst.opcode.mnemonic match {
         case NOT => AssignStmt(builder.nextIndex, inst, lv, Const(0).sub(inst.src))
+        case ADR => AssignStmt(builder.nextIndex, inst, lv, inst.src)
         case _ => throw new UnreachableCodeException()
       }
     }
-  }
-  
-  private def toIR(inst: SelectInst, builder: IRBuilder) = {
-    builder + SelStmt(builder.nextIndex, inst, Reg(inst.dest),
-        inst.condition, inst.srcTrue, inst.srcFalse)
   }
   
   private def toIR(ctx: Context, inst: LongMulInst, builder: IRBuilder) = {
@@ -279,7 +280,6 @@ object ARMMachine extends Machine[ARM] {
       case i: BranchInst => toIR(i, builder)
       case i: CompareInst => toIR(i, builder)
       case i: MoveInst => toIR(i, builder)
-      case i: SelectInst => toIR(i, builder)
       case i: LoadStoreInst => toIR(ctx, i, builder)
       case i: NopInst => builder
     }

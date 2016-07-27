@@ -21,9 +21,7 @@ object Instruction {
   implicit def toInstruction(entry: Entry[ARM]) = 
     entry.asInstanceOf[Instruction]
   
-  def create(addr: Long, opcode: Opcode, oplist: Vector[Operand],
-      cond: Option[Condition], preidx: Boolean): Instruction = {
-    val condition = cond.getOrElse(Condition.AL)
+  def create(addr: Long, opcode: Opcode, oplist: Vector[Operand], preidx: Boolean): Instruction = {
     import edu.psu.ist.plato.kaiming.arm.Opcode.Mnemonic._
     opcode.mnemonic match {
       case ADD | SUB | MUL | DIV | ASR | LSL | LSR | ORR | ORN | AND | BIC | EOR=> 
@@ -39,10 +37,13 @@ object Instruction {
           require(op.isRegister)
         LongMulInst(addr, opcode, oplist(0).asRegister, oplist(1).asRegister,
             oplist(2).asRegister, oplist(3).asRegister)
-      case NOT | CLZ | RRX =>
+      case NOT | CLZ | RRX | ADR =>
         require(oplist.length == 2)
         require(oplist(0).isRegister && (oplist(1).isRegister || oplist(1).isImmediate))
         UnaryArithInst(addr, opcode, oplist(0).asRegister, oplist(1))
+      case LDR if oplist(1).isImmediate => // LDR Rx, =imm
+        require(oplist.length == 2 && oplist(0).isRegister)
+        MoveInst(addr, opcode, oplist(0).asRegister, oplist(1))
       case LDR | STR => {
         require(oplist.length == 2 || oplist.length == 3)
         require(oplist(0).isRegister && oplist(1).isMemory)
@@ -88,11 +89,6 @@ object Instruction {
         require(oplist.length == 2)
         require(oplist(0).isRegister && (oplist(1).isRegister || oplist(1).isImmediate))
         CompareInst(addr, opcode, oplist(0).asRegister, oplist(1))
-      case SEL =>
-        require(oplist.length == 3)
-        require(oplist(0).isRegister && oplist(1).isRegister && oplist(2).isRegister)
-        SelectInst(addr, opcode, oplist(0).asRegister, 
-            oplist(1).asRegister, oplist(2).asRegister, condition)
       case MOV | MOVT =>
         require(oplist.length == 2)
         require(oplist(0).isRegister)
@@ -184,14 +180,11 @@ object Extension {
 case class ExtensionInst(override val addr: Long, override val opcode: Opcode,
     dest: Register, src: Register) extends Instruction(dest, src) {
   
-  val extension = {
-    val first = opcode.rawcode.charAt(0)
-    if (first == 'S')
+  val extension =
+    if (opcode.rawcode.charAt(0) == 'S')
       Extension.Signed
     else
       Extension.Unsigned
-      
-  }
   
 }
 
@@ -199,13 +192,11 @@ case class ExtractInst(override val addr: Long, override val opcode: Opcode,
     dest: Register, src: Register, lsb: Immediate, width: Immediate)
   extends Instruction(dest, src, lsb, width) {
   
-  val extension = {
-    val first = opcode.rawcode.charAt(0)
-    if (first == 'S')
+  val extension =
+    if (opcode.rawcode.charAt(0) == 'S')
       Extension.Signed
     else
       Extension.Unsigned
-  }
   
 }
 
@@ -245,7 +236,9 @@ case class BranchInst(override val addr: Long, override val opcode: Opcode,
 case class MoveInst(override val addr: Long, override val opcode: Opcode,
     dest: Register, src: Operand) extends Instruction(dest, src) {
   
-  val doesKeep = opcode.mnemonic == Opcode.Mnemonic.MOVT
+  val isMoveTop = opcode.mnemonic == Opcode.Mnemonic.MOVT
+  def condition = opcode.condition
+  val isConditional = condition != Condition.AL
   
 }
 
@@ -345,9 +338,11 @@ case class StoreMultipleInst(override val addr: Long, override val opcode: Opcod
   
 }
 
+/*
 case class SelectInst(override val addr: Long, override val opcode: Opcode,
     dest: Register, srcTrue: Register, srcFalse: Register, condition: Condition)
     extends Instruction(dest, srcTrue, srcFalse)  
+*/
 
 case class NopInst(override val addr: Long, override val opcode: Opcode)
     extends Instruction()

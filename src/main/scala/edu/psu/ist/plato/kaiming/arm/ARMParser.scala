@@ -126,33 +126,30 @@ object ARMParser extends RegexParsers() {
   }
   
   private def poppush: Parser[Instruction] = address ~ ("(?i)PUSH|POP".r) ~ reglist <~ nl ^^ {
-    case addr ~ rawcode ~ oplist => Instruction.create(addr, Opcode(rawcode), oplist.toVector, None, false)
+    case addr ~ rawcode ~ oplist => Instruction.create(addr, Opcode(rawcode), oplist.toVector, false)
   }
   
   private def lsm: Parser[Instruction] =
     address ~ ("(?i)(LDM|STM)(" + LSMultipleMode.values.map(_.entryName).mkString("|") + ")").r ~
     (reg) ~ ("!" ?) ~ ("," ~> reglist) <~ nl ^^ {
       case addr ~ rawcode ~ base ~ preidx ~ rlist => 
-        Instruction.create(addr, Opcode(rawcode), (base::rlist).toVector, None, preidx.isDefined)
+        Instruction.create(addr, Opcode(rawcode), (base::rlist).toVector, preidx.isDefined)
   }
   
   private def ldrAsMove: Parser[Instruction] = address ~ "(?i)LDR".r ~ (reg <~ ",") ~ ("=" ~> positive) <~ nl ^^ {
     case addr ~ rawcode ~ dest ~ imm =>
-      Instruction.create(addr, Opcode("MOV"), Vector(dest, Immediate(imm)), None, false)
+      Instruction.create(addr, Opcode(rawcode.toUpperCase), Vector(dest, Immediate(imm)), false)
   }
   
-  private def mnemonic: Parser[String] = 
-    ("""(?i)[a-z]+([a-z\d])*((\.(""" + Condition.values.map(_.entryName).mkString("|") + "))?)").r
+  private def mnemonic: Parser[String] = """(?i)[a-z]+([a-z\d])*""".r
   
-  private def opcode: Parser[Opcode] = mnemonic ^^ {
-    case opcode => Opcode(opcode.toUpperCase)
-  }
+  private def opcode: Parser[Opcode] = mnemonic ^^ { case opcode => Opcode(opcode.toUpperCase) }
 
-  private def inst: Parser[Instruction] = address ~ opcode ~ (operands ?) ~ (("," ~> cond) ?) <~ nl ^^ {
-    case addr ~ code ~ oplist ~ cond => oplist match {
-      case None => Instruction.create(addr, code, Vector[Operand](), cond, false)
+  private def inst: Parser[Instruction] = address ~ opcode ~ (operands ?) <~ nl ^^ {
+    case addr ~ code ~ oplist => oplist match {
+      case None => Instruction.create(addr, code, Vector[Operand](), false)
       case Some(operands) => 
-        Instruction.create(addr, code, operands._1.toVector, cond, operands._2)
+        Instruction.create(addr, code, operands._1.toVector, operands._2)
     }
   }
   

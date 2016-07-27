@@ -72,6 +72,7 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
   def printInstruction(i: Instruction) {
     print(i.opcode.rawcode)
     print('\t')
+    val operands = i.operands 
     i match {
       case b: BranchInst =>
         if (!b.isReturn) {
@@ -86,6 +87,20 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
             }
           }
         }
+      case lsm if (lsm.isInstanceOf[LoadMultipleInst] || lsm.isInstanceOf[StoreMultipleInst]) => {
+        printOpRegister(operands(0).asMemory.base.get)
+        print("!, {")
+        for (op <- operands.slice(1, operands.size - 1)) {
+          printOperand(op)
+          print(", ")
+        }
+        printOperand(i.operands.last)
+        print("}")
+      }
+      case m: MoveInst if m.opcode.mnemonic == Opcode.Mnemonic.LDR =>
+        printOpRegister(m.dest)
+        print(", =0x")
+        print(m.src.asImmediate.value.toHexString)
       case _ => {
         import AddressingMode._
         val (indexingOperand, addressingMode) = 
@@ -95,34 +110,30 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
           } else {
             (-1, Regular)
           }
-        (0 until i.operands.size).foreach {
+        (0 until operands.size).foreach {
           n => 
             if (n == indexingOperand) {
               addressingMode match {
                 case PreIndex => {
-                  printOperand(i.operands(n))
+                  printOperand(operands(n))
                   print('!')
                 }
                 case PostIndex => {
-                  val next = i.operands(n).asMemory
+                  val next = operands(n).asMemory
                   printOperand(next.base.get)
                   print(", ")
                   printOpImmediate(next.off.get.left.get)
                 }
                 case Regular =>
-                  printOperand(i.operands(n))
+                  printOperand(operands(n))
               }
             } else {
-              printOperand(i.operands(n))
+              printOperand(operands(n))
             }
-            if (n != i.operands.size - 1)
+            if (n != operands.size - 1)
               print(", ")
         }
       }
-    }
-    if (i.isInstanceOf[SelectInst]) {
-      print(", ")
-      print(i.asInstanceOf[SelectInst].condition.entryName)
     }
   }
   
