@@ -13,8 +13,7 @@ abstract class Cfg[A <: Arch, B <: BBlock[A]] (val parent : Procedure[A], val en
     extends Iterable[B] {
   
   lazy val blocks = _graph.nodes.map(_.value).toVector.sorted[BBlock[A]]
-  def entries = 
-    blocks.foldLeft(List[B]()){ (a, b) => b::a }.flatMap(_.entries)
+  def entries = blocks.flatMap(_.entries)
   def iterator = blocks.iterator
   
   import scala.language.postfixOps

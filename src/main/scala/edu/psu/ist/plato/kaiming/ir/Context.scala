@@ -109,7 +109,7 @@ class Context (val proc: MachProcedure[_ <: MachArch])
   private val _varMap = scala.collection.mutable.Map[String, Var]()
   
   override val label = proc.label
-  val cfg = proc.liftCFGToIR(this)
+  override val cfg = proc.liftCFGToIR(this)
 
   override def deriveLabelForIndex(index: Long) = {
     Label("_sub_" + index.toHexString)

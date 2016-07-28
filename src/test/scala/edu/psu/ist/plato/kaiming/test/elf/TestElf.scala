@@ -3,13 +3,11 @@ package edu.psu.ist.plato.kaiming.test.elf
 import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfter
 import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
 
 import edu.psu.ist.plato.kaiming.elf.Elf
 
 import scodec.bits._
 
-@RunWith(classOf[JUnitRunner])
 class TestElf extends FunSuite {
   test("") {
     val input = 

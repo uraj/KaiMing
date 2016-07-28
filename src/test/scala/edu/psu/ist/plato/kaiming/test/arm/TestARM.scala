@@ -14,7 +14,7 @@ import edu.psu.ist.plato.kaiming.arm.Function
 import edu.psu.ist.plato.kaiming.arm.ARMParser
 import edu.psu.ist.plato.kaiming.ir.Context
 
-class Test extends FunSuite with BeforeAndAfter {
+class TestARM extends FunSuite with BeforeAndAfter {
   
   var total = 0
   var failure = 0

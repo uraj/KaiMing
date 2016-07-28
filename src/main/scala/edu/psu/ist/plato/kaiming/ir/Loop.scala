@@ -54,29 +54,30 @@ object Loop {
     backEdges.foldLeft(Set[Loop]()) { 
       (s, x) => s + 
         findLoopNodes(cfg, x, 
-            allBBs.filter(newDominators.get(_).orNull.contains(x._2)))
+            allBBs.filter(newDominators.get(_).get.contains(x._2)))
     }
   }
   
   private def findLoopNodes(cfg: IRCfg,
       backEdge: (IRBBlock, IRBBlock),
       candidates: Set[IRBBlock]): Loop = {
+    val visited = Set[IRBBlock](backEdge._2)
     new Loop(
         backEdge._2,
-        candidates.foldLeft(Set(backEdge._1, backEdge._2)) {
+        candidates.foldLeft(Set[IRBBlock]()) {
           (set, bb) =>
             if (set.contains(bb))
               set
             else
-              reachable(cfg, bb, backEdge._1, candidates, set, Set[IRBBlock]())._2 
-    }, cfg)
+              reachable(cfg, bb, backEdge._1, candidates, set, visited)._2 
+    } ++ Set(backEdge._1, backEdge._2), cfg)
   }
   
   private def reachable(cfg: IRCfg, start: IRBBlock, end: IRBBlock,
       candidates: Set[IRBBlock], ret: Set[IRBBlock],
       visited: Set[IRBBlock]): (Boolean, Set[IRBBlock]) = {
-    if (start.equals(end))
-      (true, ret + start)
+    if (start == end)
+      (true, ret)
     else {
       val (c, s) = cfg.successors(start).foldLeft((false, ret)) {
         case ((canReach, set), bb) =>
@@ -84,8 +85,10 @@ object Loop {
             (canReach, set)
           else if (visited.contains(bb))
             (canReach || ret.contains(bb), set)
-          else 
-            reachable(cfg, bb, end, candidates, ret, visited + start)
+          else { 
+            val (c, s) = reachable(cfg, bb, end, candidates, ret, visited + start)
+            (canReach || c, s)
+          }
       }
       (c, if (c) s + start else s)
     }

@@ -14,7 +14,7 @@ import edu.psu.ist.plato.kaiming.aarch64.AArch64Parser
 
 import edu.psu.ist.plato.kaiming.ir.Context
 
-class Test extends FunSuite with BeforeAndAfter {
+class TestAArch64 extends FunSuite with BeforeAndAfter {
   
   var testdir: File = null
   var testfiles: Array[File] = null
