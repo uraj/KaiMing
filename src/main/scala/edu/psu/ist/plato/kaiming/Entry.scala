@@ -3,7 +3,10 @@ package edu.psu.ist.plato.kaiming
 object Entry {
   
   def search[A <: Arch](entries: Seq[Entry[A]], idx: Long) =
-    entries.map(x => x.index).indexOf(idx)
+    entries.map(x => x.index).indexOf(idx) match {
+      case -1 => None
+      case i => Some(i)
+    }
 
 }
 

@@ -2,6 +2,8 @@ package edu.psu.ist.plato.kaiming.arm
 
 import enumeratum._
 
+import edu.psu.ist.plato.kaiming.exception.UnreachableCodeException
+
 object Opcode {
   
   sealed trait Mnemonic extends EnumEntry
@@ -44,6 +46,9 @@ object Opcode {
     case object TEQ extends Mnemonic
     case object CLZ extends Mnemonic
     case object ADR extends Mnemonic
+    case object BFC extends Mnemonic
+    case object BFI extends Mnemonic
+    
   }
   
   import Mnemonic._
@@ -83,6 +88,8 @@ object Opcode {
       case MOV => List("MOV").map((_ -> mnem))
       case LDM => LSMultipleMode.values.map("LDM" + _.entryName).map((_ -> mnem))
       case STM => LSMultipleMode.values.map("STM" + _.entryName).map((_ -> mnem))
+      case BFC => List("BFC").map((_ -> mnem))
+      case BFI => List("BFI").map((_ -> mnem))
     })
   }
   
@@ -90,14 +97,23 @@ object Opcode {
 
 case class Opcode(rawcode: String) {
   
-  // FIXME: Not all ARM instructions have the optional condition code at the end.
+  // FIXME: Not all ARM instructions put the optional condition code at the end.
   val (mnemonic, condition) = {
     Opcode._rawToMnem.get(rawcode) match {
       case Some(mnem) => (mnem, Condition.AL)
-      case None => { 
+      case None => {
         val len = rawcode.length
         (Opcode._rawToMnem.get(rawcode.substring(0, len - 2)).get,
-            Condition.withName(rawcode.substring(len - 2)))
+            Condition.withNameOption(rawcode.substring(len - 2)) match {
+              case Some(c) => c
+              case None => {
+                val alias = Map(("CC" -> Condition.LO), ("CS" -> Condition.HS)) 
+                alias.get(rawcode.substring(len - 2)) match {
+                  case Some(c) => c
+                  case None => throw new UnreachableCodeException("Unrecognized opcode: " + rawcode)
+                }
+              }
+            })
       }
     }
   }

@@ -22,16 +22,26 @@ sealed trait Operand {
   
 }
 
+sealed trait OffSign
+case object Positive extends OffSign
+case object Negative extends OffSign
+
 object Memory {
-    
-  def get(base: Register) = Memory(Some(base), None)
-  def get(imm: Immediate) = Memory(None, Some(Left(imm)))
-  def get(base: Register, imm: Immediate) = Memory(Some(base), Some(Left(imm)))
-  def get(base: Register, off: Register) = Memory(Some(base), Some(Right(off)))
   
+  def get(base: Register) =
+    Memory(Some(base), Left(0))
+    
+  def get(imm: Long) = Memory(None, Left(imm))
+
+  def get(base: Register, imm: Long) = 
+    Memory(Some(base), Left(imm))
+    
+  def get(base: Register, off: Register, sign: OffSign = Positive) =
+    Memory(Some(base), Right((sign, off)))
+
 }
 
-case class Memory(base: Option[Register], off: Option[Either[Immediate, Register]])
+case class Memory(base: Option[Register], off: Either[Long, Tuple2[OffSign, Register]])
   extends Operand {
   
   override def asMemory = asInstanceOf[Memory]
@@ -54,7 +64,12 @@ case class Immediate(val value: Long) extends Operand {
 sealed abstract class Shift { val value: Int }
 case class Asr(override val value: Int) extends Shift
 case class Lsl(override val value: Int) extends Shift
+case class Lsr(override val value: Int) extends Shift
 case class Ror(override val value: Int) extends Shift
+case class Rrx() extends Shift {
+  override val value = throw new UnsupportedOperationException
+}
+
 
 object Register {
   

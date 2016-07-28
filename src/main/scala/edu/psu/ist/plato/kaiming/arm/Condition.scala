@@ -21,7 +21,7 @@ sealed abstract class Condition(val dependentFlags: Set[Flag]) extends EnumEntry
 object Condition extends Enum[Condition] {
   
   val values = findValues
-  
+    
   case object AL extends Condition(Set[Flag]())
   case object NV extends Condition(AL)
   case object EQ extends Condition(Set[Flag](Flag.Z))

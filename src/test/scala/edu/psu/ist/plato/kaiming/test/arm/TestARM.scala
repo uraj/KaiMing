@@ -18,11 +18,7 @@ class TestARM extends FunSuite with BeforeAndAfter {
   
   var total = 0
   var failure = 0
-  
-  before {
 
-  }
-  
   var testFuncs = Vector[Function]()
   
   test("Testing ARM parser and CFG construction") {

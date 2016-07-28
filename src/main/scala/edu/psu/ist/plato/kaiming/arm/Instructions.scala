@@ -24,7 +24,7 @@ object Instruction {
   def create(addr: Long, opcode: Opcode, oplist: Vector[Operand], preidx: Boolean): Instruction = {
     import edu.psu.ist.plato.kaiming.arm.Opcode.Mnemonic._
     opcode.mnemonic match {
-      case ADD | SUB | MUL | DIV | ASR | LSL | LSR | ORR | ORN | AND | BIC | EOR=> 
+      case ADD | SUB | MUL | DIV | ASR | LSL | LSR | ORR | ORN | AND | BIC | EOR => 
         require(oplist.length == 3 || oplist.length == 2)
         require(oplist(0).isRegister)
         if (oplist.length == 3)
@@ -52,8 +52,8 @@ object Instruction {
         val (mem, mode) = 
         if (oplist.length == 3) {
           require(!preidx && oplist(2).isImmediate)
-          val off = Left(oplist(2).asImmediate)
-          (Memory(m.base, Some(off)), AddressingMode.PostIndex)
+          val off = Left(oplist(2).asImmediate.value)
+          (Memory(m.base, off), AddressingMode.PostIndex)
         } else {
           (m, if (preidx) AddressingMode.PreIndex else AddressingMode.Regular)
         }
@@ -111,7 +111,14 @@ object Instruction {
         } else {
           BranchInst(addr, opcode, Register.get("X30"))
         }
-      
+      case BFC =>
+        require(oplist.length == 3)
+        BitfieldClearInst(addr, opcode, oplist(0).asRegister, oplist(1).asImmediate,
+            oplist(2).asImmediate)
+      case BFI =>
+        require(oplist.length == 4)
+        BitfieldInsertInst(addr, opcode, oplist(0).asRegister, oplist(2).asRegister,
+            oplist(1).asImmediate, oplist(2).asImmediate)
       case NOP => NopInst(addr, opcode)
     }
     
@@ -200,6 +207,14 @@ case class ExtractInst(override val addr: Long, override val opcode: Opcode,
   
 }
 
+case class BitfieldInsertInst(override val addr: Long, override val opcode: Opcode,
+    dest: Register, src: Register, lsb: Immediate, width: Immediate)
+    extends Instruction(dest, src, lsb, width)
+    
+case class BitfieldClearInst(override val addr: Long, override val opcode: Opcode,
+    dest: Register, lsb: Immediate, width: Immediate)
+    extends Instruction(dest, lsb, width)
+
 object BranchInst {
   import scala.collection.mutable.Map
   private val _belongs = Map[BranchInst, MachBBlock[ARM]]()
@@ -224,7 +239,7 @@ case class BranchInst(override val addr: Long, override val opcode: Opcode,
       throw new UnsupportedOperationException()
     else
       target.asMemory.off match {
-        case Some(Left(imm)) => imm.value
+        case Left(imm) => imm
         case _ => throw new UnsupportedOperationException()
     }
   override def relocate(target: MachBBlock[ARM]) = 
@@ -337,12 +352,6 @@ case class StoreMultipleInst(override val addr: Long, override val opcode: Opcod
   val mode = LSMultipleMode.withName(opcode.rawcode.substring(3))
   
 }
-
-/*
-case class SelectInst(override val addr: Long, override val opcode: Opcode,
-    dest: Register, srcTrue: Register, srcFalse: Register, condition: Condition)
-    extends Instruction(dest, srcTrue, srcFalse)  
-*/
 
 case class NopInst(override val addr: Long, override val opcode: Opcode)
     extends Instruction()

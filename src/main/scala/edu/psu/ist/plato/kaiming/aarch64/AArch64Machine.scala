@@ -107,7 +107,7 @@ object AArch64Machine extends Machine[AArch64] {
       case LSL => inst.srcLeft.shl(inst.srcRight)
       case LSR => inst.srcLeft.shr(inst.srcRight)
       case ORR => inst.srcLeft.or(inst.srcRight)
-      case ORN => inst.srcLeft.or(inst.srcRight).not
+      case ORN => inst.srcLeft.or(inst.srcRight.not)
       case AND => inst.srcLeft.and(inst.srcRight)
       case _ => throw new UnreachableCodeException()
     }

@@ -45,8 +45,9 @@ object MachProcedure {
         if (sorted(i).isTerminator) {
           val term = sorted(i).asInstanceOf[Terminator[A]]
           val nvec = if (!term.isCall) vec :+ (i + 1) else vec
-          if (term.isIntraprocedural && !term.isIndirect && term.isTargetConcrete)
-            nvec :+ Entry.search(sorted, term.targetIndex)
+          if (term.isIntraprocedural && !term.isIndirect && term.isTargetConcrete) {
+            nvec :+ Entry.search(sorted, term.targetIndex).get
+          }
           else
             nvec
         } else {

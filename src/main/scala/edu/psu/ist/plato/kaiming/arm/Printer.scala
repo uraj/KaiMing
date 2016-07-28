@@ -44,21 +44,26 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
   }
   
   def printOpMemory(mem: Memory) {
-    print('[')
     mem.base match {
-      case Some(base) => printOpRegister(base)
-      case None =>
-    }
-    mem.off match {
-      case Some(off) =>
-        print(", ")
-        off match {
-          case Left(imm) => printOpImmediate(imm)
-          case Right(reg) => printOpRegister(reg)
+      case Some(base) =>
+        print('[')
+        printOpRegister(base)
+        mem.off match {
+          case Left(imm) =>
+            if (imm != 0) {
+              print(", #")
+              printSignedHex(imm)
+            }
+          case Right(reg) =>
+            print(", ")
+            if (reg._1 == Negative)
+              print('-')
+            printOpRegister(reg._2)
         }
+        print(']')
       case None =>
+        printSignedHex(mem.off.left.get)
     }
-    print(']')
   }
   
   def printOperand(o: Operand) = {
@@ -81,8 +86,8 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
             case None => 
               b.target match {
                 case r: Register => printOpRegister(r)
-                case Memory(base, Some(Left(off))) => 
-                  printSignedHex(off.value)
+                case Memory(base, Left(off)) => 
+                  printSignedHex(off)
                 case _ => throw new UnreachableCodeException()
             }
           }
@@ -99,8 +104,8 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
       }
       case m: MoveInst if m.opcode.mnemonic == Opcode.Mnemonic.LDR =>
         printOpRegister(m.dest)
-        print(", =0x")
-        print(m.src.asImmediate.value.toHexString)
+        print(", =")
+        printSignedHex(m.src.asImmediate.value)
       case _ => {
         import AddressingMode._
         val (indexingOperand, addressingMode) = 
@@ -121,8 +126,8 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
                 case PostIndex => {
                   val next = operands(n).asMemory
                   printOperand(next.base.get)
-                  print(", ")
-                  printOpImmediate(next.off.get.left.get)
+                  print(", #")
+                  printSignedHex(next.off.left.get)
                 }
                 case Regular =>
                   printOperand(operands(n))

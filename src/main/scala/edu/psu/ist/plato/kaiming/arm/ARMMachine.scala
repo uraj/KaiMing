@@ -27,23 +27,25 @@ object ARMMachine extends Machine[ARM] {
         case Asr(v) => ret.sar(Const(v))
         case Lsl(v) => ret.shl(Const(v))
         case Ror(v) => ret.ror(Const(v))
+        case Lsr(v) => ret.shr(Const(v))
+        case Rrx() => ret.ror(Const(1))
       }
     }
   }
   
   private implicit def toExpr(mem: Memory): Expr = {
-    val ret: Option[Expr] = mem.base.map { x => x }
+    val left = mem.base
     mem.off match {
-      case None => ret.get
-      case Some(off) => {
-        val oe: Expr = off match {
-          case Left(imm) => imm
-          case Right(reg) => reg
-        }
-        ret match {
-          case Some(expr) => expr.add(oe)
-          case None => oe
-        }
+      case Left(imm) => left match {
+        case None => Const(imm)
+        case Some(expr) =>
+          if (imm == 0) expr 
+          else if (imm > 0) expr.add(Const(imm))
+          else expr.sub(Const(-imm))
+      }
+      case Right((sign, reg)) => sign match {
+        case Positive => left.get.add(reg)
+        case Negative => left.get.sub(reg)
       }
     }
   }
@@ -109,8 +111,10 @@ object ARMMachine extends Machine[ARM] {
       case LSL => inst.srcLeft.shl(inst.srcRight)
       case LSR => inst.srcLeft.shr(inst.srcRight)
       case ORR => inst.srcLeft.or(inst.srcRight)
-      case ORN => inst.srcLeft.or(inst.srcRight).not
+      case ORN => inst.srcLeft.or(inst.srcRight.not)
       case AND => inst.srcLeft.and(inst.srcRight)
+      case BIC => inst.srcLeft.and(inst.srcRight.not)
+      case EOR => inst.srcLeft.xor(inst.srcRight)
       case _ => throw new UnreachableCodeException()
     }
     val nbuilder = builder + AssignStmt(builder.nextIndex, inst, lval, rval)
@@ -269,6 +273,16 @@ object ARMMachine extends Machine[ARM] {
     b2 + AssignStmt(b2.nextIndex, inst, Reg(inst.destLow), tmpVar.low)
   }
   
+  private def toIR(inst: BitfieldClearInst, builder: IRBuilder) = {
+    builder + AssignStmt(builder.nextIndex, inst, Reg(inst.dest),
+        Const(0), (inst.lsb.value.toInt, (inst.lsb.value + inst.width.value).toInt))
+  }
+  
+  private def toIR(inst: BitfieldInsertInst, builder: IRBuilder) = {
+    builder + AssignStmt(builder.nextIndex, inst, Reg(inst.dest),
+        inst.src, (inst.lsb.value.toInt, (inst.lsb.value + inst.width.value).toInt))
+  }
+  
   override protected def toIRStatements(ctx: Context, inst: MachEntry[ARM],
       builder: IRBuilder) = {
     inst.asInstanceOf[Instruction] match {
@@ -281,6 +295,8 @@ object ARMMachine extends Machine[ARM] {
       case i: CompareInst => toIR(i, builder)
       case i: MoveInst => toIR(i, builder)
       case i: LoadStoreInst => toIR(ctx, i, builder)
+      case i: BitfieldClearInst => toIR(i, builder)
+      case i: BitfieldInsertInst => toIR(i, builder)
       case i: NopInst => builder
     }
   }

@@ -15,7 +15,7 @@ import edu.psu.ist.plato.kaiming.exception.UnreachableCodeException
 import scala.Ordering
 import scala.Vector
 
-object ARMParser extends RegexParsers() {
+object ARMParser extends RegexParsers {
   override val whiteSpace = """[\t \r]+""".r
   
   private def nl: Parser[String] = """\n+""".r 
@@ -51,46 +51,63 @@ object ARMParser extends RegexParsers() {
     case string => Register.get(string.toUpperCase)
   }
   
-  private object Shift {
     
-    import enumeratum._ 
-    sealed trait Type extends EnumEntry
-    object Type extends Enum[Type] {
+  import enumeratum._ 
+  sealed trait ShiftType extends EnumEntry
+  object ShiftType extends Enum[ShiftType] {
     
-      val values = findValues 
-    
-      case object ASR extends Type
-      case object LSL extends Type
-      case object ROR extends Type
-    
-    }
+    val values = findValues 
+  
+    case object ASR extends ShiftType
+    case object LSL extends ShiftType
+    case object ROR extends ShiftType
+    case object LSR extends ShiftType
+    case object RRX extends ShiftType
     
   }
+    
 
-  private def shiftType: Parser[Shift.Type] =
-    ("(?i)" + "(" + Shift.Type.values.map(_.entryName).mkString("|") + ")").r ^^ { 
-      x => Shift.Type.withName(x.toUpperCase)
+  private def shiftType: Parser[ShiftType] =
+    ("(?i)" + "(" + ShiftType.values.map(_.entryName).mkString("|") + ")").r ^^ { 
+      x => ShiftType.withName(x.toUpperCase)
     }
     
-  private def shifted: Parser[Register] = (reg <~ ",") ~ shiftType ~ integer ^^ {
-    case reg ~ st ~ sh => sh match {
-      case sh if sh == 0 => reg
-      case _ => st match {
-        case Shift.Type.ASR => Register(reg.id, Some(Asr(sh.toInt)))
-        case Shift.Type.LSL => Register(reg.id, Some(Lsl(sh.toInt)))
-        case Shift.Type.ROR => Register(reg.id, Some(Ror(sh.toInt)))
-      }
+  private def shifted: Parser[Register] = (reg <~ ",") ~ shiftType ~ (imm ?) ^^ {
+    case reg ~ st ~ sh => {
+      val shiftv = (sh match {
+        case Some(imm) => imm.value
+        case None => 0
+      }).toInt
+      if (shiftv == 0)
+        reg
+      else
+        st match {
+          case ShiftType.ASR => Register(reg.id, Some(Asr(shiftv)))
+          case ShiftType.LSL => Register(reg.id, Some(Lsl(shiftv)))
+          case ShiftType.ROR => Register(reg.id, Some(Ror(shiftv)))
+          case ShiftType.LSR => Register(reg.id, Some(Lsr(shiftv)))
+          case ShiftType.RRX => Register(reg.id, Some(Rrx()))
+        }
     }
   }
   
-  private def mem: Parser[Memory] = (("[" ~> reg ~ (("," ~> (imm | reg)?) <~ "]")) | address) ^^ {
-    case (reg: Register) ~ someInt => someInt match {
-      case None => Memory.get(reg)
-      case Some(int: Immediate) => Memory.get(reg, int)
-      case Some(off: Register) => Memory.get(reg, off)
-      case _ => throw new UnreachableCodeException
-    }
-    case addr: Long => Memory.get(Immediate.get(addr))
+  private def mem: Parser[Memory] = (("[" ~> reg ~ (("," ~> ((("""[\-\+]""".r ?) ~ (shifted | reg)) | imm)?) <~ "]")) | address) ^^ {
+    case (base: Register) ~ someOff =>
+      someOff match {
+        case None => Memory.get(base)
+        case Some(offset) =>
+          offset match {
+            case sign ~ (offvalue: Register) => {
+              val signoff = sign match {
+                case None => Positive
+                case Some(s) => if (s == "-") Negative else Positive
+              }
+              Memory.get(base, offvalue, signoff)
+            }
+            case imm: Immediate => Memory.get(base, imm.value)
+          }
+      }
+    case addr: Long => Memory.get(addr)
   }
   
   private def cond: Parser[Condition] =
@@ -98,7 +115,7 @@ object ARMParser extends RegexParsers() {
       x => Condition.withName(x.toUpperCase)
     }
   
-  private def operand: Parser[(Operand, Boolean)] = (((reg | mem | shifted) ~ ("!" ?)) | imm) ^^ {
+  private def operand: Parser[(Operand, Boolean)] = (((shifted | reg | mem) ~ ("!" ?)) | imm) ^^ {
     case imm: Immediate => (imm, false)
     case (op: Operand) ~ (preidx: Option[_]) => (op, preidx.isDefined)
   }
@@ -157,16 +174,18 @@ object ARMParser extends RegexParsers() {
     case label => Label(label)
   }
   
-  private def function: Parser[Function] = funlabel ~ ((inst | poppush | lsm | ldrAsMove) *) ^^ {
+  private def function: Parser[Function] = funlabel ~ ((inst | poppush | lsm | ldrAsMove) +) ^^ {
     case label ~ insts => new Function(label, insts)
   }
    
   def binaryunit: Parser[List[Function]] = rep(function)
    
-  def parseBinaryUnit(input: String): List[Function] = parseAll(binaryunit, input) match {
-    case Success(value, _) => value
-    case failure: NoSuccess => throw new ParsingException(failure.msg + "\n" + failure.next.offset + " " + failure.next.pos)
-  }
+  def parseBinaryUnit(input: String): List[Function] =
+    parseAll(binaryunit, if (input.endsWith("\n")) input else input + '\n') match {
+      case Success(value, _) => value
+      case failure: NoSuccess =>
+        throw new ParsingException(failure.msg + "\n" + failure.next.offset + " " + failure.next.pos)
+    }
    
   @throws(classOf[ParsingException])
   def parseBinaryUnitJava(input: String): java.util.List[Function] = ListBuffer(parseBinaryUnit(input):_*)

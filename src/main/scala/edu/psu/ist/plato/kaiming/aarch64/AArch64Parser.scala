@@ -17,7 +17,7 @@ import scala.Vector
 
 
 
-object AArch64Parser extends RegexParsers() {
+object AArch64Parser extends RegexParsers {
   override val whiteSpace = """[\t \r]+""".r
   
   private def nl: Parser[String] = """\n+""".r 
@@ -85,7 +85,7 @@ object AArch64Parser extends RegexParsers() {
     }
   }
   
-  private def mem: Parser[Memory] = (("[" ~> reg ~ (("," ~> (imm | reg)?) <~ "]")) | address) ^^ {
+  private def mem: Parser[Memory] = (("[" ~> reg ~ (("," ~> (shifted | imm | reg)?) <~ "]")) | address) ^^ {
     case (reg: Register) ~ someInt => someInt match {
       case None => Memory.get(reg)
       case Some(int: Immediate) => Memory.get(reg, int)
@@ -100,7 +100,7 @@ object AArch64Parser extends RegexParsers() {
       x => Condition.withName(x.toUpperCase())
     }
   
-  private def operand: Parser[(Operand, Boolean)] = (((reg | mem | shifted) ~ ("!" ?)) | imm) ^^ {
+  private def operand: Parser[(Operand, Boolean)] = (((shifted | reg | mem) ~ ("!" ?)) | imm) ^^ {
     case imm: Immediate => (imm, false)
     case (op: Operand) ~ (preidx: Option[_]) => (op, preidx.isDefined)
   }
@@ -130,16 +130,18 @@ object AArch64Parser extends RegexParsers() {
     case label => Label(label)
   }
   
-  private def function: Parser[Function] = funlabel ~ (inst *) ^^ {
+  private def function: Parser[Function] = funlabel ~ (inst +) ^^ {
     case label ~ insts => new Function(label, insts)
   }
    
   def binaryunit: Parser[List[Function]] = rep(function)
    
-  def parseBinaryUnit(input: String): List[Function] = parseAll(binaryunit, input) match {
-    case Success(value, _) => value
-    case failure: NoSuccess => throw new ParsingException(failure.msg + "\n" + failure.next.offset + " " + failure.next.pos)
-  }
+  def parseBinaryUnit(input: String): List[Function] = 
+    parseAll(binaryunit, if (!input.endsWith("\n")) input + '\n' else input ) match {
+      case Success(value, _) => value
+      case failure: NoSuccess =>
+        throw new ParsingException(failure.msg + "\n" + failure.next.offset + " " + failure.next.pos)
+    }
    
   @throws(classOf[ParsingException])
   def parseBinaryUnitJava(input: String): java.util.List[Function] = ListBuffer(parseBinaryUnit(input):_*)
