@@ -4,7 +4,7 @@ val libraries = Seq(
   "org.scodec" % "scodec-core_2.11" % "1.8.3",
   "org.scodec" % "scodec-bits_2.11" % "1.0.12",
   "com.assembla.scala-incubator" % "graph-core_2.11" % "1.11.0",
-  "com.beachape" % "enumeratum_2.11" % "1.4.4",
+  "com.beachape" % "enumeratum_2.11" % "1.4.4"
 )
 
 lazy val root = (project in file(".")).
