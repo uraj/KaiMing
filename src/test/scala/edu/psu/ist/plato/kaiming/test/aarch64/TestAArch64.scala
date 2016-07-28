@@ -9,14 +9,11 @@ import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfter
 import org.scalatest.junit.JUnitRunner
 
-import org.junit.runner.RunWith
-
 import edu.psu.ist.plato.kaiming.aarch64.Function
 import edu.psu.ist.plato.kaiming.aarch64.AArch64Parser
 
 import edu.psu.ist.plato.kaiming.ir.Context
 
-@RunWith(classOf[JUnitRunner])
 class Test extends FunSuite with BeforeAndAfter {
   
   var testdir: File = null

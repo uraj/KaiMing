@@ -9,17 +9,11 @@ import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfter
 import org.scalatest.junit.JUnitRunner
 
-import org.junit.runner.RunWith
-
-import edu.psu.ist.plato.kaiming.Cfg
 import edu.psu.ist.plato.kaiming.ir.Loop
-
 import edu.psu.ist.plato.kaiming.arm.Function
 import edu.psu.ist.plato.kaiming.arm.ARMParser
-
 import edu.psu.ist.plato.kaiming.ir.Context
 
-@RunWith(classOf[JUnitRunner])
 class Test extends FunSuite with BeforeAndAfter {
   
   var total = 0
@@ -85,17 +79,14 @@ class Test extends FunSuite with BeforeAndAfter {
     }
     
   }
-  
+
   test("Testing ARM loop detection") {
     for (ctx <- ctxList) {
       val loops = Loop.detectLoops(ctx.cfg)
-      print(loops.size)
-      println(" loop(s) detected in " + ctx.label)
-      for (l <- loops) {
+      println(loops.size + " loops detected in " + ctx.label.name)
+      for (l <- loops)
         println(l)
-        Deflat.deflatten(ctx, l)
-      }
-    }
+     }
   }
   
   after {
