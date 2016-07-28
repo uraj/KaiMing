@@ -39,7 +39,7 @@ object Instruction {
             oplist(2).asRegister, oplist(3).asRegister)
       case NOT | CLZ | RRX | ADR =>
         require(oplist.length == 2)
-        require(oplist(0).isRegister && (oplist(1).isRegister || oplist(1).isImmediate))
+        require(oplist(0).isRegister)
         UnaryArithInst(addr, opcode, oplist(0).asRegister, oplist(1))
       case LDR if oplist(1).isImmediate => // LDR Rx, =imm
         require(oplist.length == 2 && oplist(0).isRegister)
