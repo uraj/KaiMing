@@ -1,11 +1,12 @@
 package edu.psu.ist.plato.kaiming.ir
 
+import edu.psu.ist.plato.kaiming.BBlock
 import edu.psu.ist.plato.kaiming.Arch.KaiMing
 
 case class Loop private (header: IRBBlock, body: Set[IRBBlock], cfg: IRCfg) {
   
   override def toString = {
-    val b = new StringBuilder()
+    val b = new StringBuilder
     def bbToStr(bb: IRBBlock) = {
       b.append(bb.label.name)
       b.append("[")
@@ -14,8 +15,8 @@ case class Loop private (header: IRBBlock, body: Set[IRBBlock], cfg: IRCfg) {
     }
     b.append("(");
     bbToStr(header)
-    b.append(": { ");
-    for (bb <- body) {
+    b.append("<" + body.size + ">: { ");
+    for (bb <- body.toVector.sorted[BBlock[KaiMing]]) {
       bbToStr(bb)
       b.append(" ")
     }
@@ -27,7 +28,15 @@ case class Loop private (header: IRBBlock, body: Set[IRBBlock], cfg: IRCfg) {
 
 object Loop {
   
-  def detectLoops(cfg: IRCfg): Set[Loop] = {
+  def detectBigLoops(cfg: IRCfg): List[Loop] = {
+    val loops = detectLoops(cfg)
+    loops.groupBy(_.header).foldLeft(List[Loop]()) {
+      case (list, (header, group)) =>
+        Loop(header, group.foldLeft(Set[IRBBlock]())(_ | _.body), cfg)::list
+    }
+  }
+  
+  def detectLoops(cfg: IRCfg): List[Loop] = {
     val allBBs = cfg.blocks.toSet
     val initDominators =
       allBBs.foldLeft(Map[IRBBlock, Set[IRBBlock]]()) {
@@ -41,52 +50,54 @@ object Loop {
         else
           computeDoms(singletons.foldLeft((true, in)) {
             case ((stop, map), (bb, singleton)) => {
-              val n = cfg.predecessors(bb).map(x => map.get(x)).flatten
+              val n = cfg.predecessors(bb).flatMap(map.get(_))
               val newDomSet = if (n.size == 0) singleton else n.reduce(_&_) + bb
               (stop && newDomSet == (in.get(bb).orNull), map + (bb -> newDomSet))
             }
           })
       }
-    val newDominators = computeDoms((false, initDominators))
-    val backEdges = newDominators.foldLeft(List[(IRBBlock, IRBBlock)]()) {
+    val dominators = computeDoms((false, initDominators))
+    val backEdges = dominators.foldLeft(Set[(IRBBlock, IRBBlock)]()) {
       case (l, (k, v)) => l ++ (cfg.successors(k) & v).map { x => (k, x) }
     }
-    backEdges.foldLeft(Set[Loop]()) { 
-      (s, x) => s + 
+    backEdges.foldLeft(List[Loop]()) { 
+      (s, x) => 
         findLoopNodes(cfg, x, 
-            allBBs.filter(newDominators.get(_).get.contains(x._2)))
+            allBBs.filter(dominators.get(_).get.contains(x._2)))::s
     }
   }
   
-  private def findLoopNodes(cfg: IRCfg,
-      backEdge: (IRBBlock, IRBBlock),
+  private def findLoopNodes(cfg: IRCfg, backEdge: (IRBBlock, IRBBlock),
       candidates: Set[IRBBlock]): Loop = {
     val visited = Set[IRBBlock](backEdge._2)
     new Loop(
         backEdge._2,
-        candidates.foldLeft(Set[IRBBlock]()) {
+        candidates.foldLeft(Set[IRBBlock](backEdge._1, backEdge._2)) {
           (set, bb) =>
             if (set.contains(bb))
               set
             else
               reachable(cfg, bb, backEdge._1, candidates, set, visited)._2 
-    } ++ Set(backEdge._1, backEdge._2), cfg)
+    }, cfg)
   }
   
   private def reachable(cfg: IRCfg, start: IRBBlock, end: IRBBlock,
-      candidates: Set[IRBBlock], ret: Set[IRBBlock],
+      candidates: Set[IRBBlock], reached: Set[IRBBlock],
       visited: Set[IRBBlock]): (Boolean, Set[IRBBlock]) = {
     if (start == end)
-      (true, ret)
+      (true, reached)
+    else if (visited.contains(start)) {
+      (false, reached)
+    }
     else {
-      val (c, s) = cfg.successors(start).foldLeft((false, ret)) {
-        case ((canReach, set), bb) =>
-          if (!candidates.contains(bb))
-            (canReach, set)
-          else if (visited.contains(bb))
-            (canReach || ret.contains(bb), set)
+      val (c, s) = cfg.successors(start).foldLeft((false, reached)) {
+        case ((canReach, reached), bb) =>
+          if (canReach)
+            (true, reached)
+          else if (!candidates.contains(bb))
+            (canReach, reached)
           else { 
-            val (c, s) = reachable(cfg, bb, end, candidates, ret, visited + start)
+            val (c, s) = reachable(cfg, bb, end, candidates, reached, visited + start)
             (canReach || c, s)
           }
       }

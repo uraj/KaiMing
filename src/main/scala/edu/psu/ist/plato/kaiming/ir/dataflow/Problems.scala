@@ -27,15 +27,15 @@ abstract class PathInsensitiveProblem[T](ctx: Context, dir: Direction, maxIterMu
   
   protected final lazy val solve = {
     val cfg = ctx.cfg
-    val stop = maxIterMultiplier * cfg.size
+    val stop = maxIterMultiplier * cfg.size.toLong
     val (initEntryMap, initExitMap) = cfg.foldLeft((Map[BB, T](), Map[BB, T]())) {
         (m, b) => {
           val init = getInitialEntryState(b)
           (m._1 + (b -> init), m._2 + (b -> transfer(b, init)))
         }
       }
-    def solveImpl(round: Int, entryMap: Map[BB, T], exitMap: Map[BB, T]): Map[BB, T] = {
-      require(round <= stop, "Problem cannot be solved with in limited time")
+    def solveImpl(round: Long, entryMap: Map[BB, T], exitMap: Map[BB, T]): Map[BB, T] = {
+      require(round <= stop, "Problem cannot be solved with in limited time: " + round + "/" + stop)
       val (updated, entryMapNew, exitMapNew) =
         cfg.foldLeft((false, entryMap, exitMap)) {
           case ((dirty, enM, exM), bb) => {
@@ -61,7 +61,7 @@ abstract class PathInsensitiveProblem[T](ctx: Context, dir: Direction, maxIterMu
         else
           exitMapNew
       }
-    solveImpl(0, initEntryMap, initExitMap)
+    solveImpl(0L, initEntryMap, initExitMap)
   }
   
 }

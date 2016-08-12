@@ -8,6 +8,7 @@ abstract class Procedure[A <: Arch] {
   def cfg: Cfg[A, _ <: BBlock[A]]
   def name = label.name
   def entries: Vector[Entry[A]] = cfg.entries
+  def index = cfg.entryBlock.index
   def deriveLabelForIndex(index: Long): Label = Label("_sub_" + index.toHexString)
   
 }
@@ -108,7 +109,7 @@ object MachProcedure {
 abstract class MachProcedure[A <: MachArch](machEntries: Seq[MachEntry[A]]) extends Procedure[A] {
   
   def mach: Machine[A]
-  val cfg = MachProcedure.buildCFG[A](this, machEntries)
+  override val cfg = MachProcedure.buildCFG[A](this, machEntries)
   def liftCFGToIR(ctx: Context) = mach.liftToIR(ctx, cfg)
   
 }

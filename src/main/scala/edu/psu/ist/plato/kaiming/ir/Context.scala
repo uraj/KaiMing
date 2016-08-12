@@ -21,10 +21,21 @@ object Context {
   
   sealed trait Definition {
     
-    def get = this match {
+    final def get = this match {
       case Def(s) => s
       case Init => throw new NoSuchElementException
     }
+    
+    final def getOption = this match {
+      case Def(s) => Some(s)
+      case Init => None
+    } 
+    
+    final def flatMap[B](f: DefStmt => B): Option[B] =
+      this match {
+        case Def(s) => Some(f(s))
+        case Init => None
+      }
     
   }
   case class Def(s: DefStmt) extends Definition
