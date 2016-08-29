@@ -192,16 +192,17 @@ object ARMMachine extends Machine[ARM] {
     val (addr, b) = inst.addressingMode match {
       case PostIndex => (inst.indexingOperand.base.get: Expr, builder)
       case PreIndex => {
-        val ea: Expr = inst.indexingOperand
-        (ea, builder + AssignStmt(builder.nextIndex, inst, Reg(inst.indexingOperand.base.get), ea))  
+        val ea: Expr = inst.indexingOperand.base.get
+        (ea, builder + AssignStmt(builder.nextIndex, inst, Reg(inst.indexingOperand.base.get), inst.indexingOperand))  
       }
       case Regular => (inst.indexingOperand: Expr, builder)
     }
     val bb = b + LdStmt(b.nextIndex, inst, Reg(inst.dest), addr)
-    if (inst.addressingMode != AddressingMode.Regular)
-      bb + AssignStmt(bb.nextIndex, inst, Reg(inst.indexingOperand.base.get), addr)
-    else
-      bb
+    inst.addressingMode match {
+      case PostIndex =>
+        bb + AssignStmt(bb.nextIndex, inst, Reg(inst.indexingOperand.base.get), inst.indexingOperand)
+      case PreIndex | Regular => bb
+    }
   }
   
   private def processLoadStore(inst: LoadMultipleInst, builder: IRBuilder) = {
@@ -228,16 +229,17 @@ object ARMMachine extends Machine[ARM] {
     val (addr, b) = inst.addressingMode match {
       case PostIndex => (inst.indexingOperand.base.get: Expr, builder)
       case PreIndex => {
-        val ea: Expr = inst.indexingOperand
-        (ea, builder + AssignStmt(builder.nextIndex, inst, Reg(inst.indexingOperand.base.get), ea))
+        val ea: Expr = inst.indexingOperand.base.get
+        (ea, builder + AssignStmt(builder.nextIndex, inst, Reg(inst.indexingOperand.base.get), inst.indexingOperand))
       }
       case Regular => (inst.indexingOperand: Expr, builder)
     }
     val bb = b + StStmt(b.nextIndex, inst, addr, inst.src)
-    if (inst.addressingMode != AddressingMode.Regular)
-      bb + AssignStmt(bb.nextIndex, inst, Reg(inst.indexingOperand.base.get), addr)
-    else
-      bb
+    inst.addressingMode match {
+      case PostIndex =>
+        bb + AssignStmt(bb.nextIndex, inst, Reg(inst.indexingOperand.base.get), inst.indexingOperand)
+      case PreIndex | Regular => bb
+    }
   }
   
   private def processLoadStore(inst: StoreMultipleInst, builder: IRBuilder) = {

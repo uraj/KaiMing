@@ -182,19 +182,27 @@ object AArch64Machine extends Machine[AArch64] {
   private def toIR(ctx: Context, inst: LoadStoreInst, builder: IRBuilder) = {
     import AddressingMode._
     val addr: Expr = inst.addressingMode match {
-      case PostIndex => inst.indexingOperand.base.get
-      case PreIndex | Regular => inst.indexingOperand
+      case PreIndex | PostIndex => inst.indexingOperand.base.get
+      case Regular => inst.indexingOperand
+    }
+    val nbuilder = inst.addressingMode match {
+      case PostIndex | Regular => builder
+      case PreIndex =>
+        builder + AssignStmt(builder.nextIndex, inst, 
+            Reg(inst.indexingOperand.base.get), inst.indexingOperand)
     }
     val b = inst match {
-      case l: LoadInst => processLoadStore(l, addr, builder)
-      case l: LoadPairInst => processLoadStore(l, addr, builder)
-      case l: StoreInst => processLoadStore(l, addr, builder)
-      case l: StorePairInst => processLoadStore(l, addr, builder)
+      case l: LoadInst => processLoadStore(l, addr, nbuilder)
+      case l: LoadPairInst => processLoadStore(l, addr, nbuilder)
+      case l: StoreInst => processLoadStore(l, addr, nbuilder)
+      case l: StorePairInst => processLoadStore(l, addr, nbuilder)
     }
-    if (inst.addressingMode != AddressingMode.Regular)
-      b + AssignStmt(b.nextIndex, inst, Reg(inst.indexingOperand.base.get), addr)
-    else
-      b
+    inst.addressingMode match {
+      case PreIndex | Regular => b
+      case PostIndex =>
+        b + AssignStmt(b.nextIndex, inst,
+            Reg(inst.indexingOperand.base.get), inst.indexingOperand)
+    }
   }
   
   private def processLoadStore(inst: LoadInst, addr: Expr, builder: IRBuilder) = {
