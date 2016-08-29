@@ -74,14 +74,11 @@ object AArch64Parser extends RegexParsers {
       x => Shift.Type.withName(x.toUpperCase())
     }
     
-  private def shifted: Parser[Register] = (reg <~ ",") ~ shiftType ~ integer ^^ {
-    case reg ~ st ~ sh => sh match {
-      case sh if sh == 0 => reg
-      case _ => st match {
-        case Shift.Type.ASR => Register(reg.id, Some(Asr(sh.toInt)))
-        case Shift.Type.LSL => Register(reg.id, Some(Lsl(sh.toInt)))
-        case Shift.Type.ROR => Register(reg.id, Some(Ror(sh.toInt)))
-      }
+  private def shifted: Parser[ShiftedRegister] = (reg <~ ",") ~ shiftType ~ integer ^^ {
+    case reg ~ st ~ sh => st match {
+      case Shift.Type.ASR => ShiftedRegister(reg, if (sh == 0) None else Some(Asr(sh.toInt)))
+      case Shift.Type.LSL => ShiftedRegister(reg, if (sh == 0) None else Some(Lsl(sh.toInt)))
+      case Shift.Type.ROR => ShiftedRegister(reg, if (sh == 0) None else Some(Ror(sh.toInt)))
     }
   }
   
@@ -89,7 +86,7 @@ object AArch64Parser extends RegexParsers {
     case (reg: Register) ~ someInt => someInt match {
       case None => Memory.get(reg)
       case Some(int: Immediate) => Memory.get(reg, int)
-      case Some(off: Register) => Memory.get(reg, off)
+      case Some(off: ShiftedRegister) => Memory.get(reg, off)
       case _ => throw new UnreachableCodeException
     }
     case addr: Long => Memory.get(Immediate.get(addr))

@@ -10,19 +10,19 @@ import edu.psu.ist.plato.kaiming.exception.UnreachableCodeException
 
 object AArch64Machine extends Machine[AArch64] {
   
-  override val returnRegister = Register.get(Register.Id.X0, None)
+  override val returnRegister = Register.get(Register.Id.X0)
   override val wordSizeInBits = 64
   override val registers = 
-    Register.Id.values.map(rid => Register.get(rid, None))
+    Register.Id.values.map(rid => Register.get(rid))
     .toSet[MachRegister[AArch64]]
   
   import scala.language.implicitConversions
   
   private implicit def toExpr(imm: Immediate): Const = Const(imm.value)
   
-  private implicit def toExpr(reg: Register): Expr = {
-    val ret = Reg(reg)
-    reg.shift match {
+  private implicit def toExpr(sreg: ShiftedRegister): Expr = {
+    val ret = Reg(sreg.reg)
+    sreg.shift match {
       case None => ret
       case Some(shift) => shift match {
         case Asr(v) => ret.sar(Const(v))
@@ -31,6 +31,8 @@ object AArch64Machine extends Machine[AArch64] {
       }
     }
   }
+  
+  private implicit def toExpr(reg: Register): Expr = Reg(reg)
   
   private implicit def toExpr(mem: Memory): Expr = {
     val ret: Option[Expr] = mem.base.map { x => x }
@@ -54,6 +56,7 @@ object AArch64Machine extends Machine[AArch64] {
       case imm: Immediate => imm
       case reg: Register => reg
       case mem: Memory => mem
+      case sreg: ShiftedRegister => sreg
     }
   }
   

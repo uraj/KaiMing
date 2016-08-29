@@ -33,7 +33,11 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
   
   def printOpRegister(reg: Register) {
     print(reg.id.entryName)
-    reg.shift match {
+  }
+  
+  def printOpShiftedRegister(sreg: ShiftedRegister) {
+    printOpRegister(sreg.reg)
+    sreg.shift match {
       case Some(shift) =>
         print(", ")
         print(shift.getClass.getSimpleName.toUpperCase)
@@ -54,7 +58,7 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
         print(", ")
         off match {
           case Left(imm) => printOpImmediate(imm)
-          case Right(reg) => printOpRegister(reg)
+          case Right(sreg) => printOpShiftedRegister(sreg)
         }
       case None =>
     }
@@ -64,6 +68,7 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
   def printOperand(o: Operand) = {
     o match {
       case r: Register => printOpRegister(r)
+      case s: ShiftedRegister => printOpShiftedRegister(s)
       case i: Immediate => printOpImmediate(i)
       case m: Memory => printOpMemory(m)
     }
