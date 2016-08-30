@@ -24,11 +24,11 @@ object ARMMachine extends Machine[ARM] {
     reg.shift match {
       case None => ret
       case Some(shift) => shift match {
-        case Asr(v) => ret.sar(Const(v))
-        case Lsl(v) => ret.shl(Const(v))
-        case Ror(v) => ret.ror(Const(v))
-        case Lsr(v) => ret.shr(Const(v))
-        case Rrx() => ret.ror(Const(1))
+        case Asr(v) => ret >>> Const(v)
+        case Lsl(v) => ret << Const(v)
+        case Ror(v) => ret >< Const(v)
+        case Lsr(v) => ret >> Const(v)
+        case Rrx() => ret >< Const(1)
       }
     }
   }
@@ -40,12 +40,12 @@ object ARMMachine extends Machine[ARM] {
         case None => Const(imm)
         case Some(expr) =>
           if (imm == 0) expr 
-          else if (imm > 0) expr.add(Const(imm))
-          else expr.sub(Const(-imm))
+          else if (imm > 0) expr + Const(imm)
+          else expr - Const(-imm)
       }
       case Right((sign, reg)) => sign match {
-        case Positive => left.get.add(reg)
-        case Negative => left.get.sub(reg)
+        case Positive => left.get + reg
+        case Negative => left.get - reg
       }
     }
   }
@@ -61,18 +61,18 @@ object ARMMachine extends Machine[ARM] {
   private implicit def toExpr(cond: Condition) = cond match {
     case Condition.AL | Condition.NV => Const(1)
     case Condition.EQ => Flg(Flag.Z)
-    case Condition.GE => Flg(Flag.N).sub(Flg(Flag.V)).not
-    case Condition.GT => Flg(Flag.Z).not.and(Flg(Flag.N).sub(Flg(Flag.V).not))
-    case Condition.HI => Flg(Flag.C).and(Flg(Flag.Z).not)
+    case Condition.GE => !Flg(Flag.N) - Flg(Flag.V)
+    case Condition.GT => !Flg(Flag.Z) & !(Flg(Flag.N) ^ Flg(Flag.V))
+    case Condition.HI => Flg(Flag.C) & !Flg(Flag.Z)
     case Condition.HS => Flg(Flag.C)
-    case Condition.LE => Flg(Flag.Z).or(Flg(Flag.N).sub(Flg(Flag.Z)))
-    case Condition.LO => Flg(Flag.C).not
-    case Condition.LS => Flg(Flag.Z).or(Flg(Flag.C).not)
-    case Condition.LT => Flg(Flag.N).sub(Flg(Flag.V))
+    case Condition.LE => Flg(Flag.Z) | (Flg(Flag.N) ^ Flg(Flag.Z))
+    case Condition.LO => !Flg(Flag.C)
+    case Condition.LS => Flg(Flag.Z) | !Flg(Flag.C)
+    case Condition.LT => Flg(Flag.N) ^ Flg(Flag.V)
     case Condition.MI => Flg(Flag.N)
-    case Condition.NE => Flg(Flag.Z).not
-    case Condition.PL => Flg(Flag.N).not
-    case Condition.VC => Flg(Flag.V).not
+    case Condition.NE => !Flg(Flag.Z)
+    case Condition.PL => !Flg(Flag.N)
+    case Condition.VC => !Flg(Flag.V)
     case Condition.VS => Flg(Flag.V)
   }
     
@@ -89,32 +89,32 @@ object ARMMachine extends Machine[ARM] {
     import edu.psu.ist.plato.kaiming.arm.Opcode.Mnemonic._
     val rval = inst.opcode.mnemonic match {
       case ADD => {
-        val add = inst.srcLeft.add(inst.srcRight)
+        val add = inst.srcLeft + inst.srcRight
         if (inst.opcode.rawcode.charAt(2) == 'C')
-          add.add(Flg(Flag.C))
+          add + (Flg(Flag.C))
         else
           add
       }
       case SUB => {
         val sub =
           if (inst.opcode.rawcode.startsWith("RSB"))
-             inst.srcLeft.sub(inst.srcRight)
-          else inst.srcRight.sub(inst.srcLeft)
+             inst.srcLeft - inst.srcRight
+          else inst.srcRight - (inst.srcLeft)
         if (inst.opcode.rawcode.charAt(2) == 'C')
-          sub.sub(Flg(Flag.C))
+          sub - Flg(Flag.C)
         else
           sub
       }
-      case MUL => inst.srcLeft.mul(inst.srcRight)
-      case DIV => inst.srcLeft.div(inst.srcRight)
-      case ASR => inst.srcLeft.sar(inst.srcRight)
-      case LSL => inst.srcLeft.shl(inst.srcRight)
-      case LSR => inst.srcLeft.shr(inst.srcRight)
-      case ORR => inst.srcLeft.or(inst.srcRight)
-      case ORN => inst.srcLeft.or(inst.srcRight.not)
-      case AND => inst.srcLeft.and(inst.srcRight)
-      case BIC => inst.srcLeft.and(inst.srcRight.not)
-      case EOR => inst.srcLeft.xor(inst.srcRight)
+      case MUL => inst.srcLeft * inst.srcRight
+      case DIV => inst.srcLeft / inst.srcRight
+      case ASR => inst.srcLeft >>> inst.srcRight
+      case LSL => inst.srcLeft << inst.srcRight
+      case LSR => inst.srcLeft >> inst.srcRight
+      case ORR => inst.srcLeft | inst.srcRight
+      case ORN => inst.srcLeft | !inst.srcRight
+      case AND => inst.srcLeft & inst.srcRight
+      case BIC => inst.srcLeft & !inst.srcRight
+      case EOR => inst.srcLeft ^ inst.srcRight
       case _ => throw new UnreachableCodeException()
     }
     val nbuilder = builder + AssignStmt(builder.nextIndex, inst, lval, rval)
@@ -138,7 +138,7 @@ object ARMMachine extends Machine[ARM] {
     val shift = inst.lsb.value.toInt
     val mask = 1 << inst.width.value.toInt - 1
     val size = lv.sizeInBits
-    val assigned = inst.src.shl(Const(shift)).and(Const(mask))
+    val assigned = (inst.src << Const(shift)) + Const(mask)
     val assigned2 = inst.extension match {
       case Extension.Signed => assigned.sext(Const(size))
       case Extension.Unsigned => assigned.uext(Const(size))
@@ -159,10 +159,10 @@ object ARMMachine extends Machine[ARM] {
   
   private def toIR(inst: CompareInst, builder: IRBuilder) = {
     val cmp = inst.code match {
-      case CompareCode.Test => inst.left.and(inst.right)
-      case CompareCode.Compare => inst.left.sub(inst.right)
-      case CompareCode.CompareNeg => inst.left.add(inst.right)
-      case CompareCode.TestEq => inst.left.xor(inst.right)
+      case CompareCode.Test => inst.left ^ inst.right
+      case CompareCode.Compare => inst.left - inst.right
+      case CompareCode.CompareNeg => inst.left + inst.right
+      case CompareCode.TestEq => inst.left ^ inst.right
     }
     updateFlags(inst, cmp, builder)
   }
@@ -213,7 +213,7 @@ object ARMMachine extends Machine[ARM] {
       case (b, reg) => {
         val stb = b + LdStmt(b.nextIndex, inst, Reg(reg), base)
         if (inst.preindex)
-          stb + AssignStmt(stb.nextIndex, inst, base, base.add(Const(sizeInBytes)))
+          stb + AssignStmt(stb.nextIndex, inst, base, base + Const(sizeInBytes))
         else
           stb
       }
@@ -249,7 +249,7 @@ object ARMMachine extends Machine[ARM] {
       case (b, reg) => {
         val stb = b + StStmt(b.nextIndex, inst, Reg(reg), base)
         if (inst.preindex)
-          stb + AssignStmt(stb.nextIndex, inst, base, base.add(Const(sizeInBytes)))
+          stb + AssignStmt(stb.nextIndex, inst, base, base + Const(sizeInBytes))
         else
           stb
       }
@@ -261,7 +261,7 @@ object ARMMachine extends Machine[ARM] {
     import edu.psu.ist.plato.kaiming.arm.Opcode.Mnemonic._
     builder + {
       inst.opcode.mnemonic match {
-        case NOT => AssignStmt(builder.nextIndex, inst, lv, Const(0).sub(inst.src))
+        case NOT => AssignStmt(builder.nextIndex, inst, lv, Const(0) - inst.src)
         case ADR => AssignStmt(builder.nextIndex, inst, lv, inst.src)
         case _ => throw new UnreachableCodeException()
       }
@@ -270,9 +270,9 @@ object ARMMachine extends Machine[ARM] {
   
   private def toIR(ctx: Context, inst: LongMulInst, builder: IRBuilder) = {
     val tmpVar = ctx.getNewTempVar(64)
-    val b1 = builder + AssignStmt(builder.nextIndex, inst, tmpVar, inst.srcLeft.mul(inst.srcRight))
-    val b2 = b1 + AssignStmt(b1.nextIndex, inst, Reg(inst.destHi), tmpVar.high)
-    b2 + AssignStmt(b2.nextIndex, inst, Reg(inst.destLow), tmpVar.low)
+    val b1 = builder + AssignStmt(builder.nextIndex, inst, tmpVar, inst.srcLeft * inst.srcRight)
+    val b2 = b1 + AssignStmt(b1.nextIndex, inst, Reg(inst.destHi), tmpVar |< Const(31))
+    b2 + AssignStmt(b2.nextIndex, inst, Reg(inst.destLow), tmpVar |> Const(31))
   }
   
   private def toIR(inst: BitfieldClearInst, builder: IRBuilder) = {

@@ -64,7 +64,7 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
     e match {
       case _: Add    => print('+')
       case _: And    => print('&')
-      case _: Concat => print(':')
+      case _: Concat => print("::")
       case _: Div    => print('/')
       case _: Mul    => print('*')
       case _: Or     => print('|')
@@ -76,6 +76,8 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
       case _: Xor    => print('^')
       case _: SExt   => print("sext")
       case _: UExt   => print("uext")
+      case _: High => print("|<")
+      case _: Low => print("|>")
     }
     print(' ')
     e.rightSub match {
@@ -90,9 +92,7 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
   def printUExpr(e: UExpr) {
     e match {
       case _: BSwap => print("<>")
-      case _: High => print("high")
-      case _: Low => print("low")
-      case _: Not => print("~")
+      case _: Not => print("!")
     }
     e.sub match {
       case be: BExpr =>

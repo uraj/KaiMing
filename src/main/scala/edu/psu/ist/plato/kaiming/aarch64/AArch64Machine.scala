@@ -25,9 +25,9 @@ object AArch64Machine extends Machine[AArch64] {
     sreg.shift match {
       case None => ret
       case Some(shift) => shift match {
-        case Asr(v) => ret.sar(Const(v))
-        case Lsl(v) => ret.shl(Const(v))
-        case Ror(v) => ret.ror(Const(v))
+        case Asr(v) => ret >>> Const(v)
+        case Lsl(v) => ret << Const(v)
+        case Ror(v) => ret >< Const(v)
       }
     }
   }
@@ -44,7 +44,7 @@ object AArch64Machine extends Machine[AArch64] {
           case Right(reg) => reg
         }
         ret match {
-          case Some(expr) => expr.add(oe)
+          case Some(expr) => expr + oe
           case None => oe
         }
       }
@@ -63,18 +63,18 @@ object AArch64Machine extends Machine[AArch64] {
   private implicit def toExpr(cond: Condition) = cond match {
     case Condition.AL | Condition.NV => Const(1)
     case Condition.EQ => Flg(Flag.Z)
-    case Condition.GE => Flg(Flag.N).sub(Flg(Flag.V)).not
-    case Condition.GT => Flg(Flag.Z).not.and(Flg(Flag.N).sub(Flg(Flag.V).not))
-    case Condition.HI => Flg(Flag.C).and(Flg(Flag.Z).not)
+    case Condition.GE => Flg(Flag.N) - !Flg(Flag.V)
+    case Condition.GT => !Flg(Flag.Z) & !(Flg(Flag.N) ^ Flg(Flag.V))
+    case Condition.HI => Flg(Flag.C) & !Flg(Flag.Z)
     case Condition.HS => Flg(Flag.C)
-    case Condition.LE => Flg(Flag.Z).or(Flg(Flag.N).sub(Flg(Flag.Z)))
-    case Condition.LO => Flg(Flag.C).not
-    case Condition.LS => Flg(Flag.Z).or(Flg(Flag.C).not)
-    case Condition.LT => Flg(Flag.N).sub(Flg(Flag.V))
+    case Condition.LE => Flg(Flag.Z) | (Flg(Flag.N) - Flg(Flag.Z))
+    case Condition.LO => !Flg(Flag.C)
+    case Condition.LS => Flg(Flag.Z) | !Flg(Flag.C)
+    case Condition.LT => Flg(Flag.N) - Flg(Flag.V)
     case Condition.MI => Flg(Flag.N)
-    case Condition.NE => Flg(Flag.Z).not
-    case Condition.PL => Flg(Flag.N).not
-    case Condition.VC => Flg(Flag.V).not
+    case Condition.NE => !Flg(Flag.Z)
+    case Condition.PL => !Flg(Flag.N)
+    case Condition.VC => !Flg(Flag.V)
     case Condition.VS => Flg(Flag.V)
   }
     
@@ -91,27 +91,27 @@ object AArch64Machine extends Machine[AArch64] {
     import edu.psu.ist.plato.kaiming.aarch64.Opcode.Mnemonic._
     val rval = inst.opcode.mnemonic match {
       case ADD => {
-        val add = inst.srcLeft.add(inst.srcRight)
+        val add = inst.srcLeft + inst.srcRight
         if (inst.opcode.rawcode.charAt(2) == 'C')
-          add.add(Flg(Flag.C))
+          add + Flg(Flag.C)
         else
           add
       }
       case SUB => {
-        val sub = inst.srcLeft.sub(inst.srcRight)
+        val sub = inst.srcLeft - inst.srcRight
         if (inst.opcode.rawcode.charAt(2) == 'C')
-          sub.sub(Flg(Flag.C))
+          sub - Flg(Flag.C)
         else
           sub
       }
-      case MUL => inst.srcLeft.mul(inst.srcRight)
-      case DIV => inst.srcLeft.div(inst.srcRight)
-      case ASR => inst.srcLeft.sar(inst.srcRight)
-      case LSL => inst.srcLeft.shl(inst.srcRight)
-      case LSR => inst.srcLeft.shr(inst.srcRight)
-      case ORR => inst.srcLeft.or(inst.srcRight)
-      case ORN => inst.srcLeft.or(inst.srcRight.not)
-      case AND => inst.srcLeft.and(inst.srcRight)
+      case MUL => inst.srcLeft * inst.srcRight
+      case DIV => inst.srcLeft / inst.srcRight
+      case ASR => inst.srcLeft >>> inst.srcRight
+      case LSL => inst.srcLeft << inst.srcRight
+      case LSR => inst.srcLeft >> inst.srcRight
+      case ORR => inst.srcLeft | inst.srcRight
+      case ORN => inst.srcLeft | !inst.srcRight
+      case AND => inst.srcLeft & inst.srcRight
       case _ => throw new UnreachableCodeException()
     }
     val nbuilder = builder + AssignStmt(builder.nextIndex, inst, lval, rval)
@@ -138,19 +138,19 @@ object AArch64Machine extends Machine[AArch64] {
     val (destInsig, destSig, srcInsig, srcSig) =
       if (shift >= rotate) (0, shift - rotate, rotate, shift)
       else (size - rotate, size + shift - rotate, 0, shift)
-    val assigned: Expr = if (srcInsig > 0) inst.src.shr(Const(srcInsig)) else inst.src
+    val assigned: Expr = if (srcInsig > 0) inst.src >> Const(srcInsig) else inst.src
     val tmp = ctx.getNewTempVar(srcSig - srcInsig + 1)
     val b = builder + AssignStmt(builder.nextIndex, inst, tmp, Const(0))
     val (assigned2, b2) =
       if (srcInsig > 0) {
         val tmp2 = ctx.getNewTempVar(srcInsig)
-        (tmp.concat(tmp2), b + AssignStmt(b.nextIndex, inst, tmp2, Const(0))) 
+        (tmp :: tmp2, b + AssignStmt(b.nextIndex, inst, tmp2, Const(0))) 
       } else {
         (tmp, b) 
       }
     val (assigned3, assignRange) = inst.extension match {
-      case Extension.Signed => (assigned2.sext(Const(size)), (0, size))
-      case Extension.Unsigned => (assigned2.uext(Const(size)), (0, size))
+      case Extension.Signed => (assigned2 sext Const(size), (0, size))
+      case Extension.Unsigned => (assigned2 uext Const(size), (0, size))
       case Extension.NoExtension => (assigned2, (destInsig, destSig)) 
     }
     b2 + AssignStmt(b2.nextIndex, inst, lv, assigned3, assignRange)
@@ -164,9 +164,9 @@ object AArch64Machine extends Machine[AArch64] {
   
   private def toIR(inst: CompareInst, builder: IRBuilder) = {
     val cmp = inst.code match {
-      case Test => inst.left.and(inst.right)
-      case Compare => inst.left.sub(inst.right)
-      case CompareNeg => inst.left.add(inst.right)
+      case Test => inst.left & inst.right
+      case Compare => inst.left - inst.right
+      case CompareNeg => inst.left + inst.right
     }
     updateFlags(inst, cmp, builder)
   }
@@ -217,7 +217,7 @@ object AArch64Machine extends Machine[AArch64] {
     val b = builder + LdStmt(builder.nextIndex, inst, first, addr)
     val second = Reg(inst.destRight)
     val sizeInBytes = first.sizeInBits / 8
-    b + LdStmt(b.nextIndex, inst, second, addr.add(Const(sizeInBytes)))
+    b + LdStmt(b.nextIndex, inst, second, addr + Const(sizeInBytes))
   }
   
   private def processLoadStore(inst: StoreInst, addr: Expr, builder: IRBuilder) = {
@@ -229,7 +229,7 @@ object AArch64Machine extends Machine[AArch64] {
     val b = builder + StStmt(builder.nextIndex, inst, first, addr)
     val second = Reg(inst.srcRight)
     val sizeInBytes = first.sizeInBits / 8
-    b + StStmt(b.nextIndex, inst, second, addr.add(Const(sizeInBytes)))
+    b + StStmt(b.nextIndex, inst, second, addr + Const(sizeInBytes))
   }
   
   private def toIR(inst: UnaryArithInst, builder: IRBuilder) = {
@@ -238,7 +238,7 @@ object AArch64Machine extends Machine[AArch64] {
     builder + {
       inst.opcode.mnemonic match {
         case ADR => AssignStmt(builder.nextIndex, inst, lv, inst.src)
-        case NEG => AssignStmt(builder.nextIndex, inst, lv, Const(0).sub(inst.src))
+        case NEG => AssignStmt(builder.nextIndex, inst, lv, Const(0) - inst.src)
         case _ => throw new UnreachableCodeException()
       }
     }

@@ -191,24 +191,24 @@ sealed abstract class Expr(sub: Expr*) {
   
   final def isCompound = this.isInstanceOf[CompoundExpr]
   
-  final def add(right: Expr) = Add(this, right)
-  final def sub(right: Expr) = Sub(this, right)
-  final def or(right: Expr) = Or(this, right)
-  final def and(right: Expr) = And(this, right)
-  final def xor(right: Expr) = Xor(this, right)
-  final def mul(right: Expr) = Mul(this, right)
-  final def div(right: Expr) = Div(this, right)
-  final def concat(right: Expr) = Concat(this, right)
-  final def shl(right: Expr) = Shl(this, right)
-  final def shr(right: Expr) = Shr(this, right)
-  final def sar(right: Expr) = Sar(this, right)
-  final def ror(right: Expr) = Ror(this, right)
+  final def +(right: Expr) = Add(this, right)
+  final def -(right: Expr) = Sub(this, right)
+  final def |(right: Expr) = Or(this, right)
+  final def &(right: Expr) = And(this, right)
+  final def ^(right: Expr) = Xor(this, right)
+  final def *(right: Expr) = Mul(this, right)
+  final def /(right: Expr) = Div(this, right)
+  final def ::(right: Expr) = Concat(this, right)
+  final def <<(right: Expr) = Shl(this, right)
+  final def >>(right: Expr) = Shr(this, right)
+  final def >>>(right: Expr) = Sar(this, right)
+  final def ><(right: Expr) = Ror(this, right)
   final def sext(right: Expr) = SExt(this, right)
   final def uext(right: Expr) = UExt(this, right)
-  final def low = Low(this)
-  final def high = High(this)
-  final def bswap = BSwap(this)
-  final def not = Not(this)
+  final def |>(right: Expr) = Low(this, right)
+  final def |<(right: Expr) = High(this, right)
+  final def unary_<> = BSwap(this)
+  final def unary_! = Not(this)
   
 }
 
@@ -245,7 +245,8 @@ case class Flg(mflag: MachFlag[_ <: MachArch]) extends Lval {
 
 sealed abstract class CompoundExpr(sub: Expr*) extends Expr(sub: _*)
 
-sealed abstract class BExpr(val leftSub: Expr, val rightSub: Expr) extends CompoundExpr(leftSub, rightSub) {
+sealed abstract class BExpr(val leftSub: Expr, val rightSub: Expr)
+  extends CompoundExpr(leftSub, rightSub) {
   
   override def hashCode() =
     31 * (31 * leftSub.hashCode() + getClass().hashCode()) + rightSub.hashCode()
@@ -360,24 +361,28 @@ case class UExt(override val leftSub: Expr, override val rightSub: Expr)
   override def gen(left: Expr, right: Expr) = UExt(left, right)
   
 }
+
+// extract the 0(inclusive) from rightSub (exclusive) bits from leftSub
+case class Low(override val leftSub: Expr, override val rightSub: Expr)
+  extends BExpr(leftSub, rightSub) {
+  
+  override def gen(left: Expr, right: Expr) = Low(left, right)
+  
+}
+
+// extract the rightSub (inclusive) to sizeof(leftSub) (exclusive) bits from leftSub
+case class High(override val leftSub: Expr, override val rightSub: Expr)
+  extends BExpr(leftSub, rightSub) {
+  
+  override def gen(left: Expr, right: Expr) = High(left, right)
+  
+}
 // end of binary expressions
 
 // Unary expressions
 case class Not(override val sub: Expr) extends UExpr(sub) {
   
   override def gen(s: Expr) = Not(s)
-  
-}
-
-case class Low(override val sub: Expr) extends UExpr(sub) {
-  
-  override def gen(s: Expr) = Low(s)
-  
-}
-
-case class High(override val sub: Expr) extends UExpr(sub) {
-  
-  override def gen(s: Expr) = High(s)
   
 }
 
