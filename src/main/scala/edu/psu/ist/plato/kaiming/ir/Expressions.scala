@@ -198,7 +198,7 @@ sealed abstract class Expr(sub: Expr*) {
   final def ^(right: Expr) = Xor(this, right)
   final def *(right: Expr) = Mul(this, right)
   final def /(right: Expr) = Div(this, right)
-  final def ::(right: Expr) = Concat(this, right)
+  final def :+(right: Expr) = Concat(this, right)
   final def <<(right: Expr) = Shl(this, right)
   final def >>(right: Expr) = Shr(this, right)
   final def >>>(right: Expr) = Sar(this, right)

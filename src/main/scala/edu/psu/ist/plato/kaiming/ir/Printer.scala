@@ -64,7 +64,7 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
     e match {
       case _: Add    => print('+')
       case _: And    => print('&')
-      case _: Concat => print("::")
+      case _: Concat => print(":+")
       case _: Div    => print('/')
       case _: Mul    => print('*')
       case _: Or     => print('|')

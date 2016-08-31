@@ -144,7 +144,7 @@ object AArch64Machine extends Machine[AArch64] {
     val (assigned2, b2) =
       if (srcInsig > 0) {
         val tmp2 = ctx.getNewTempVar(srcInsig)
-        (tmp :: tmp2, b.buildAssign(inst, tmp2, Const(0))) 
+        (tmp2 :+ tmp2, b.buildAssign(inst, tmp2, Const(0))) 
       } else {
         (tmp, b) 
       }
@@ -153,9 +153,9 @@ object AArch64Machine extends Machine[AArch64] {
       case Extension.Unsigned => assigned2 uext Const(size)
       case Extension.NoExtension => (destInsig, destSig) match {
         case (0, left) if left == size => assigned2
-        case (0, _) => (lv |< Const(destSig)) :: assigned2
-        case (_, left) if left == size => assigned2 :: (lv |> Const(destInsig))
-        case (_, _) => (lv |< Const(destSig)) :: assigned2 :: (lv |> Const(destInsig))
+        case (0, _) => assigned2 :+ (lv |< Const(destSig)) 
+        case (_, left) if left == size => (lv |> Const(destInsig)) :+ assigned2 
+        case (_, _) => (lv |> Const(destInsig)) :+ assigned2 :+ (lv |< Const(destSig)) 
       }
     }
     b2.buildAssign(inst, lv, assigned3)
@@ -164,7 +164,7 @@ object AArch64Machine extends Machine[AArch64] {
   private def toIR(inst: MoveInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
     if (inst.doesKeep)
-      builder.buildAssign(inst, lv, (lv |< Const(16)) :: (inst.src |> Const(16)))
+      builder.buildAssign(inst, lv, (inst.src |> Const(16)) :+ (lv |< Const(16))) 
     else
       builder.buildAssign(inst, lv, inst.src)
   }
