@@ -148,18 +148,25 @@ object AArch64Machine extends Machine[AArch64] {
       } else {
         (tmp, b) 
       }
-    val (assigned3, assignRange) = inst.extension match {
-      case Extension.Signed => (assigned2 sext Const(size), (0, size))
-      case Extension.Unsigned => (assigned2 uext Const(size), (0, size))
-      case Extension.NoExtension => (assigned2, (destInsig, destSig)) 
+    val assigned3 = inst.extension match {
+      case Extension.Signed => assigned2 sext Const(size)
+      case Extension.Unsigned => assigned2 uext Const(size)
+      case Extension.NoExtension => (destInsig, destSig) match {
+        case (0, left) if left == size => assigned2
+        case (0, _) => (lv |< Const(destSig)) :: assigned2
+        case (_, left) if left == size => assigned2 :: (lv |> Const(destInsig))
+        case (_, _) => (lv |< Const(destSig)) :: assigned2 :: (lv |> Const(destInsig))
+      }
     }
-    b2 + AssignStmt(b2.nextIndex, inst, lv, assigned3, assignRange)
+    b2 + AssignStmt(b2.nextIndex, inst, lv, assigned3)
   }
   
   private def toIR(inst: MoveInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
-    val boundSig = if (inst.doesKeep) 16 else lv.sizeInBits
-    builder + AssignStmt(builder.nextIndex, inst, lv, inst.src, (0, boundSig))
+    if (inst.doesKeep)
+      builder + AssignStmt(builder.nextIndex, inst, lv, (lv |< Const(16)) :: (inst.src |> Const(16)))
+    else
+      builder + AssignStmt(builder.nextIndex, inst, lv, inst.src)
   }
   
   private def toIR(inst: CompareInst, builder: IRBuilder) = {

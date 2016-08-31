@@ -58,24 +58,8 @@ sealed abstract class DefStmt(usedExpr: Vector[Expr]) extends Stmt(usedExpr) {
   
 }
 
-object AssignStmt {
-  
-  def apply(index: Long, host: MachEntry[_ <: MachArch],
-      lval: Lval, rval: Expr): AssignStmt =
-    AssignStmt(index, host, lval, rval, (0, lval.sizeInBits))
-  
-}
-
 case class AssignStmt(override val index: Long, override val host: MachEntry[_ <: MachArch],
-    override val definedLval: Lval, usedRval: Expr, range: (Int, Int)) extends DefStmt(
-        if (range._1 == 0 && range._2 == definedLval.sizeInBits)
-          Vector(usedRval)
-        else
-          Vector(definedLval, usedRval)) {
-  
-  def isPartial = range._1 != 0 || range._2 != definedLval.sizeInBits
-  
-}
+    override val definedLval: Lval, usedRval: Expr) extends DefStmt(Vector(usedRval))
 
 sealed trait Extractor extends enumeratum.EnumEntry
 object Extractor extends enumeratum.Enum[Extractor] {

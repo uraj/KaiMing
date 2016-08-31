@@ -7,9 +7,11 @@ import enumeratum._
 
 sealed trait Operand {
   
-  def isRegister = this.isInstanceOf[Register]
-  def isMemory = this.isInstanceOf[Memory]
-  def isImmediate = this.isInstanceOf[Immediate]
+  final def isRegister = this.isInstanceOf[Register]
+  final def isMemory = this.isInstanceOf[Memory]
+  final def isImmediate = this.isInstanceOf[Immediate]
+  final def isShiftedRegister = this.isInstanceOf[ShiftedRegister]
+  final def isRegisterOrShifted = isRegister || isShiftedRegister
   
   def asImmediate: Immediate = 
     throw new UnsupportedOperationException(this + "is not an immediate operand") 

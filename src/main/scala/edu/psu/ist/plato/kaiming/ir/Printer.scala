@@ -114,13 +114,6 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
   
   def printAssignStmt(s: AssignStmt) {
     printLval(s.definedLval)
-    if (s.isPartial) {
-      print('<')
-      print(s.range._1)
-      print(',')
-      print(s.range._2)
-      print('>')
-    }
     print(" = ")
     printExpr(s.usedRval)
     EOS

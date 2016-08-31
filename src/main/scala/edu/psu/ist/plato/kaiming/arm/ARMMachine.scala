@@ -152,8 +152,10 @@ object ARMMachine extends Machine[ARM] {
       builder + SelStmt(builder.nextIndex, inst, lv, inst.condition, inst.src, lv)
     }
     else {
-      val boundInsig = if (inst.isMoveTop) 16 else 0
-      builder + AssignStmt(builder.nextIndex, inst, lv, inst.src, (boundInsig, 32))
+      if (inst.isMoveTop)
+        builder + AssignStmt(builder.nextIndex, inst, lv, (inst.src uext Const(16)) :: (lv |> Const(16)))
+      else
+        builder + AssignStmt(builder.nextIndex, inst, lv, inst.src)
     }
   }
   
@@ -276,13 +278,19 @@ object ARMMachine extends Machine[ARM] {
   }
   
   private def toIR(inst: BitfieldClearInst, builder: IRBuilder) = {
-    builder + AssignStmt(builder.nextIndex, inst, Reg(inst.dest),
-        Const(0), (inst.lsb.value.toInt, (inst.lsb.value + inst.width.value).toInt))
+    val lv = Reg(inst.dest)
+    val low = Const(inst.lsb.value)
+    val high = Const(inst.lsb.value + inst.width.value)
+    builder + AssignStmt(builder.nextIndex, inst, lv, (lv |<  high) :: ((lv |> low) uext high))
   }
   
   private def toIR(inst: BitfieldInsertInst, builder: IRBuilder) = {
-    builder + AssignStmt(builder.nextIndex, inst, Reg(inst.dest),
-        inst.src, (inst.lsb.value.toInt, (inst.lsb.value + inst.width.value).toInt))
+    val low = Const(inst.lsb.value)
+    val width = Const(inst.width.value)
+    val high = Const(inst.width.value + inst.lsb.value)
+    val lv = Reg(inst.dest)
+    builder + AssignStmt(builder.nextIndex, inst, lv,
+        (lv |< high) :: (inst.src |> width) :: (lv |> low))
   }
   
   override protected def toIRStatements(ctx: Context, inst: MachEntry[ARM],
