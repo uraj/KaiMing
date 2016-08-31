@@ -78,10 +78,10 @@ object ARMMachine extends Machine[ARM] {
     
   private def updateFlags(inst: Instruction, ce: CompoundExpr,
       builder: IRBuilder) = {
-    val b1 = builder + SetFlgStmt(builder.nextIndex, inst, Extractor.Carry, Flg(Flag.C), ce)
-    val b2 = b1 + SetFlgStmt(b1.nextIndex, inst, Extractor.Negative, Flg(Flag.N), ce)
-    val b3 = b2 + SetFlgStmt(b2.nextIndex, inst, Extractor.Zero, Flg(Flag.Z), ce) 
-    b3 + SetFlgStmt(b3.nextIndex, inst, Extractor.Overflow, Flg(Flag.V), ce)
+    builder.buildSetFlg(inst, Extractor.Carry, Flg(Flag.C), ce)
+    .buildSetFlg(inst, Extractor.Negative, Flg(Flag.N), ce)
+    .buildSetFlg(inst, Extractor.Zero, Flg(Flag.Z), ce) 
+    .buildSetFlg(inst, Extractor.Overflow, Flg(Flag.V), ce)
   }
   
   private def toIR(inst: BinaryArithInst, builder: IRBuilder) = {
@@ -117,7 +117,7 @@ object ARMMachine extends Machine[ARM] {
       case EOR => inst.srcLeft ^ inst.srcRight
       case _ => throw new UnreachableCodeException()
     }
-    val nbuilder = builder + AssignStmt(builder.nextIndex, inst, lval, rval)
+    val nbuilder = builder.buildAssign(inst, lval, rval)
     if (inst.updateFlags)
       updateFlags(inst, rval, nbuilder)
     else
@@ -130,7 +130,7 @@ object ARMMachine extends Machine[ARM] {
       case Extension.Signed => lv.sext(Const(lv.sizeInBits))
       case _ => lv.uext(Const(lv.sizeInBits))
     }
-    builder + AssignStmt(builder.nextIndex, inst, lv, e)
+    builder.buildAssign(inst, lv, e)
   }
   
   private def toIR(ctx: Context, inst: ExtractInst, builder: IRBuilder) = {
@@ -143,19 +143,19 @@ object ARMMachine extends Machine[ARM] {
       case Extension.Signed => assigned.sext(Const(size))
       case Extension.Unsigned => assigned.uext(Const(size))
     }
-    builder + AssignStmt(builder.nextIndex, inst, lv, assigned2)
+    builder.buildAssign(inst, lv, assigned2)
   }
   
   private def toIR(inst: MoveInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
     if (inst.isConditional) {
-      builder + SelStmt(builder.nextIndex, inst, lv, inst.condition, inst.src, lv)
+      builder.buildSel(inst, lv, inst.condition, inst.src, lv)
     }
     else {
       if (inst.isMoveTop)
-        builder + AssignStmt(builder.nextIndex, inst, lv, (inst.src uext Const(16)) :: (lv |> Const(16)))
+        builder.buildAssign(inst, lv, (inst.src uext Const(16)) :: (lv |> Const(16)))
       else
-        builder + AssignStmt(builder.nextIndex, inst, lv, inst.src)
+        builder.buildAssign(inst, lv, inst.src)
     }
   }
   
@@ -170,14 +170,12 @@ object ARMMachine extends Machine[ARM] {
   }
   
   private def toIR(inst: BranchInst, builder: IRBuilder) = {
-    builder + {
-      if (inst.isReturn)
-        RetStmt(builder.nextIndex, inst, inst.target)
-      else if (inst.isCall)
-        CallStmt(builder.nextIndex, inst, inst.target)
-      else
-        JmpStmt(builder.nextIndex, inst, inst.target)
-    }
+    if (inst.isReturn)
+      builder.buildRet(inst, inst.target)
+    else if (inst.isCall)
+      builder.buildCall(inst, inst.target)
+    else
+      builder.buildJmp(inst, inst.target)
   }
   
   private def toIR(ctx: Context, inst: LoadStoreInst, builder: IRBuilder) = {
@@ -195,14 +193,14 @@ object ARMMachine extends Machine[ARM] {
       case PostIndex => (inst.indexingOperand.base.get: Expr, builder)
       case PreIndex => {
         val ea: Expr = inst.indexingOperand.base.get
-        (ea, builder + AssignStmt(builder.nextIndex, inst, Reg(inst.indexingOperand.base.get), inst.indexingOperand))  
+        (ea, builder.buildAssign(inst, Reg(inst.indexingOperand.base.get), inst.indexingOperand))  
       }
       case Regular => (inst.indexingOperand: Expr, builder)
     }
-    val bb = b + LdStmt(b.nextIndex, inst, Reg(inst.dest), addr)
+    val bb = b.buildLd(inst, Reg(inst.dest), addr)
     inst.addressingMode match {
       case PostIndex =>
-        bb + AssignStmt(bb.nextIndex, inst, Reg(inst.indexingOperand.base.get), inst.indexingOperand)
+        bb.buildAssign(inst, Reg(inst.indexingOperand.base.get), inst.indexingOperand)
       case PreIndex | Regular => bb
     }
   }
@@ -213,15 +211,15 @@ object ARMMachine extends Machine[ARM] {
     val base: Reg = Reg(inst.base.base.get)
     val load = inst.destList.foldLeft(builder) {
       case (b, reg) => {
-        val stb = b + LdStmt(b.nextIndex, inst, Reg(reg), base)
+        val stb = b.buildLd(inst, Reg(reg), base)
         if (inst.preindex)
-          stb + AssignStmt(stb.nextIndex, inst, base, base + Const(sizeInBytes))
+          stb.buildAssign(inst, base, base + Const(sizeInBytes))
         else
           stb
       }
     }
     if (inst.destList.contains(Register(Register.Id.PC, None)))
-      load + RetStmt(load.nextIndex, inst, Reg(Register.Id.PC))
+      load.buildRet(inst, Reg(Register.Id.PC))
     else
       load
   }
@@ -232,14 +230,14 @@ object ARMMachine extends Machine[ARM] {
       case PostIndex => (inst.indexingOperand.base.get: Expr, builder)
       case PreIndex => {
         val ea: Expr = inst.indexingOperand.base.get
-        (ea, builder + AssignStmt(builder.nextIndex, inst, Reg(inst.indexingOperand.base.get), inst.indexingOperand))
+        (ea, builder.buildAssign(inst, Reg(inst.indexingOperand.base.get), inst.indexingOperand))
       }
       case Regular => (inst.indexingOperand: Expr, builder)
     }
-    val bb = b + StStmt(b.nextIndex, inst, addr, inst.src)
+    val bb = b.buildSt(inst, addr, inst.src)
     inst.addressingMode match {
       case PostIndex =>
-        bb + AssignStmt(bb.nextIndex, inst, Reg(inst.indexingOperand.base.get), inst.indexingOperand)
+        bb.buildAssign(inst, Reg(inst.indexingOperand.base.get), inst.indexingOperand)
       case PreIndex | Regular => bb
     }
   }
@@ -249,9 +247,9 @@ object ARMMachine extends Machine[ARM] {
     val base = Reg(inst.base.base.get)
     inst.srcList.foldLeft(builder) {
       case (b, reg) => {
-        val stb = b + StStmt(b.nextIndex, inst, Reg(reg), base)
+        val stb = b.buildSt(inst, Reg(reg), base)
         if (inst.preindex)
-          stb + AssignStmt(stb.nextIndex, inst, base, base + Const(sizeInBytes))
+          stb.buildAssign(inst, base, base + Const(sizeInBytes))
         else
           stb
       }
@@ -261,27 +259,25 @@ object ARMMachine extends Machine[ARM] {
   private def toIR(inst: UnaryArithInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
     import edu.psu.ist.plato.kaiming.arm.Opcode.Mnemonic._
-    builder + {
-      inst.opcode.mnemonic match {
-        case NOT => AssignStmt(builder.nextIndex, inst, lv, Const(0) - inst.src)
-        case ADR => AssignStmt(builder.nextIndex, inst, lv, inst.src)
-        case _ => throw new UnreachableCodeException()
-      }
+    inst.opcode.mnemonic match {
+      case NOT => builder.buildAssign(inst, lv, Const(0) - inst.src)
+      case ADR => builder.buildAssign(inst, lv, inst.src)
+      case _ => throw new UnreachableCodeException
     }
   }
   
   private def toIR(ctx: Context, inst: LongMulInst, builder: IRBuilder) = {
     val tmpVar = ctx.getNewTempVar(64)
-    val b1 = builder + AssignStmt(builder.nextIndex, inst, tmpVar, inst.srcLeft * inst.srcRight)
-    val b2 = b1 + AssignStmt(b1.nextIndex, inst, Reg(inst.destHi), tmpVar |< Const(31))
-    b2 + AssignStmt(b2.nextIndex, inst, Reg(inst.destLow), tmpVar |> Const(31))
+    builder.buildAssign(inst, tmpVar, inst.srcLeft * inst.srcRight)
+    .buildAssign(inst, Reg(inst.destHi), tmpVar |< Const(31))
+    .buildAssign(inst, Reg(inst.destLow), tmpVar |> Const(31))
   }
   
   private def toIR(inst: BitfieldClearInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
     val low = Const(inst.lsb.value)
     val high = Const(inst.lsb.value + inst.width.value)
-    builder + AssignStmt(builder.nextIndex, inst, lv, (lv |<  high) :: ((lv |> low) uext high))
+    builder.buildAssign(inst, lv, (lv |<  high) :: ((lv |> low) uext high))
   }
   
   private def toIR(inst: BitfieldInsertInst, builder: IRBuilder) = {
@@ -289,8 +285,7 @@ object ARMMachine extends Machine[ARM] {
     val width = Const(inst.width.value)
     val high = Const(inst.width.value + inst.lsb.value)
     val lv = Reg(inst.dest)
-    builder + AssignStmt(builder.nextIndex, inst, lv,
-        (lv |< high) :: (inst.src |> width) :: (lv |> low))
+    builder.buildAssign(inst, lv, (lv |< high) :: (inst.src |> width) :: (lv |> low))
   }
   
   override protected def toIRStatements(ctx: Context, inst: MachEntry[ARM],

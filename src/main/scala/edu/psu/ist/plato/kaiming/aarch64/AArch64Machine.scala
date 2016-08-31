@@ -80,10 +80,10 @@ object AArch64Machine extends Machine[AArch64] {
     
   private def updateFlags(inst: Instruction, ce: CompoundExpr,
       builder: IRBuilder) = {
-    val b1 = builder + SetFlgStmt(builder.nextIndex, inst, Extractor.Carry, Flg(Flag.C), ce)
-    val b2 = b1 + SetFlgStmt(b1.nextIndex, inst, Extractor.Negative, Flg(Flag.N), ce)
-    val b3 = b2 + SetFlgStmt(b2.nextIndex, inst, Extractor.Zero, Flg(Flag.Z), ce) 
-    b3 + SetFlgStmt(b3.nextIndex, inst, Extractor.Overflow, Flg(Flag.V), ce)
+    builder.buildSetFlg(inst, Extractor.Carry, Flg(Flag.C), ce)
+    .buildSetFlg(inst, Extractor.Negative, Flg(Flag.N), ce)
+    .buildSetFlg(inst, Extractor.Zero, Flg(Flag.Z), ce) 
+    .buildSetFlg(inst, Extractor.Overflow, Flg(Flag.V), ce)
   }
   
   private def toIR(inst: BinaryArithInst, builder: IRBuilder) = {
@@ -114,7 +114,7 @@ object AArch64Machine extends Machine[AArch64] {
       case AND => inst.srcLeft & inst.srcRight
       case _ => throw new UnreachableCodeException()
     }
-    val nbuilder = builder + AssignStmt(builder.nextIndex, inst, lval, rval)
+    val nbuilder = builder.buildAssign(inst, lval, rval)
     if (inst.updateFlags)
       updateFlags(inst, rval, nbuilder)
     else
@@ -127,7 +127,7 @@ object AArch64Machine extends Machine[AArch64] {
       case Extension.Signed => lv.sext(Const(lv.sizeInBits))
       case _ => lv.uext(Const(lv.sizeInBits))
     }
-    builder + AssignStmt(builder.nextIndex, inst, lv, e)
+    builder.buildAssign(inst, lv, e)
   }
   
   private def toIR(ctx: Context, inst: BitfieldMoveInst, builder: IRBuilder) = {
@@ -140,11 +140,11 @@ object AArch64Machine extends Machine[AArch64] {
       else (size - rotate, size + shift - rotate, 0, shift)
     val assigned: Expr = if (srcInsig > 0) inst.src >> Const(srcInsig) else inst.src
     val tmp = ctx.getNewTempVar(srcSig - srcInsig + 1)
-    val b = builder + AssignStmt(builder.nextIndex, inst, tmp, Const(0))
+    val b = builder.buildAssign(inst, tmp, Const(0))
     val (assigned2, b2) =
       if (srcInsig > 0) {
         val tmp2 = ctx.getNewTempVar(srcInsig)
-        (tmp :: tmp2, b + AssignStmt(b.nextIndex, inst, tmp2, Const(0))) 
+        (tmp :: tmp2, b.buildAssign(inst, tmp2, Const(0))) 
       } else {
         (tmp, b) 
       }
@@ -158,15 +158,15 @@ object AArch64Machine extends Machine[AArch64] {
         case (_, _) => (lv |< Const(destSig)) :: assigned2 :: (lv |> Const(destInsig))
       }
     }
-    b2 + AssignStmt(b2.nextIndex, inst, lv, assigned3)
+    b2.buildAssign(inst, lv, assigned3)
   }
   
   private def toIR(inst: MoveInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
     if (inst.doesKeep)
-      builder + AssignStmt(builder.nextIndex, inst, lv, (lv |< Const(16)) :: (inst.src |> Const(16)))
+      builder.buildAssign(inst, lv, (lv |< Const(16)) :: (inst.src |> Const(16)))
     else
-      builder + AssignStmt(builder.nextIndex, inst, lv, inst.src)
+      builder.buildAssign(inst, lv, inst.src)
   }
   
   private def toIR(inst: CompareInst, builder: IRBuilder) = {
@@ -179,14 +179,12 @@ object AArch64Machine extends Machine[AArch64] {
   }
   
   private def toIR(inst: BranchInst, builder: IRBuilder) = {
-    builder + {
-      if (inst.isReturn)
-        RetStmt(builder.nextIndex, inst, inst.target)
-      else if (inst.isCall)
-        CallStmt(builder.nextIndex, inst, inst.target)
-      else
-        JmpStmt(builder.nextIndex, inst, inst.target)
-    }
+    if (inst.isReturn)
+      builder.buildRet(inst, inst.target)
+    else if (inst.isCall)
+      builder.buildCall(inst, inst.target)
+    else
+      builder.buildJmp(inst, inst.target)
   }
   
   private def toIR(ctx: Context, inst: LoadStoreInst, builder: IRBuilder) = {
@@ -198,8 +196,8 @@ object AArch64Machine extends Machine[AArch64] {
     val nbuilder = inst.addressingMode match {
       case PostIndex | Regular => builder
       case PreIndex =>
-        builder + AssignStmt(builder.nextIndex, inst, 
-            Reg(inst.indexingOperand.base.get), inst.indexingOperand)
+        builder.buildAssign(inst, Reg(inst.indexingOperand.base.get),
+            inst.indexingOperand)
     }
     val b = inst match {
       case l: LoadInst => processLoadStore(l, addr, nbuilder)
@@ -210,49 +208,44 @@ object AArch64Machine extends Machine[AArch64] {
     inst.addressingMode match {
       case PreIndex | Regular => b
       case PostIndex =>
-        b + AssignStmt(b.nextIndex, inst,
-            Reg(inst.indexingOperand.base.get), inst.indexingOperand)
+        b.buildAssign(inst, Reg(inst.indexingOperand.base.get), inst.indexingOperand)
     }
   }
   
   private def processLoadStore(inst: LoadInst, addr: Expr, builder: IRBuilder) = {
-    builder + LdStmt(builder.nextIndex, inst, Reg(inst.dest), addr)
+    builder.buildLd(inst, Reg(inst.dest), addr)
   }
   
   private def processLoadStore(inst: LoadPairInst, addr: Expr, builder: IRBuilder) = {
     val first = Reg(inst.destLeft)
-    val b = builder + LdStmt(builder.nextIndex, inst, first, addr)
     val second = Reg(inst.destRight)
     val sizeInBytes = first.sizeInBits / 8
-    b + LdStmt(b.nextIndex, inst, second, addr + Const(sizeInBytes))
+    builder.buildLd(inst, first, addr).buildLd(inst, second, addr + Const(sizeInBytes))
   }
   
   private def processLoadStore(inst: StoreInst, addr: Expr, builder: IRBuilder) = {
-    builder + StStmt(builder.nextIndex, inst, addr, inst.src)
+    builder.buildSt(inst, addr, inst.src)
   }
   
   private def processLoadStore(inst: StorePairInst, addr: Expr, builder: IRBuilder) = {
     val first = Reg(inst.srcLeft)
-    val b = builder + StStmt(builder.nextIndex, inst, first, addr)
     val second = Reg(inst.srcRight)
     val sizeInBytes = first.sizeInBits / 8
-    b + StStmt(b.nextIndex, inst, second, addr + Const(sizeInBytes))
+    builder.buildSt(inst, first, addr).buildSt(inst, second, addr + Const(sizeInBytes))
   }
   
   private def toIR(inst: UnaryArithInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
     import edu.psu.ist.plato.kaiming.aarch64.Opcode.Mnemonic._
-    builder + {
-      inst.opcode.mnemonic match {
-        case ADR => AssignStmt(builder.nextIndex, inst, lv, inst.src)
-        case NEG => AssignStmt(builder.nextIndex, inst, lv, Const(0) - inst.src)
-        case _ => throw new UnreachableCodeException()
-      }
+    inst.opcode.mnemonic match {
+      case ADR => builder.buildAssign(inst, lv, inst.src)
+      case NEG => builder.buildAssign(inst, lv, Const(0) - inst.src)
+      case _ => throw new UnreachableCodeException()
     }
   }
   
   private def toIR(inst: SelectInst, builder: IRBuilder) = {
-    builder + SelStmt(builder.nextIndex, inst, Reg(inst.dest),
+    builder.buildSel(inst, Reg(inst.dest),
         inst.condition, inst.srcTrue, inst.srcFalse)
   }
   

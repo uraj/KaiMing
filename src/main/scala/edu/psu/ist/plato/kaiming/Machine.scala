@@ -1,11 +1,7 @@
 package edu.psu.ist.plato.kaiming
 
 import edu.psu.ist.plato.kaiming.Arch._
-
-import edu.psu.ist.plato.kaiming.ir.Stmt
-import edu.psu.ist.plato.kaiming.ir.Context
-import edu.psu.ist.plato.kaiming.ir.IRBBlock
-import edu.psu.ist.plato.kaiming.ir.IRCfg
+import edu.psu.ist.plato.kaiming.ir._
 
 import edu.psu.ist.plato.kaiming.aarch64.AArch64Machine
 
@@ -17,10 +13,36 @@ abstract class Machine[A <: MachArch] {
   
   protected case class IRBuilder(private val start: Long, private val content: List[Stmt]) {
     
-    def +(s: Stmt) = IRBuilder(start, s::content)
     def get = content.reverse
     def nextIndex = start + content.size
     
+    def buildAssign(host: MachEntry[_ <: MachArch], definedLval: Lval, usedRval: Expr) =
+      IRBuilder(start, AssignStmt(nextIndex, host, definedLval, usedRval)::content)
+      
+    def buildSt(host: MachEntry[_ <: MachArch], storeTo: Expr, storedExpr: Expr) =
+      IRBuilder(start, StStmt(nextIndex, host, storeTo, storedExpr)::content)
+      
+    def buildJmp(host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
+        target: Expr) = 
+      IRBuilder(start, JmpStmt(nextIndex, host, target)::content)
+      
+    def buildCall(host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
+        target: Expr) =
+      IRBuilder(start, CallStmt(nextIndex, host, target)::content)
+      
+    def buildSetFlg(host: MachEntry[_ <: MachArch], extractor: Extractor, definedLval: Flg,
+        usedRval: CompoundExpr) =
+      IRBuilder(start, SetFlgStmt(nextIndex, host, extractor, definedLval, usedRval)::content)
+      
+    def buildLd(host: MachEntry[_ <: MachArch], definedLval: Lval, loadFrom: Expr) =
+      IRBuilder(start, LdStmt(nextIndex, host, definedLval, loadFrom)::content)
+      
+    def buildSel(host: MachEntry[_ <: MachArch], definedLval: Lval, condition: Expr,
+        trueValue: Expr, falseValue: Expr) =
+      IRBuilder(start, SelStmt(nextIndex, host, definedLval, condition, trueValue, falseValue)::content)
+      
+    def buildRet(host: MachEntry[_ <: MachArch], target: Expr) =
+      IRBuilder(start, RetStmt(nextIndex, host, target)::content)
   }
   
   protected def toIRStatements(ctx: Context, inst: MachEntry[A], builder: IRBuilder): IRBuilder
