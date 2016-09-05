@@ -27,7 +27,7 @@ object Instruction {
     val condition = cond.getOrElse(Condition.AL)
     import edu.psu.ist.plato.kaiming.aarch64.Opcode.Mnemonic._
     opcode.mnemonic match {
-      case ADD | SUB | MUL | DIV | ASR | LSL | LSR | ORR | ORN | AND => 
+      case ADD | SUB | MUL | SDIV | UDIV | ASR | LSL | LSR | ORR | ORN | AND => 
         require(oplist(0).isRegister)
         require((oplist.length == 3 && oplist(1).isRegister) || oplist.length == 2)
         val rd = oplist(0).asRegister

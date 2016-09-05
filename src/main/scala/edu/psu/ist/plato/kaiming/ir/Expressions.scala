@@ -8,14 +8,15 @@ object Expr {
   
   sealed abstract class Visitor[A] {
 
-    protected def merge(o1: A, o2: A): A
+    protected def merge(be: BExpr, o1: A, o2: A): A
+    protected def lift(be: UExpr, o1: A): A
 
     protected sealed abstract class Action { val info: A }
     protected case class SkipChildren(override val info: A) extends Action
     protected case class VisitChildren(override val info: A) extends Action
     protected case class ReplaceWith(override val info: A, expr: Expr) extends Action
-    protected case class VisitChildrenPost(override val info: A, expr: Expr,
-        func: Expr => Expr) extends Action
+    protected case class ReplaceWithPost(override val info: A, expr: Expr,
+        post: Tuple2[A, Expr] => (A, Expr)) extends Action
     
     final def visit(info: A, expr: Expr): (A, Expr) = {
       def visitChildren(i: A, expr: Expr) = expr match {
@@ -26,11 +27,11 @@ object Expr {
       }
       visitExpr(info, expr) match {
         case SkipChildren(i) => (i, expr)
-        case ReplaceWith(i, e) => (i, e)
         case VisitChildren(i) => visitChildren(i, expr)
-        case VisitChildrenPost(i, e, f) => {
+        case ReplaceWith(i, e) => (i, e)
+        case ReplaceWithPost(i, e, f) => {
           val (ii, ee) = visit(i, e)
-          (ii, f(ee))
+          f(ii, ee)
         }
       }
     }
@@ -38,18 +39,18 @@ object Expr {
     private def doVisitBExpr(info: A, be: BExpr) =
       visitBExpr(info, be) match {
         case SkipChildren(i) => (i, be)
-        case ReplaceWith(i, e) => (i, e)
         case VisitChildren(i) => {
           val (il, left) = visit(i, be.leftSub)
           val (ir, right) = visit(i, be.rightSub)
           if (!(left eq be.leftSub) || !(right eq be.rightSub))
-            (merge(il, ir), be.gen(left, right))
+            (merge(be, il, ir), be.gen(left, right))
           else
-            (merge(il, ir), be)
+            (merge(be, il, ir), be)
         }
-        case VisitChildrenPost(i, e, f) => {
+        case ReplaceWith(i, e) => (i, e)
+        case ReplaceWithPost(i, e, f) => {
           val (ii, ee) = visit(i, e)
-          (ii, f(ee))
+          f(ii, ee)
         }
       }
     
@@ -59,21 +60,16 @@ object Expr {
         case ReplaceWith(i, e) => (i, e)
         case VisitChildren(i) => {
           val (ii, sub) = visit(i, ue.sub)
-          (ii, if (!(sub eq ue.sub)) ue.gen(sub) else ue)
+          (lift(ue, ii), if (!(sub eq ue.sub)) ue.gen(sub) else ue)
         }
-        case VisitChildrenPost(i, e, f) => {
-          val (ii, ee) = visit(i, e)
-          (ii, f(ee))
-        }
+        case ReplaceWithPost(i, e, f) => f(visit(i, e))
+        
       }
         
     private def doVisitConst(info: A, c: Const): (A, Expr) =
       visitConst(info, c) match {
         case ReplaceWith(i, e) => (i, e)
-        case VisitChildrenPost(i, e, f) => {
-          val (ii, ee) = visit(i, e)
-          (ii, f(ee))
-        }
+        case ReplaceWithPost(i, e, f) => f(visit(i, e))
         case a: Action => (a.info, c)
       }
 
@@ -87,39 +83,27 @@ object Expr {
             case v: Var => doVisitVar(i, v)
             case f: Flg => doVisitFlg(i, f)
           }
-        case VisitChildrenPost(i, e, f) => {
-          val (ii, ee) = visit(i, e)
-          (ii, f(ee))
-        }
+        case ReplaceWithPost(i, e, f) => f(visit(i, e))
       }
 
     private def doVisitVar(info: A, v: Var): (A, Expr) =
       visitVar(info, v) match {
         case ReplaceWith(i, e) => (i, e)
-        case VisitChildrenPost(i, e, f) => {
-          val (ii, ee) = visit(i, e)
-          (ii, f(ee))
-        }
+        case ReplaceWithPost(i, e, f) => f(visit(i, e))
         case a: Action => (a.info, v)
       }
     
     private def doVisitReg(info: A, r: Reg): (A, Expr) = 
       visitReg(info, r) match {
         case ReplaceWith(i, e) => (i, e)
-        case VisitChildrenPost(i, e, f) => {
-          val (ii, ee) = visit(i, e)
-          (ii, f(ee))
-        }
+        case ReplaceWithPost(i, e, f) => f(visit(i, e))
         case a: Action => (a.info, r)
       }
     
     private def doVisitFlg(info: A, flg: Flg): (A, Expr) = 
       visitFlg(info, flg) match {
         case ReplaceWith(i, e) => (i, e)
-        case VisitChildrenPost(i, e, f) => {
-          val (ii, ee) = visit(i, e)
-          (ii, f(ee))
-        }
+        case ReplaceWithPost(i, e, f) => f(visit(i, e))
         case a: Action => (a.info, flg)
       }
     
@@ -131,6 +115,7 @@ object Expr {
     protected def visitReg(info: A, r: Reg): Action
     protected def visitFlg(info: A, f: Flg): Action
     protected def visitConst(info: A, c: Const): Action
+    
   }
   
   abstract class NopVisitor[A] extends Visitor[A] {
@@ -146,8 +131,8 @@ object Expr {
   
   private object LvalProbe extends NopVisitor[Set[Lval]] {
     
-    override protected def merge(s1: Set[Lval], s2: Set[Lval]) = s1 ++ s2
-    
+    override protected def merge(be: BExpr, s1: Set[Lval], s2: Set[Lval]) = s1 ++ s2
+    override protected def lift(ue: UExpr, s: Set[Lval]) = s
     override protected def visitLval(lvals: Set[Lval], lv: Lval) = 
       SkipChildren(lvals + lv)
       
@@ -199,7 +184,8 @@ sealed abstract class Expr(sub: Expr*) {
   final def &(right: Expr) = And(this, right)
   final def ^(right: Expr) = Xor(this, right)
   final def *(right: Expr) = Mul(this, right)
-  final def /(right: Expr) = Div(this, right)
+  final def -/(right: Expr) = SDiv(this, right)
+  final def +/(right: Expr) = UDiv(this, right)
   final def :+(right: Expr) = Concat(this, right)
   final def <<(right: Expr) = Shl(this, right)
   final def >>(right: Expr) = Shr(this, right)
@@ -214,13 +200,16 @@ sealed abstract class Expr(sub: Expr*) {
   
 }
 
-case class Const(value: Long, override val sizeInBits: Int) extends Expr() {
+sealed abstract class PrimitiveExpr extends Expr()
+
+case class Const(value: Long, override val sizeInBits: Int) extends PrimitiveExpr {
   
   override def hashCode = value.hashCode
   
 }
 
-sealed abstract class Lval extends Expr() {
+sealed abstract class Lval extends PrimitiveExpr {
+  def name: String
   def sizeInBits : Int
 }
 
@@ -234,6 +223,7 @@ case class Var(parent: Context, name: String, override val sizeInBits: Int)
 case class Reg(mreg: MachRegister[_ <: MachArch]) extends Lval {
   
   override def hashCode = mreg.hashCode
+  override def name = mreg.name
   override def sizeInBits = mreg.sizeInBits
   
 }
@@ -241,6 +231,7 @@ case class Reg(mreg: MachRegister[_ <: MachArch]) extends Lval {
 case class Flg(mflag: MachFlag[_ <: MachArch]) extends Lval {
   
   override def hashCode = mflag.hashCode
+  override def name = mflag.name
   override def sizeInBits = 1
   
 }
@@ -342,7 +333,7 @@ case class Mul(override val leftSub: Expr, override val rightSub: Expr)
   
 }
 
-case class Div(override val leftSub: Expr, override val rightSub: Expr)
+case class UDiv(override val leftSub: Expr, override val rightSub: Expr)
     extends BExpr(leftSub, rightSub) {
   
   require(leftSub.sizeInBits == rightSub.sizeInBits,
@@ -350,7 +341,19 @@ case class Div(override val leftSub: Expr, override val rightSub: Expr)
   
   override val sizeInBits = leftSub.sizeInBits
   
-  override def gen(left: Expr, right: Expr) = Div(left, right)
+  override def gen(left: Expr, right: Expr) = UDiv(left, right)
+  
+}
+
+case class SDiv(override val leftSub: Expr, override val rightSub: Expr)
+    extends BExpr(leftSub, rightSub) {
+  
+  require(leftSub.sizeInBits == rightSub.sizeInBits,
+      "Operands of Div have to be of the same size")
+  
+  override val sizeInBits = leftSub.sizeInBits
+  
+  override def gen(left: Expr, right: Expr) = SDiv(left, right)
   
 }
 
@@ -472,6 +475,8 @@ case class Not(override val sub: Expr) extends UExpr(sub) {
 case class BSwap(override val sub: Expr) extends UExpr(sub) {
   
   override val sizeInBits = sub.sizeInBits
+  
+  require(sizeInBits % 8 == 0, "Can only swap bytes")
   
   override def gen(s: Expr) = BSwap(s)
   

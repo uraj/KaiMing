@@ -13,7 +13,8 @@ object Opcode {
     case object ADD extends Mnemonic
     case object SUB extends Mnemonic
     case object MUL extends Mnemonic
-    case object DIV extends Mnemonic
+    case object SDIV extends Mnemonic
+    case object UDIV extends Mnemonic
     case object ADR extends Mnemonic
     case object ASR extends Mnemonic
     case object LSL extends Mnemonic
@@ -70,7 +71,8 @@ object Opcode {
       case EXT => List("SXTW", "SXTH", "SXTB", "UXTW", "UXTH", "UXTB")
       case BFM => List("SBFX", "SBFM", "UBFX", "UBFM")
       case MUL => List("MUL", "UMUL")
-      case DIV => List("SDIV", "UDIV")
+      case SDIV => List("SDIV")
+      case UDIV => List("UDIV")
       case NEG => List("NEG")
       case ORR => List("ORR")
       case ORN => List("ORN")

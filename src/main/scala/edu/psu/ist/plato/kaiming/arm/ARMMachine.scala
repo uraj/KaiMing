@@ -107,7 +107,8 @@ object ARMMachine extends Machine[ARM] {
           sub
       }
       case MUL => inst.srcLeft * inst.srcRight
-      case DIV => inst.srcLeft / inst.srcRight
+      case SDIV => inst.srcLeft -/ inst.srcRight
+      case UDIV => inst.srcLeft +/ inst.srcRight
       case ASR => inst.srcLeft >>> inst.srcRight
       case LSL => inst.srcLeft << inst.srcRight
       case LSR => inst.srcLeft >> inst.srcRight

@@ -6,14 +6,14 @@ now, KaiMing supports the following architectures:
 + ARM
 + AArch64
 
-The dependencies of this project is managed by sbt. In detail, the project
-requires the following components:
+The dependencies of this project is managed by sbt. You need sbt 0.13.9+ to
+build the project. In detail, the project requires the following components:
 
 + Scala 2.11, with parser combinator
 + ScalaTest
-+ scodec
 + Graph for Scala
 + enumeratum
++ Z3
 
 The project can be directly imported into Eclipse after you generate the
 required Eclipse configuration files by typing 

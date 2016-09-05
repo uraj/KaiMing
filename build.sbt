@@ -13,3 +13,8 @@ lazy val root = (project in file(".")).
     scalaVersion := "2.11.8",
     libraryDependencies ++= libraries
   )
+
+assemblyExcludedJars in assembly := { 
+  val cp = (fullClasspath in assembly).value
+  cp filter {_.data.getParentFile.getName != "lib"}
+}

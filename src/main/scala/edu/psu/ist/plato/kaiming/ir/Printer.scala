@@ -28,7 +28,7 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
   
   def printReg(r: Reg) {
     print('%')
-    print(r.mreg.name)
+    print(r.name)
   }
   
   def printVar(v: Var) {
@@ -41,7 +41,7 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
   
   def printFlg(f: Flg) {
     print('%')
-    print(f.mflag.name)
+    print(f.name)
   }
   
   def printLval(lv: Lval) {
@@ -65,7 +65,8 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
       case _: Add    => print('+')
       case _: And    => print('&')
       case _: Concat => print(":+")
-      case _: Div    => print('/')
+      case _: SDiv   => print("/-")
+      case _: UDiv   => print("/+")
       case _: Mul    => print('*')
       case _: Or     => print('|')
       case _: Sar    => print(">>>")
@@ -76,8 +77,8 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
       case _: Xor    => print('^')
       case _: SExt   => print("sext")
       case _: UExt   => print("uext")
-      case _: High => print("|<")
-      case _: Low => print("|>")
+      case _: High   => print("|<")
+      case _: Low    => print("|>")
     }
     print(' ')
     e.rightSub match {

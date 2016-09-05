@@ -27,7 +27,7 @@ object Instruction {
   def create(addr: Long, opcode: Opcode, oplist: Vector[Operand], preidx: Boolean): Instruction = {
     import edu.psu.ist.plato.kaiming.arm.Opcode.Mnemonic._
     opcode.mnemonic match {
-      case ADD | SUB | MUL | DIV | ASR | LSL | LSR | ORR | ORN | AND | BIC | EOR =>
+      case ADD | SUB | MUL | SDIV | UDIV | ASR | LSL | LSR | ORR | ORN | AND | BIC | EOR =>
         require((oplist.length == 3 && oplist(1).isRegister) || oplist.length == 2)
         require(oplist(0).isRegister)
         val rd = oplist(0).asRegister 
