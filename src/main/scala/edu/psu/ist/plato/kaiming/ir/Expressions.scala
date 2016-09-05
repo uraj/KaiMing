@@ -160,7 +160,9 @@ sealed abstract class Expr(sub: Expr*) {
   
   val subExpr = sub.toVector
   
-  def hashCode(): Int
+  def hashCode: Int
+  
+  def sizeInBits: Int
   
   final def substitute(o: Expr, n: Expr): Expr = 
     if (this == o) n else this match {
@@ -203,18 +205,18 @@ sealed abstract class Expr(sub: Expr*) {
   final def >>(right: Expr) = Shr(this, right)
   final def >>>(right: Expr) = Sar(this, right)
   final def ><(right: Expr) = Ror(this, right)
-  final def sext(right: Expr) = SExt(this, right)
-  final def uext(right: Expr) = UExt(this, right)
-  final def |>(right: Expr) = Low(this, right)
-  final def |<(right: Expr) = High(this, right)
+  final def sext(right: Const) = SExt(this, right)
+  final def uext(right: Const) = UExt(this, right)
+  final def |>(right: Const) = Low(this, right)
+  final def |<(right: Const) = High(this, right)
   final def unary_<> = BSwap(this)
   final def unary_! = Not(this)
   
 }
 
-case class Const(value: Long) extends Expr() {
+case class Const(value: Long, override val sizeInBits: Int) extends Expr() {
   
-  override def hashCode() = value.hashCode()
+  override def hashCode = value.hashCode
   
 }
 
@@ -225,31 +227,35 @@ sealed abstract class Lval extends Expr() {
 case class Var(parent: Context, name: String, override val sizeInBits: Int)
     extends Lval {
   
-  override def hashCode() = 31 * parent.hashCode() + name.hashCode()
+  override def hashCode = 31 * parent.hashCode + name.hashCode
   
 }
 
 case class Reg(mreg: MachRegister[_ <: MachArch]) extends Lval {
   
-  override def hashCode() = mreg.hashCode()
+  override def hashCode = mreg.hashCode
   override def sizeInBits = mreg.sizeInBits
   
 }
 
 case class Flg(mflag: MachFlag[_ <: MachArch]) extends Lval {
   
-  override def hashCode() = mflag.hashCode()
+  override def hashCode = mflag.hashCode
   override def sizeInBits = 1
   
 }
 
-sealed abstract class CompoundExpr(sub: Expr*) extends Expr(sub: _*)
+sealed abstract class CompoundExpr(sub: Expr*) extends Expr(sub: _*) {
+  
+  override val sizeInBits: Int
+  
+}
 
 sealed abstract class BExpr(val leftSub: Expr, val rightSub: Expr)
   extends CompoundExpr(leftSub, rightSub) {
   
-  override def hashCode() =
-    31 * (31 * leftSub.hashCode() + getClass().hashCode()) + rightSub.hashCode()
+  override def hashCode =
+    31 * (31 * leftSub.hashCode + getClass.hashCode) + rightSub.hashCode
     
   def gen(left: Expr, right: Expr): BExpr
   
@@ -257,7 +263,7 @@ sealed abstract class BExpr(val leftSub: Expr, val rightSub: Expr)
 
 sealed abstract class UExpr(val sub: Expr) extends CompoundExpr(sub) {
   
-  override def hashCode() = sub.hashCode() + 31 * getClass().hashCode()
+  override def hashCode = sub.hashCode + 31 * getClass.hashCode
   
   def gen(sub: Expr): UExpr
   
@@ -267,12 +273,22 @@ sealed abstract class UExpr(val sub: Expr) extends CompoundExpr(sub) {
 case class Add(override val leftSub: Expr, override val rightSub: Expr)
     extends BExpr(leftSub, rightSub) {
   
+  require(leftSub.sizeInBits == rightSub.sizeInBits,
+      "Operands of Add have to be of the same size" + this)
+  
+  override val sizeInBits = leftSub.sizeInBits
+  
   override def gen(left: Expr, right: Expr) = Add(left, right)
   
 }
 
 case class Sub(override val leftSub: Expr, override val rightSub: Expr)
     extends BExpr(leftSub, rightSub) {
+  
+  require(leftSub.sizeInBits == rightSub.sizeInBits,
+      "Operands of Sub have to be of the same size")
+  
+  override val sizeInBits = leftSub.sizeInBits
   
   override def gen(left: Expr, right: Expr) = Sub(left, right)
   
@@ -281,12 +297,22 @@ case class Sub(override val leftSub: Expr, override val rightSub: Expr)
 case class Or(override val leftSub: Expr, override val rightSub: Expr)
     extends BExpr(leftSub, rightSub) {
   
+  require(leftSub.sizeInBits == rightSub.sizeInBits,
+      "Operands of Or have to be of the same size")
+  
+  override val sizeInBits = leftSub.sizeInBits
+  
   override def gen(left: Expr, right: Expr) = Or(left, right)
   
 }
 
 case class And(override val leftSub: Expr, override val rightSub: Expr)
     extends BExpr(leftSub, rightSub) {
+  
+  require(leftSub.sizeInBits == rightSub.sizeInBits,
+      "Operands of And have to be of the same size")
+  
+  override val sizeInBits = leftSub.sizeInBits
   
   override def gen(left: Expr, right: Expr) = And(left, right)
   
@@ -295,12 +321,22 @@ case class And(override val leftSub: Expr, override val rightSub: Expr)
 case class Xor(override val leftSub: Expr, override val rightSub: Expr)
     extends BExpr(leftSub, rightSub) {
   
+  require(leftSub.sizeInBits == rightSub.sizeInBits,
+      "Operands of Xor have to be of the same size")
+  
+  override val sizeInBits = leftSub.sizeInBits
+  
   override def gen(left: Expr, right: Expr) = Xor(left, right)
   
 }
 
 case class Mul(override val leftSub: Expr, override val rightSub: Expr)
     extends BExpr(leftSub, rightSub) {
+  
+  require(leftSub.sizeInBits == rightSub.sizeInBits,
+      "Operands of Mul have to be of the same size")
+  
+  override val sizeInBits = leftSub.sizeInBits
   
   override def gen(left: Expr, right: Expr) = Mul(left, right)
   
@@ -309,12 +345,19 @@ case class Mul(override val leftSub: Expr, override val rightSub: Expr)
 case class Div(override val leftSub: Expr, override val rightSub: Expr)
     extends BExpr(leftSub, rightSub) {
   
+  require(leftSub.sizeInBits == rightSub.sizeInBits,
+      "Operands of Div have to be of the same size")
+  
+  override val sizeInBits = leftSub.sizeInBits
+  
   override def gen(left: Expr, right: Expr) = Div(left, right)
   
 }
 
 case class Concat(override val leftSub: Expr, override val rightSub: Expr)
     extends BExpr(leftSub, rightSub) {
+
+  override val sizeInBits = leftSub.sizeInBits + rightSub.sizeInBits
   
   override def gen(left: Expr, right: Expr) = Concat(left, right)
   
@@ -323,12 +366,16 @@ case class Concat(override val leftSub: Expr, override val rightSub: Expr)
 case class Shl(override val leftSub: Expr, override val rightSub: Expr)
     extends BExpr(leftSub, rightSub) {
   
+  override val sizeInBits = leftSub.sizeInBits
+  
   override def gen(left: Expr, right: Expr) = Shl(left, right)
   
 }
 
 case class Shr(override val leftSub: Expr, override val rightSub: Expr)
     extends BExpr(leftSub, rightSub) {
+  
+  override val sizeInBits = leftSub.sizeInBits
   
   override def gen(left: Expr, right: Expr) = Shr(left, right)
   
@@ -337,6 +384,8 @@ case class Shr(override val leftSub: Expr, override val rightSub: Expr)
 case class Sar(override val leftSub: Expr, override val rightSub: Expr)
     extends BExpr(leftSub, rightSub) {
   
+  override val sizeInBits = leftSub.sizeInBits
+  
   override def gen(left: Expr, right: Expr) = Sar(left, right)
   
 }
@@ -344,37 +393,69 @@ case class Sar(override val leftSub: Expr, override val rightSub: Expr)
 case class Ror(override val leftSub: Expr, override val rightSub: Expr)
     extends BExpr(leftSub, rightSub) {
   
+  override val sizeInBits = leftSub.sizeInBits
+  
   override def gen(left: Expr, right: Expr) = Ror(left, right)
   
 }
 
-case class SExt(override val leftSub: Expr, override val rightSub: Expr)
+case class SExt(override val leftSub: Expr, override val rightSub: Const)
     extends BExpr(leftSub, rightSub) {
   
-  override def gen(left: Expr, right: Expr) = SExt(left, right)
+  override val sizeInBits = rightSub.value.toInt
   
+  override def gen(left: Expr, right: Expr) =
+    if (right.isInstanceOf[Const])
+      SExt(left, right.asInstanceOf[Const])
+    else
+      throw new IllegalArgumentException("Right operand of SExt can only be a Const")
+    
 }
 
-case class UExt(override val leftSub: Expr, override val rightSub: Expr)
+case class UExt(override val leftSub: Expr, override val rightSub: Const)
     extends BExpr(leftSub, rightSub) {
   
-  override def gen(left: Expr, right: Expr) = UExt(left, right)
+  override val sizeInBits = rightSub.value.toInt
+  
+  override def gen(left: Expr, right: Expr) =
+    if (right.isInstanceOf[Const])
+      UExt(left, right.asInstanceOf[Const])
+    else
+      throw new IllegalArgumentException("Right operand of UExt can only be a Const")
   
 }
 
 // extract the 0(inclusive) from rightSub (exclusive) bits from leftSub
-case class Low(override val leftSub: Expr, override val rightSub: Expr)
+case class Low(override val leftSub: Expr, override val rightSub: Const)
   extends BExpr(leftSub, rightSub) {
   
-  override def gen(left: Expr, right: Expr) = Low(left, right)
+  require(leftSub.sizeInBits >= rightSub.value, 
+      "Left operand of Low is not long enough to be truncated" + this)
   
+  override val sizeInBits = rightSub.value.toInt
+  
+  override def gen(left: Expr, right: Expr) = 
+    if (right.isInstanceOf[Const])
+      Low(left, right.asInstanceOf[Const])
+    else
+      throw new IllegalArgumentException("Right operand of Low can only be a Const")
+
 }
 
 // extract the rightSub (inclusive) to sizeof(leftSub) (exclusive) bits from leftSub
-case class High(override val leftSub: Expr, override val rightSub: Expr)
+case class High(override val leftSub: Expr, override val rightSub: Const)
   extends BExpr(leftSub, rightSub) {
   
-  override def gen(left: Expr, right: Expr) = High(left, right)
+    require(leftSub.sizeInBits > rightSub.value, 
+      "Left operand of How is not long enough to be truncated")
+      
+  override val sizeInBits = leftSub.sizeInBits - rightSub.value.toInt
+  
+  override def gen(left: Expr, right: Expr) =
+    if (right.isInstanceOf[Const])
+      High(left, right.asInstanceOf[Const])
+    else
+      throw new IllegalArgumentException("Right operand of High can only be a Const")
   
 }
 // end of binary expressions
@@ -382,11 +463,15 @@ case class High(override val leftSub: Expr, override val rightSub: Expr)
 // Unary expressions
 case class Not(override val sub: Expr) extends UExpr(sub) {
   
+  override val sizeInBits = sub.sizeInBits
+  
   override def gen(s: Expr) = Not(s)
   
 }
 
 case class BSwap(override val sub: Expr) extends UExpr(sub) {
+  
+  override val sizeInBits = sub.sizeInBits
   
   override def gen(s: Expr) = BSwap(s)
   

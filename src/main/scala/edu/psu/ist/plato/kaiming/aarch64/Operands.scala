@@ -24,6 +24,8 @@ sealed trait Operand {
   
   def asShiftedRegister: ShiftedRegister =
     throw new UnsupportedOperationException(this + "is not a shifted register operand")
+  
+  def sizeInBits: Int
 }
 
 sealed abstract class Shift { val value: Int }
@@ -147,13 +149,15 @@ case class ShiftedRegister(reg: Register, shift: Option[Shift]) extends Operand 
   def isShifted = shift.isDefined
   override def asShiftedRegister = this
   
+  override def sizeInBits = reg.sizeInBits 
+  
 }
 
 object Memory {
     
   def get(base: Register) = Memory(Some(base), None)
-  def get(imm: Immediate) = Memory(None, Some(Left(imm)))
-  def get(base: Register, imm: Immediate) = Memory(Some(base), Some(Left(imm)))
+  def get(imm: Immediate) = Memory(None, Some(Left(imm.resize(AArch64Machine.wordSizeInBits))))
+  def get(base: Register, imm: Immediate) = Memory(Some(base), Some(Left(imm.resize(base.sizeInBits))))
   def get(base: Register, off: ShiftedRegister) = Memory(Some(base), Some(Right(off)))
   
 }
@@ -163,17 +167,21 @@ case class Memory(base: Option[Register], off: Option[Either[Immediate, ShiftedR
   
   override def asMemory = this
   
+  override def sizeInBits = AArch64Machine.wordSizeInBits
+  
 }
 
 object Immediate {
   
-  def get(value: Long) = Immediate(value) 
+  def get(value: Long) = Immediate(value, AArch64Machine.wordSizeInBits) 
 
 }
 
-case class Immediate(val value: Long) extends Operand {
+case class Immediate(val value: Long, override val sizeInBits: Int) extends Operand {
   
   override def asImmediate = this
+  
+  def resize(newSize: Int) = Immediate(value, newSize)
   
 }
 

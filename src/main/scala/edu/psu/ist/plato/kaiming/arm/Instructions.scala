@@ -21,16 +21,21 @@ object Instruction {
   implicit def toInstruction(entry: Entry[ARM]) = 
     entry.asInstanceOf[Instruction]
   
+  private def resizeIfImm(op: Operand, sizeInBits: Int): Operand =
+    if (op.isImmediate) op.asImmediate.resize(sizeInBits) else op
+  
   def create(addr: Long, opcode: Opcode, oplist: Vector[Operand], preidx: Boolean): Instruction = {
     import edu.psu.ist.plato.kaiming.arm.Opcode.Mnemonic._
     opcode.mnemonic match {
-      case ADD | SUB | MUL | DIV | ASR | LSL | LSR | ORR | ORN | AND | BIC | EOR => 
-        require(oplist.length == 3 || oplist.length == 2)
+      case ADD | SUB | MUL | DIV | ASR | LSL | LSR | ORR | ORN | AND | BIC | EOR =>
+        require((oplist.length == 3 && oplist(1).isRegister) || oplist.length == 2)
         require(oplist(0).isRegister)
+        val rd = oplist(0).asRegister 
         if (oplist.length == 3)
-          BinaryArithInst(addr, opcode, oplist(0).asRegister, oplist(1), oplist(2))
+          BinaryArithInst(addr, opcode, rd, oplist(1).asRegister,
+              resizeIfImm(oplist(2), rd.sizeInBits))
         else
-          BinaryArithInst(addr, opcode, oplist(0).asRegister, oplist(0), oplist(1))
+          BinaryArithInst(addr, opcode, rd, rd, resizeIfImm(oplist(1), rd.sizeInBits))
       case MULL =>
         require(oplist.length == 4)
         for(op <- oplist)
@@ -88,7 +93,8 @@ object Instruction {
       case TST | CMP | CMN | TEQ =>
         require(oplist.length == 2)
         require(oplist(0).isRegister && (oplist(1).isRegister || oplist(1).isImmediate))
-        CompareInst(addr, opcode, oplist(0).asRegister, oplist(1))
+        val rd = oplist(0).asRegister
+        CompareInst(addr, opcode, rd, resizeIfImm(oplist(1), rd.sizeInBits))
       case MOV | MOVT =>
         require(oplist.length == 2)
         require(oplist(0).isRegister)
@@ -152,7 +158,7 @@ sealed abstract class Instruction(oplist: Operand*)
 }
 
 case class BinaryArithInst(override val addr: Long, override val opcode: Opcode,
-    dest: Register, srcLeft: Operand, srcRight: Operand)
+    dest: Register, srcLeft: Register, srcRight: Operand)
   extends Instruction(dest, srcLeft, srcRight) {
   
   def updateFlags = opcode.rawcode.endsWith("S")

@@ -18,6 +18,9 @@ object Instruction {
   import scala.language.implicitConversions
   implicit def toInstruction(entry: Entry[AArch64]) = 
     entry.asInstanceOf[Instruction]
+  
+  private def resizeIfImm(op: Operand, sizeInBits: Int): Operand =
+    if (op.isImmediate) op.asImmediate.resize(sizeInBits) else op
     
   def create(addr: Long, opcode: Opcode, oplist: Vector[Operand],
       cond: Option[Condition], preidx: Boolean): Instruction = {
@@ -25,12 +28,14 @@ object Instruction {
     import edu.psu.ist.plato.kaiming.aarch64.Opcode.Mnemonic._
     opcode.mnemonic match {
       case ADD | SUB | MUL | DIV | ASR | LSL | LSR | ORR | ORN | AND => 
-        require(oplist.length == 3 || oplist.length == 2)
         require(oplist(0).isRegister)
+        require((oplist.length == 3 && oplist(1).isRegister) || oplist.length == 2)
+        val rd = oplist(0).asRegister
         if (oplist.length == 3)
-          BinaryArithInst(addr, opcode, oplist(0).asRegister, oplist(1), oplist(2))
+          BinaryArithInst(addr, opcode, rd, oplist(1).asRegister, 
+              resizeIfImm(oplist(2), rd.sizeInBits))
         else
-          BinaryArithInst(addr, opcode, oplist(0).asRegister, oplist(0), oplist(1))
+          BinaryArithInst(addr, opcode, rd, rd, resizeIfImm(oplist(1), rd.sizeInBits))
       case ADR | NEG =>
         require(oplist.length == 2)
         require(oplist(0).isRegister && (oplist(1).isRegister || oplist(1).isImmediate))
@@ -75,7 +80,8 @@ object Instruction {
       case TST | CMP | CMN =>
         require(oplist.length == 2)
         require(oplist(0).isRegister && (oplist(1).isRegister || oplist(1).isImmediate))
-        CompareInst(addr, opcode, oplist(0).asRegister, oplist(1))
+        val rd = oplist(0).asRegister
+        CompareInst(addr, opcode, rd, resizeIfImm(oplist(1), rd.sizeInBits))
       case CSEL | CSINC =>
         require(oplist.length == 3)
         require(oplist(0).isRegister && oplist(1).isRegister && oplist(2).isRegister)
@@ -152,7 +158,7 @@ sealed abstract class Instruction(oplist: Operand*)
 }
 
 case class BinaryArithInst(override val addr: Long, override val opcode: Opcode,
-    dest: Register, srcLeft: Operand, srcRight: Operand)
+    dest: Register, srcLeft: Register, srcRight: Operand)
   extends Instruction(dest, srcLeft, srcRight) {
   
   def updateFlags = opcode.rawcode.endsWith("S")

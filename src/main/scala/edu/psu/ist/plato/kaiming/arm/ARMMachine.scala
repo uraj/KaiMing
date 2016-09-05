@@ -17,18 +17,19 @@ object ARMMachine extends Machine[ARM] {
   
     import scala.language.implicitConversions
   
-  private implicit def toExpr(imm: Immediate): Const = Const(imm.value)
+  private implicit def toExpr(i: Int): Const = Const(i, wordSizeInBits)
+  private implicit def toExpr(i: Long): Const = Const(i, wordSizeInBits)
   
   private implicit def toExpr(reg: Register): Expr = {
     val ret = Reg(reg)
     reg.shift match {
       case None => ret
       case Some(shift) => shift match {
-        case Asr(v) => ret >>> Const(v)
-        case Lsl(v) => ret << Const(v)
-        case Ror(v) => ret >< Const(v)
-        case Lsr(v) => ret >> Const(v)
-        case Rrx() => ret >< Const(1)
+        case Asr(v) => ret >>> v
+        case Lsl(v) => ret << v
+        case Ror(v) => ret >< v
+        case Lsr(v) => ret >> v
+        case Rrx() => ret >< 1
       }
     }
   }
@@ -37,11 +38,11 @@ object ARMMachine extends Machine[ARM] {
     val left = mem.base
     mem.off match {
       case Left(imm) => left match {
-        case None => Const(imm)
+        case None => imm
         case Some(expr) =>
           if (imm == 0) expr 
-          else if (imm > 0) expr + Const(imm)
-          else expr - Const(-imm)
+          else if (imm > 0) expr + imm
+          else expr - (-imm)
       }
       case Right((sign, reg)) => sign match {
         case Positive => left.get + reg
@@ -52,14 +53,14 @@ object ARMMachine extends Machine[ARM] {
   
   private implicit def operandToExpr(op : Operand): Expr = {
     op match {
-      case imm: Immediate => imm
+      case imm: Immediate => imm.value
       case reg: Register => reg
       case mem: Memory => mem
     }
   }
   
   private implicit def toExpr(cond: Condition) = cond match {
-    case Condition.AL | Condition.NV => Const(1)
+    case Condition.AL | Condition.NV => Const(1, 1)
     case Condition.EQ => Flg(Flag.Z)
     case Condition.GE => !Flg(Flag.N) - Flg(Flag.V)
     case Condition.GT => !Flg(Flag.Z) & !(Flg(Flag.N) ^ Flg(Flag.V))
@@ -127,8 +128,8 @@ object ARMMachine extends Machine[ARM] {
   private def toIR(inst: ExtensionInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
     val e = inst.extension match {
-      case Extension.Signed => lv.sext(Const(lv.sizeInBits))
-      case _ => lv.uext(Const(lv.sizeInBits))
+      case Extension.Signed => lv sext lv.sizeInBits
+      case _ => lv uext lv.sizeInBits
     }
     builder.buildAssign(inst, lv, e)
   }
@@ -138,10 +139,10 @@ object ARMMachine extends Machine[ARM] {
     val shift = inst.lsb.value.toInt
     val mask = 1 << inst.width.value.toInt - 1
     val size = lv.sizeInBits
-    val assigned = (inst.src << Const(shift)) + Const(mask)
+    val assigned = (inst.src << shift) + Const(mask, inst.src.sizeInBits)
     val assigned2 = inst.extension match {
-      case Extension.Signed => assigned.sext(Const(size))
-      case Extension.Unsigned => assigned.uext(Const(size))
+      case Extension.Signed => assigned sext size
+      case Extension.Unsigned => assigned uext size
     }
     builder.buildAssign(inst, lv, assigned2)
   }
@@ -153,7 +154,7 @@ object ARMMachine extends Machine[ARM] {
     }
     else {
       if (inst.isMoveTop)
-        builder.buildAssign(inst, lv, (lv |> Const(16)) :+ (inst.src uext Const(16)))
+        builder.buildAssign(inst, lv, (lv |> 16) :+ (inst.src uext 16))
       else
         builder.buildAssign(inst, lv, inst.src)
     }
@@ -213,7 +214,7 @@ object ARMMachine extends Machine[ARM] {
       case (b, reg) => {
         val stb = b.buildLd(inst, Reg(reg), base)
         if (inst.preindex)
-          stb.buildAssign(inst, base, base + Const(sizeInBytes))
+          stb.buildAssign(inst, base, base + Const(sizeInBytes, base.sizeInBits))
         else
           stb
       }
@@ -249,7 +250,7 @@ object ARMMachine extends Machine[ARM] {
       case (b, reg) => {
         val stb = b.buildSt(inst, Reg(reg), base)
         if (inst.preindex)
-          stb.buildAssign(inst, base, base + Const(sizeInBytes))
+          stb.buildAssign(inst, base, base + Const(sizeInBytes, base.sizeInBits))
         else
           stb
       }
@@ -260,7 +261,7 @@ object ARMMachine extends Machine[ARM] {
     val lv = Reg(inst.dest)
     import edu.psu.ist.plato.kaiming.arm.Opcode.Mnemonic._
     inst.opcode.mnemonic match {
-      case NOT => builder.buildAssign(inst, lv, Const(0) - inst.src)
+      case NOT => builder.buildAssign(inst, lv, Const(0, inst.src.sizeInBits) - inst.src)
       case ADR => builder.buildAssign(inst, lv, inst.src)
       case _ => throw new UnreachableCodeException
     }
@@ -269,21 +270,21 @@ object ARMMachine extends Machine[ARM] {
   private def toIR(ctx: Context, inst: LongMulInst, builder: IRBuilder) = {
     val tmpVar = ctx.getNewTempVar(64)
     builder.buildAssign(inst, tmpVar, inst.srcLeft * inst.srcRight)
-    .buildAssign(inst, Reg(inst.destHi), tmpVar |< Const(31))
-    .buildAssign(inst, Reg(inst.destLow), tmpVar |> Const(31))
+    .buildAssign(inst, Reg(inst.destHi), tmpVar |< 31)
+    .buildAssign(inst, Reg(inst.destLow), tmpVar |> 31)
   }
   
   private def toIR(inst: BitfieldClearInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
-    val low = Const(inst.lsb.value)
-    val high = Const(inst.lsb.value + inst.width.value)
+    val low = inst.lsb.value
+    val high = (inst.lsb.value + inst.width.value)
     builder.buildAssign(inst, lv, ((lv |> low) uext high) :+ (lv |<  high))
   }
   
   private def toIR(inst: BitfieldInsertInst, builder: IRBuilder) = {
-    val low = Const(inst.lsb.value)
-    val width = Const(inst.width.value)
-    val high = Const(inst.width.value + inst.lsb.value)
+    val low = inst.lsb.value
+    val width = inst.width.value
+    val high = inst.width.value + inst.lsb.value
     val lv = Reg(inst.dest)
     builder.buildAssign(inst, lv, (lv |> low) :+ (inst.src |> width) :+ (lv |< high))
   }

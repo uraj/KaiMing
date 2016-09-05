@@ -18,16 +18,19 @@ object AArch64Machine extends Machine[AArch64] {
   
   import scala.language.implicitConversions
   
-  private implicit def toExpr(imm: Immediate): Const = Const(imm.value)
+  private implicit def toExpr(imm: Immediate): Const = Const(imm.value, imm.sizeInBits)
+  
+  private implicit def toExpr(i: Int): Const = Const(i, wordSizeInBits)
+  private implicit def toExpr(i: Long): Const = Const(i, wordSizeInBits)
   
   private implicit def toExpr(sreg: ShiftedRegister): Expr = {
     val ret = Reg(sreg.reg)
     sreg.shift match {
       case None => ret
       case Some(shift) => shift match {
-        case Asr(v) => ret >>> Const(v)
-        case Lsl(v) => ret << Const(v)
-        case Ror(v) => ret >< Const(v)
+        case Asr(v) => ret >>> v
+        case Lsl(v) => ret << v
+        case Ror(v) => ret >< v
       }
     }
   }
@@ -61,7 +64,7 @@ object AArch64Machine extends Machine[AArch64] {
   }
   
   private implicit def toExpr(cond: Condition) = cond match {
-    case Condition.AL | Condition.NV => Const(1)
+    case Condition.AL | Condition.NV => Const(1, 1)
     case Condition.EQ => Flg(Flag.Z)
     case Condition.GE => Flg(Flag.N) - !Flg(Flag.V)
     case Condition.GT => !Flg(Flag.Z) & !(Flg(Flag.N) ^ Flg(Flag.V))
@@ -124,8 +127,8 @@ object AArch64Machine extends Machine[AArch64] {
   private def toIR(inst: ExtensionInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
     val e = inst.extension match {
-      case Extension.Signed => lv.sext(Const(lv.sizeInBits))
-      case _ => lv.uext(Const(lv.sizeInBits))
+      case Extension.Signed => lv sext lv.sizeInBits
+      case _ => lv uext lv.sizeInBits
     }
     builder.buildAssign(inst, lv, e)
   }
@@ -138,24 +141,25 @@ object AArch64Machine extends Machine[AArch64] {
     val (destInsig, destSig, srcInsig, srcSig) =
       if (shift >= rotate) (0, shift - rotate, rotate, shift)
       else (size - rotate, size + shift - rotate, 0, shift)
-    val assigned: Expr = if (srcInsig > 0) inst.src >> Const(srcInsig) else inst.src
+    val assigned: Expr =
+      if (srcInsig > 0) inst.src >> Const(srcInsig, inst.src.sizeInBits) else inst.src
     val tmp = ctx.getNewTempVar(srcSig - srcInsig + 1)
-    val b = builder.buildAssign(inst, tmp, Const(0))
+    val b = builder.buildAssign(inst, tmp, 0)
     val (assigned2, b2) =
       if (srcInsig > 0) {
         val tmp2 = ctx.getNewTempVar(srcInsig)
-        (tmp2 :+ tmp2, b.buildAssign(inst, tmp2, Const(0))) 
+        (tmp2 :+ tmp2, b.buildAssign(inst, tmp2, 0)) 
       } else {
         (tmp, b) 
       }
     val assigned3 = inst.extension match {
-      case Extension.Signed => assigned2 sext Const(size)
-      case Extension.Unsigned => assigned2 uext Const(size)
+      case Extension.Signed => assigned2 sext size
+      case Extension.Unsigned => assigned2 uext size
       case Extension.NoExtension => (destInsig, destSig) match {
         case (0, left) if left == size => assigned2
-        case (0, _) => assigned2 :+ (lv |< Const(destSig)) 
-        case (_, left) if left == size => (lv |> Const(destInsig)) :+ assigned2 
-        case (_, _) => (lv |> Const(destInsig)) :+ assigned2 :+ (lv |< Const(destSig)) 
+        case (0, _) => assigned2 :+ (lv |< destSig)
+        case (_, left) if left == size => (lv |> destInsig) :+ assigned2 
+        case (_, _) => (lv |> destInsig) :+ assigned2 :+ (lv |< destSig) 
       }
     }
     b2.buildAssign(inst, lv, assigned3)
@@ -164,7 +168,7 @@ object AArch64Machine extends Machine[AArch64] {
   private def toIR(inst: MoveInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
     if (inst.doesKeep)
-      builder.buildAssign(inst, lv, (inst.src |> Const(16)) :+ (lv |< Const(16))) 
+      builder.buildAssign(inst, lv, (inst.src |> 16) :+ (lv |< 16))
     else
       builder.buildAssign(inst, lv, inst.src)
   }
@@ -220,7 +224,7 @@ object AArch64Machine extends Machine[AArch64] {
     val first = Reg(inst.destLeft)
     val second = Reg(inst.destRight)
     val sizeInBytes = first.sizeInBits / 8
-    builder.buildLd(inst, first, addr).buildLd(inst, second, addr + Const(sizeInBytes))
+    builder.buildLd(inst, first, addr).buildLd(inst, second, addr + Const(sizeInBytes, wordSizeInBits))
   }
   
   private def processLoadStore(inst: StoreInst, addr: Expr, builder: IRBuilder) = {
@@ -231,7 +235,7 @@ object AArch64Machine extends Machine[AArch64] {
     val first = Reg(inst.srcLeft)
     val second = Reg(inst.srcRight)
     val sizeInBytes = first.sizeInBits / 8
-    builder.buildSt(inst, first, addr).buildSt(inst, second, addr + Const(sizeInBytes))
+    builder.buildSt(inst, first, addr).buildSt(inst, second, addr + Const(sizeInBytes, wordSizeInBits))
   }
   
   private def toIR(inst: UnaryArithInst, builder: IRBuilder) = {
@@ -239,7 +243,7 @@ object AArch64Machine extends Machine[AArch64] {
     import edu.psu.ist.plato.kaiming.aarch64.Opcode.Mnemonic._
     inst.opcode.mnemonic match {
       case ADR => builder.buildAssign(inst, lv, inst.src)
-      case NEG => builder.buildAssign(inst, lv, Const(0) - inst.src)
+      case NEG => builder.buildAssign(inst, lv, Const(0, inst.src.sizeInBits) - inst.src)
       case _ => throw new UnreachableCodeException()
     }
   }

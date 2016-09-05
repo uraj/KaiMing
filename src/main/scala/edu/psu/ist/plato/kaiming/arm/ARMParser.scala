@@ -36,7 +36,7 @@ object ARMParser extends RegexParsers {
   }
   
   private def imm: Parser[Immediate] = "#" ~> integer ^^ {
-    case integer => Immediate(integer)
+    case integer => Immediate.get(integer)
   }
   
   private def label: Parser[String] =
@@ -155,7 +155,7 @@ object ARMParser extends RegexParsers {
   
   private def ldrAsMove: Parser[Instruction] = address ~ "(?i)LDR".r ~ (reg <~ ",") ~ ("=" ~> positive) <~ nl ^^ {
     case addr ~ rawcode ~ dest ~ imm =>
-      Instruction.create(addr, Opcode(rawcode.toUpperCase), Vector(dest, Immediate(imm)), false)
+      Instruction.create(addr, Opcode(rawcode.toUpperCase), Vector(dest, Immediate.get(imm)), false)
   }
   
   private def mnemonic: Parser[String] = """(?i)[a-z]+([a-z\d])*""".r

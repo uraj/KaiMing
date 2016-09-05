@@ -20,6 +20,8 @@ sealed trait Operand {
   def asRegister: Register = 
     throw new UnsupportedOperationException(this + "is not a register operand") 
   
+  def sizeInBits: Int
+  
 }
 
 sealed trait OffSign
@@ -46,17 +48,21 @@ case class Memory(base: Option[Register], off: Either[Long, Tuple2[OffSign, Regi
   
   override def asMemory = asInstanceOf[Memory]
   
+  override def sizeInBits = ARMMachine.wordSizeInBits
+  
 }
 
 object Immediate {
   
-  def get(value: Long) = Immediate(value) 
+  def get(value: Long) = Immediate(value, ARMMachine.wordSizeInBits)
 
 }
 
-case class Immediate(val value: Long) extends Operand {
-  
+case class Immediate(val value: Long, override val sizeInBits: Int) extends Operand {
+
   override def asImmediate = asInstanceOf[Immediate]
+  
+  def resize(newSize: Int) = Immediate(value, newSize)
   
 }
 
@@ -111,7 +117,7 @@ case class Register(id: Register.Id, shift: Option[Shift])
   extends MachRegister[ARM] with Operand {
   
   override val name = id.entryName
-  override val sizeInBits = if (name == "SP" || name.startsWith("X")) 64 else 32
+  override val sizeInBits = 32
   override lazy val containingRegister = this 
   override val subsumedRegisters = Set[MachRegister[ARM]]()
   

@@ -49,7 +49,7 @@ class TestARM extends FunSuite with BeforeAndAfter {
           println("Fail (" + msg + ")")
         case (Some(funcs), _) =>
           println("OK")
-          val baos = new ByteArrayOutputStream()
+          val baos = new ByteArrayOutputStream
           val printer = new Printer(baos)
           for (func <- funcs) {
             printer.printCFG(func.cfg)

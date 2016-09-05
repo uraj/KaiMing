@@ -38,7 +38,7 @@ object AArch64Parser extends RegexParsers {
   }
   
   private def imm: Parser[Immediate] = "#" ~> integer ^^ {
-    case integer => Immediate(integer)
+    case integer => Immediate.get(integer)
   }
   
   private def label: Parser[String] =

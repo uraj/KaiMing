@@ -22,8 +22,8 @@ class TestAArch64 extends FunSuite with BeforeAndAfter {
   var failure = 0
   
   before {
-    testdir = new File(getClass.getResource("/test/aarch64").toURI())
-    testfiles = testdir.listFiles().filter { x => x.isFile() && !x.isHidden()}
+    testdir = new File(getClass.getResource("/test/aarch64").toURI)
+    testfiles = testdir.listFiles.filter { x => x.isFile && !x.isHidden}
     testfiles = testfiles.sortWith {(x, y)=> x.getName < y.getName}
     total = testfiles.size
   }
@@ -33,14 +33,14 @@ class TestAArch64 extends FunSuite with BeforeAndAfter {
   test("Testing AArch64 parser and CFG construction") {
     import edu.psu.ist.plato.kaiming.aarch64.Printer
     
-    if (!testdir.isDirectory())
+    if (!testdir.isDirectory)
       assert(false)
 
     for (file <- testfiles) {
       println(file.getName)
       val source = Source.fromFile(file, "UTF-8")
       val input = source.mkString
-      print("Parsing " + file.getName() + " : ")
+      print("Parsing " + file.getName + " : ")
       val result: (Option[List[Function]], String) = 
         AArch64Parser.parseAll(AArch64Parser.binaryunit, input) match {
           case AArch64Parser.Success(value, _) => (Some(value), "")
@@ -53,15 +53,15 @@ class TestAArch64 extends FunSuite with BeforeAndAfter {
           println("Fail (" + msg + ")")
         case (Some(funcs), _) =>
           println("OK")
-          val baos = new ByteArrayOutputStream()
+          val baos = new ByteArrayOutputStream
           val printer = new Printer(baos)
           for (func <- funcs) {
             printer.printCFG(func.cfg)
           }
           testFuncs ++= funcs
-          source.close()
-          printer.close()
-          println(baos.toString())
+          source.close
+          printer.close
+          println(baos.toString)
       }
     }
   }
