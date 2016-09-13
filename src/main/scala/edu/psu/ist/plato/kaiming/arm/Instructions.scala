@@ -148,13 +148,6 @@ sealed abstract class Instruction(oplist: Operand*)
     
   override val index = addr
   
-  // This overriding may not be necessary, as long as
-  // we restrict one assembly unit per process
-  override def equals(that: Any) = that match {
-    case t: AnyRef => this eq t
-    case _ => false
-  }
-  
 }
 
 case class BinaryArithInst(override val addr: Long, override val opcode: Opcode,
@@ -223,10 +216,12 @@ case class BitfieldClearInst(override val addr: Long, override val opcode: Opcod
 
 object BranchInst {
   import scala.collection.mutable.Map
-  private val _belongs = Map[BranchInst, MachBBlock[ARM]]()
-  private def loopUpRelocation(b: BranchInst) = _belongs.get(b)
+  import edu.psu.ist.plato.kaiming.utils.RefWrapper
+
+  private val _belongs = Map[RefWrapper[BranchInst], MachBBlock[ARM]]()
+  private def loopUpRelocation(b: BranchInst) = _belongs.get(new RefWrapper(b))
   private def relocateTarget(b: BranchInst, bb: MachBBlock[ARM]) =
-    _belongs += (b->bb)
+    _belongs += (new RefWrapper(b) -> bb)
 }
 
 case class BranchInst(override val addr: Long, override val opcode: Opcode,

@@ -14,8 +14,8 @@ abstract class Entry[A <: Arch] extends Ordered[Entry[A]] {
   
   def index: Long
     
-  override def hashCode = index.hashCode()
-  override def equals(that: Any) = 
+  override final def hashCode = index.hashCode()
+  override final def equals(that: Any) = 
     that.isInstanceOf[AnyRef] && (this eq that.asInstanceOf[AnyRef])
   
   // Ordered
