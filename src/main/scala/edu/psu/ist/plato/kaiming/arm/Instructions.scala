@@ -2,7 +2,7 @@ package edu.psu.ist.plato.kaiming.arm
 
 import edu.psu.ist.plato.kaiming._
 import edu.psu.ist.plato.kaiming.Arch.ARM
-import edu.psu.ist.plato.kaiming.exception.UnreachableCodeException
+import edu.psu.ist.plato.kaiming.utils.Exception
 
 import enumeratum._
 
@@ -275,7 +275,7 @@ case class CompareInst(override val addr: Long, override val opcode: Opcode,
     case Opcode.Mnemonic.CMN => CompareCode.CompareNeg
     case Opcode.Mnemonic.TST => CompareCode.Test
     case Opcode.Mnemonic.TEQ => CompareCode.TestEq
-    case _ => throw new UnreachableCodeException()
+    case _ => Exception.unreachable()
   }
 }
 
@@ -299,7 +299,7 @@ case class LoadInst(override val addr: Long, override val opcode: Opcode,
     case "H" => (2, Extension.Unsigned)
     case "SH" => (2, Extension.Signed)
     case "" => (4, Extension.Unsigned)
-    case _ => throw new UnreachableCodeException()
+    case _ => Exception.unreachable()
   }
   
 }
@@ -316,7 +316,7 @@ case class StoreInst(override val addr: Long, override val opcode: Opcode,
     case "H" => (2, Extension.Unsigned)
     case "SH" => (2, Extension.Signed)
     case "" => (4, Extension.Unsigned)
-    case _ => throw new UnreachableCodeException()
+    case _ => Exception.unreachable()
   }
   
 }

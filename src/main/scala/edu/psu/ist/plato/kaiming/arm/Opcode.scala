@@ -2,7 +2,7 @@ package edu.psu.ist.plato.kaiming.arm
 
 import enumeratum._
 
-import edu.psu.ist.plato.kaiming.exception.UnreachableCodeException
+import edu.psu.ist.plato.kaiming.utils.Exception
 
 object Opcode {
   
@@ -112,7 +112,7 @@ case class Opcode(rawcode: String) {
                 val alias = Map(("CC" -> Condition.LO), ("CS" -> Condition.HS)) 
                 alias.get(rawcode.substring(len - 2)) match {
                   case Some(c) => c
-                  case None => throw new UnreachableCodeException("Unrecognized opcode: " + rawcode)
+                  case None => Exception.unreachable("Unrecognized opcode: " + rawcode)
                 }
               }
             })

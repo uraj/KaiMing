@@ -6,7 +6,7 @@ import edu.psu.ist.plato.kaiming.Arch.KaiMing
 
 import edu.psu.ist.plato.kaiming.ir._
 
-import edu.psu.ist.plato.kaiming.exception.UnreachableCodeException
+import edu.psu.ist.plato.kaiming.utils.Exception
 
 object AArch64Machine extends Machine[AArch64] {
   
@@ -116,7 +116,7 @@ object AArch64Machine extends Machine[AArch64] {
       case ORR => inst.srcLeft | inst.srcRight
       case ORN => inst.srcLeft | !inst.srcRight
       case AND => inst.srcLeft & inst.srcRight
-      case _ => throw new UnreachableCodeException()
+      case _ => Exception.unreachable()
     }
     val nbuilder = builder.buildAssign(inst, lval, rval)
     if (inst.updateFlags)
@@ -245,7 +245,7 @@ object AArch64Machine extends Machine[AArch64] {
     inst.opcode.mnemonic match {
       case ADR => builder.buildAssign(inst, lv, inst.src)
       case NEG => builder.buildAssign(inst, lv, Const(0, inst.src.sizeInBits) - inst.src)
-      case _ => throw new UnreachableCodeException()
+      case _ => Exception.unreachable()
     }
   }
   

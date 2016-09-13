@@ -8,14 +8,10 @@ import scala.collection.JavaConversions.bufferAsJavaList
 import scala.language.postfixOps
 
 import edu.psu.ist.plato.kaiming.Label
-
-import edu.psu.ist.plato.kaiming.exception.ParsingException
-import edu.psu.ist.plato.kaiming.exception.UnreachableCodeException
+import edu.psu.ist.plato.kaiming.utils.Exception
 
 import scala.Ordering
 import scala.Vector
-
-
 
 object AArch64Parser extends RegexParsers {
   override val whiteSpace = """[\t \r]+""".r
@@ -87,7 +83,7 @@ object AArch64Parser extends RegexParsers {
       case None => Memory.get(reg)
       case Some(int: Immediate) => Memory.get(reg, int)
       case Some(off: ShiftedRegister) => Memory.get(reg, off)
-      case _ => throw new UnreachableCodeException
+      case _ => Exception.unreachable()
     }
     case addr: Long => Memory.get(Immediate.get(addr))
   }
@@ -132,14 +128,15 @@ object AArch64Parser extends RegexParsers {
   }
    
   def binaryunit: Parser[List[Function]] = rep(function)
-   
+  
+  @throws(classOf[edu.psu.ist.plato.kaiming.utils.ParsingException])
   def parseBinaryUnit(input: String): List[Function] = 
     parseAll(binaryunit, if (!input.endsWith("\n")) input + '\n' else input ) match {
       case Success(value, _) => value
       case failure: NoSuccess =>
-        throw new ParsingException(failure.msg + "\n" + failure.next.offset + " " + failure.next.pos)
+        Exception.parseError(failure.msg + "\n" + failure.next.offset + " " + failure.next.pos)
     }
    
-  @throws(classOf[ParsingException])
+  @throws(classOf[edu.psu.ist.plato.kaiming.utils.ParsingException])
   def parseBinaryUnitJava(input: String): java.util.List[Function] = ListBuffer(parseBinaryUnit(input):_*)
 }

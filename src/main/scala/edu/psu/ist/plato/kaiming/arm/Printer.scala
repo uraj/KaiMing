@@ -8,7 +8,7 @@ import edu.psu.ist.plato.kaiming.MachBBlock
 import edu.psu.ist.plato.kaiming.Cfg
 import edu.psu.ist.plato.kaiming.Arch.ARM
 
-import edu.psu.ist.plato.kaiming.exception._
+import edu.psu.ist.plato.kaiming.utils.Exception
 
 object Printer {
   
@@ -88,7 +88,7 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
                 case r: Register => printOpRegister(r)
                 case Memory(base, Left(off)) => 
                   printSignedHex(off)
-                case _ => throw new UnreachableCodeException()
+                case _ => Exception.unreachable()
             }
           }
         }

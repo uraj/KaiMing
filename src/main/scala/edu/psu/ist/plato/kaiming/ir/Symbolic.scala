@@ -9,7 +9,7 @@ import com.microsoft.z3.{Context => Z3Context}
 import com.microsoft.z3.{BitVecExpr => Z3BVExpr}
 import com.microsoft.z3.{BitVecNum => Z3BVNum}
 
-import edu.psu.ist.plato.kaiming.exception.UnreachableCodeException
+import edu.psu.ist.plato.kaiming.utils.Exception
 
 object Symbolic {
 
@@ -118,7 +118,7 @@ object Symbolic {
                         ctx.mkConcat(ctx.mkExtract(47, 40, sub),
                           ctx.mkConcat(ctx.mkExtract(55, 48, sub),
                             ctx.mkExtract(63, 56, sub))))))))
-            case _ => throw new UnreachableCodeException
+            case _ => Exception.unreachable()
           }
       }
     

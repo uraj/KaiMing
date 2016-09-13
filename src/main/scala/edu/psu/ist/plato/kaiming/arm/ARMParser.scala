@@ -9,8 +9,7 @@ import scala.language.postfixOps
 
 import edu.psu.ist.plato.kaiming.Label
 
-import edu.psu.ist.plato.kaiming.exception.ParsingException
-import edu.psu.ist.plato.kaiming.exception.UnreachableCodeException
+import edu.psu.ist.plato.kaiming.utils.Exception
 
 import scala.Ordering
 import scala.Vector
@@ -179,14 +178,15 @@ object ARMParser extends RegexParsers {
   }
    
   def binaryunit: Parser[List[Function]] = rep(function)
-   
+  
+  @throws(classOf[edu.psu.ist.plato.kaiming.utils.ParsingException])
   def parseBinaryUnit(input: String): List[Function] =
     parseAll(binaryunit, if (input.endsWith("\n")) input else input + '\n') match {
       case Success(value, _) => value
       case failure: NoSuccess =>
-        throw new ParsingException(failure.msg + "\n" + failure.next.offset + " " + failure.next.pos)
+        Exception.parseError(failure.msg + "\n" + failure.next.offset + " " + failure.next.pos)
     }
    
-  @throws(classOf[ParsingException])
+  @throws(classOf[edu.psu.ist.plato.kaiming.utils.ParsingException])
   def parseBinaryUnitJava(input: String): java.util.List[Function] = ListBuffer(parseBinaryUnit(input):_*)
 }

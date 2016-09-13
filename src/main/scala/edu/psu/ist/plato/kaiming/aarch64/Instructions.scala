@@ -2,7 +2,7 @@ package edu.psu.ist.plato.kaiming.aarch64
 
 import edu.psu.ist.plato.kaiming._
 import edu.psu.ist.plato.kaiming.Arch.AArch64
-import edu.psu.ist.plato.kaiming.exception.UnreachableCodeException
+import edu.psu.ist.plato.kaiming.utils.Exception
 
 sealed trait AddressingMode
 object AddressingMode {
@@ -265,7 +265,7 @@ case class CompareInst(override val addr: Long, override val opcode: Opcode,
     case Opcode.Mnemonic.CMP => Compare
     case Opcode.Mnemonic.CMN => CompareNeg
     case Opcode.Mnemonic.TST => Test
-    case _ => throw new UnreachableCodeException()
+    case _ => Exception.unreachable()
   }
 }
 
