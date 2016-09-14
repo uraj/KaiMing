@@ -7,6 +7,8 @@ import edu.psu.ist.plato.kaiming.MachFlag
 object Expr {
   
   sealed abstract class Visitor[A] {
+    
+    protected type InfoT = A
 
     protected def merge(be: BExpr, o1: A, o2: A): A
     protected def lift(be: UExpr, o1: A): A
@@ -143,6 +145,13 @@ object Expr {
 
 sealed abstract class Expr(sub: Expr*) {
   
+  override def toString = { 
+    val baos = new java.io.ByteArrayOutputStream
+    val ps = new Printer(baos);
+    ps.printExpr(this)
+    new String(baos.toByteArray)
+  }
+  
   val subExpr = sub.toVector
   
   def hashCode: Int
@@ -166,6 +175,22 @@ sealed abstract class Expr(sub: Expr*) {
       }
       case _ => this
     }
+
+  private val _substitutor = new Expr.NopVisitor[Map[Lval, Expr]] {
+    
+    override def merge(be: BExpr, left: InfoT, right: InfoT) = left
+    override def lift(ue: UExpr, info: InfoT) = info
+    
+    override def visitLval(subMap: InfoT, lv: Lval) =
+      subMap.get(lv) match {
+        case None => SkipChildren(subMap)
+        case Some(expr) => ReplaceWith(subMap, expr)
+      }
+
+  }
+  
+  final def substituteLvals(map: Map[Lval, Expr]): Expr =
+    _substitutor.visit(map, this)._2
   
   final def contains(o: Expr) : Boolean =
     if (this == o) true else this match {
@@ -209,14 +234,18 @@ case class Const(value: Long, override val sizeInBits: Int) extends PrimitiveExp
 }
 
 sealed abstract class Lval extends PrimitiveExpr {
+  
   def name: String
   def sizeInBits : Int
+  
 }
 
 case class Var(parent: Context, name: String, override val sizeInBits: Int)
     extends Lval {
   
-  override def hashCode = 31 * parent.hashCode + name.hashCode
+  // Sometimes we want Var instances simply for testing without being binded
+  // to a Context. Make hashCode null safe to parent
+  override def hashCode = name.hashCode + (if (parent == null) 0 else 31 * parent.hashCode)
   
 }
 
@@ -229,27 +258,27 @@ case class Reg(mreg: MachRegister[_ <: MachArch]) extends Lval {
 }
 
 case class Flg(mflag: MachFlag[_ <: MachArch]) extends Lval {
-  
+
   override def hashCode = mflag.hashCode
   override def name = mflag.name
   override def sizeInBits = 1
-  
+
 }
 
 sealed abstract class CompoundExpr(sub: Expr*) extends Expr(sub: _*) {
-  
+
   override val sizeInBits: Int
-  
+
 }
 
 sealed abstract class BExpr(val leftSub: Expr, val rightSub: Expr)
   extends CompoundExpr(leftSub, rightSub) {
-  
+
   override def hashCode =
     31 * (31 * leftSub.hashCode + getClass.hashCode) + rightSub.hashCode
-    
+
   def gen(left: Expr, right: Expr): BExpr
-  
+
 }
 
 sealed abstract class UExpr(val sub: Expr) extends CompoundExpr(sub) {

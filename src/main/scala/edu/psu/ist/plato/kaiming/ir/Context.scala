@@ -6,6 +6,7 @@ import edu.psu.ist.plato.kaiming.ir.dataflow.PathInsensitiveProblem
 import edu.psu.ist.plato.kaiming.ir.dataflow.Forward
 
 import scalax.collection.Graph
+import scalax.collection.GraphEdge.DiEdge
 import scalax.collection.edge.LDiEdge
 
 class IRCfg(override val parent : Context, override val entryBlock: IRBBlock,
@@ -30,8 +31,14 @@ object Context {
       case Def(s) => Some(s)
       case Init => None
     } 
+
+    final def flatMap[B](f: DefStmt => Option[B]): Option[B] =
+      this match {
+        case Def(s) => f(s)
+        case Init => None
+    }
     
-    final def flatMap[B](f: DefStmt => B): Option[B] =
+    final def map[B](f: DefStmt => B): Option[B] =
       this match {
         case Def(s) => Some(f(s))
         case Init => None
@@ -49,7 +56,7 @@ object Context {
   private class ReachingDefinition(ctx: Context)
       extends PathInsensitiveProblem[UseDefChain](ctx, Forward, Int.MaxValue) {
     
-    // There is a way to implement this in a more functional way, but
+    // There is a more functional way to implement this, but
     // that takes too much effort which is not quite worth it
     private var _UDMap = ctx.entries.map { s => (s -> UseDefChain()) }.toMap
     
@@ -108,18 +115,18 @@ object Context {
   
   private def useDefAnalysis(ctx: Context) =
     new Context.ReachingDefinition(ctx).anlayze
-  
+    
 }
 
-class Context (val proc: MachProcedure[_ <: MachArch])
+final class Context (val proc: MachProcedure[_ <: MachArch])
     extends Procedure[Arch.KaiMing] {
 
-  val mach = proc.mach
+  def mach = proc.mach
   
   private val _tempVarPrefix = "__tmp_"
   private val _varMap = scala.collection.mutable.Map[String, Var]()
   
-  override val label = proc.label
+  override def label = proc.label
   override val cfg = proc.liftCFGToIR(this)
 
   override def deriveLabelForIndex(index: Long) = {
@@ -146,14 +153,75 @@ class Context (val proc: MachProcedure[_ <: MachArch])
   }
   def getNewTempVar: Var = getNewTempVar(mach.wordSizeInBits)
        
-  final lazy val useDefMap = Context.useDefAnalysis(this)
-  final def definitionFor(s: Stmt) = useDefMap.get(s)
+  lazy val useDefMap = Context.useDefAnalysis(this)
+  def definitionFor(s: Stmt) = useDefMap.get(s)
 
-  final def definitionFor(s: Stmt, lv: Lval) =
+  def definitionFor(s: Stmt, lv: Lval) =
     for {
       udchain <- useDefMap.get(s)
       definition <- udchain.get(lv)
     } yield definition
 
+  lazy val dataDependency =
+    entries.foldLeft(Graph[DefStmt, DiEdge]()) {
+      case (ddg, ds: DefStmt) =>
+        val df = Context.Def(ds)
+        ddg ++ (for {
+          lv <- ds.usedLvals
+          definition <- definitionFor(ds, lv).get
+          dds <- definition
+        } yield { new DiEdge[DefStmt](ds, dds) })
+      case (ddg, _) => ddg
+    }
+    
+  def hasCyclicDefinition(s: Stmt, lv: Lval) =
+    definitionFor(s, lv) match {
+      case None => false
+      case Some(s) => s.exists { 
+        case Context.Def(ds) => dataDependency.get(ds).findCycle.isDefined
+        case Context.Init => false
+      }
+    }
+
+  def hasCyclicDefinition(s: Stmt, e: Expr): Boolean = 
+    e.enumLvals.exists(hasCyclicDefinition(s, _))
+  
+  def flattenExpr(s: Stmt, e: Expr): Option[Expr] = {
+    def flattenExprImpl(s: Stmt, e: Expr): Option[Expr] = {
+      e match {
+        case c: Const => Some(c)
+        case lv: Lval => definitionFor(s, lv) match {
+          case None => None
+          case Some(s) => s.head match {
+            case Context.Def(ds) => ds match {
+              case call: CallStmt => None
+              case sel: SelStmt => None
+              case _ => flattenExprImpl(ds, ds.usedExpr(0))
+            }
+            case Context.Init => None
+          }
+        }
+        case ce: CompoundExpr =>
+          val (substitutionMap, valid) = ce.enumLvals.foldLeft((Map[Lval, Expr](), true)) {
+            case ((m, v), lv) =>
+              if (v) {
+                flattenExprImpl(s, lv) match {
+                  case None => (m, false)
+                  case Some(expr) => (m + (lv -> expr), true) 
+                }
+              } else (m, v)
+          }
+          if (!valid)
+            None
+          else {
+            Some(ce.substituteLvals(substitutionMap))
+          }
+      }
+    }
+    if (hasCyclicDefinition(s, e))
+      None
+    else
+      flattenExprImpl(s, e)
+  }
     
 }
