@@ -294,7 +294,7 @@ case class Add(override val leftSub: Expr, override val rightSub: Expr)
     extends BExpr(leftSub, rightSub) {
   
   require(leftSub.sizeInBits == rightSub.sizeInBits,
-      "Operands of Add have to be of the same size" + this)
+      "Operands of Add have to be of the same size")
   
   override val sizeInBits = leftSub.sizeInBits
   
@@ -462,7 +462,7 @@ case class Low(override val leftSub: Expr, override val rightSub: Const)
   extends BExpr(leftSub, rightSub) {
   
   require(leftSub.sizeInBits >= rightSub.value, 
-      "Left operand of Low is not long enough to be truncated" + this)
+      "Left operand of Low is not long enough to be truncated")
   
   override val sizeInBits = rightSub.value.toInt
   
