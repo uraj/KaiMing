@@ -30,7 +30,7 @@ trait ParserTrait {
     escaped.substring(1, escaped.size - 1)
   }
   
-  protected val newline = escape(System.getProperty("line.separator") + "+").r
+  protected val newline = """((\r\n)|\n|\r)+""".r
   
   protected val whitespaceWithoutNewline = 
     escape("[" + (Set('\t', ' ', '\r', '\n') &~ System.getProperty("line.separator").toSet).mkString + "]+").r

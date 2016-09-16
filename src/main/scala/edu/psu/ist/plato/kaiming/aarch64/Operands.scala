@@ -112,22 +112,22 @@ object Register {
     
   }
   
-  def get(name: String) = Register(Id.withName(name))
-  def get(id: Register.Id) = Register(id)
+  implicit def get(name: String) = Register(Id.withName(name))
+  implicit def get(id: Register.Id) = Register(id)
   
 }
 
 case class Register private (id: Register.Id)
   extends MachRegister[AArch64] with Operand {
   
-  override val name = id.entryName
+  override def name = id.entryName
   override val sizeInBits = if (name == "SP" || name.startsWith("X")) 64 else 32
   override lazy val containingRegister = 
     if (name.startsWith("W"))
       Register(Register.Id.withName('X' + name.substring(1)))
     else
       this
-  override val subsumedRegisters = 
+  override lazy val subsumedRegisters = 
     if (name.startsWith("X"))
       Set[MachRegister[AArch64]](Register.get('W' + name.substring(1)))
     else
@@ -166,7 +166,6 @@ case class Memory(base: Option[Register], off: Option[Either[Immediate, ShiftedR
   extends Operand {
   
   override def asMemory = this
-  
   override def sizeInBits = AArch64Machine.wordSizeInBits
   
 }

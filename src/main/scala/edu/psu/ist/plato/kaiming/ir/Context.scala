@@ -58,7 +58,7 @@ object Context {
     
     // There is a more functional way to implement this, but
     // that takes too much effort which is not quite worth it
-    private var _UDMap = ctx.entries.map { s => (s -> UseDefChain()) }.toMap
+    private[this] var _UDMap = ctx.entries.map { s => (s -> UseDefChain()) }.toMap
     
     override protected def getInitialEntryState(bb: IRBBlock) = {
       if (ctx.cfg.entryBlock == bb)
@@ -125,7 +125,7 @@ final class Context (val proc: MachProcedure[_ <: MachArch])
   
   private val _tempVarPrefix = "__tmp_"
   private val _varMap = scala.collection.mutable.Map[String, Var]()
-  
+
   override def label = proc.label
   override val cfg = proc.liftCFGToIR(this)
 
@@ -211,11 +211,7 @@ final class Context (val proc: MachProcedure[_ <: MachArch])
                 }
               } else (m, v)
           }
-          if (!valid)
-            None
-          else {
-            Some(ce.substituteLvals(substitutionMap))
-          }
+          if (valid) Some(ce.substituteLvals(substitutionMap)) else None
       }
     }
     if (hasCyclicDefinition(s, e))

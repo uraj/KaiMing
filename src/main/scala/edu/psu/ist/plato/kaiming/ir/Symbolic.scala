@@ -33,11 +33,12 @@ object Symbolic {
     } catch {
       case e: Exception =>
         Console.err.println(e.getMessage)
+        e.printStackTrace
         System.exit(1)
     }
   }
 
-  def addLibraryPath(pathToAdd: String) {
+  private def addLibraryPath(pathToAdd: String) {
     System.setProperty("java.library.path",
         pathToAdd + PS + System.getProperty("java.library.path"))
 
@@ -49,19 +50,20 @@ object Symbolic {
 
   private def copyNativesToPath(toDir: File) {
     for (lib <- libsToLoad) {
-        val name = System.mapLibraryName(lib)
-        val to = new File(toDir.getAbsolutePath + DS + name)
-        val in = getClass.getResourceAsStream(LIB_BIN + name)
-        val out = new FileOutputStream(to)
-        val buf = Array.fill[Byte](4096)(0)
-        var len = 0
+      val name = System.mapLibraryName(lib)
+      val to = new File(toDir.getAbsolutePath + DS + name)
+      Console.err.println(LIB_BIN + name)
+      val in = getClass.getResourceAsStream(LIB_BIN + name)
+      val out = new FileOutputStream(to)
+      val buf = Array.fill[Byte](4096)(0)
+      var len = 0
+      len = in.read(buf)
+      while (len > 0) {
+        out.write(buf, 0, len)
         len = in.read(buf)
-        while (len > 0) {
-          out.write(buf, 0, len)
-          len = in.read(buf)
-        }
-        out.close
-        in.close
+      }
+      out.close
+      in.close
     }
   }
   

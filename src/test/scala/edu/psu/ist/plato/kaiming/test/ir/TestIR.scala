@@ -7,6 +7,8 @@ import com.microsoft.z3.{Context => Z3Context}
 import com.microsoft.z3.{BitVecExpr => Z3BVExpr}
 import com.microsoft.z3.{BitVecNum => Z3BVNum}
 
+import edu.psu.ist.plato.kaiming.utils.Exception
+
 import edu.psu.ist.plato.kaiming.ir._
 
 class TestZ3 extends FunSuite with BeforeAndAfter {
@@ -45,22 +47,32 @@ class TestZ3 extends FunSuite with BeforeAndAfter {
     0x0014 mov X6, #1234
     0x0018 b 0x0020
     0x001c mov X6, #1235
-    0x0020 ret
+    0x0020 mov X7, X6
     """
     
     val result: (Option[List[Function]], String) = 
         AArch64Parser.parseAll(AArch64Parser.binaryunit, program) match {
           case AArch64Parser.Success(value, _) => (Some(value), "")
           case AArch64Parser.NoSuccess(msg, next) =>
-            println(msg + " " +  next.offset + " " + next.pos)
+            Console.err.println(msg + " " +  next.offset + " " + next.pos)
             (None, msg + " " +  next.offset + " " + next.pos)
         }
-    result match {
+    
+    val ctx = result match {
       case (Some(func::xs), _) =>
-        val ctx = new Context(func)
-        IRPrinter.out.printContextWithUDInfo(ctx)
-      case _ => assert(false)
+        new Context(func)
+      case _ => Exception.unreachable()
     }
+    
+    IRPrinter.out.printContextWithUDInfo(ctx)
+    val bbs = ctx.cfg.iterator.toVector
+    
+    val stmt1 = bbs(3).entries(0)
+    assert(ctx.flattenExpr(stmt1, Reg(Register.Id.X6)) == None)
+    
+    val stmt2 = bbs(0).entries(3)
+    println(stmt2)
+    println(ctx.flattenExpr(stmt2, Reg(Register.Id.X3) - Reg(Register.Id.X1)))
   }
   
   test("Simple simplify") {
