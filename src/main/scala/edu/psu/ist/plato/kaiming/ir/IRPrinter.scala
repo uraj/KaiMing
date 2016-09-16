@@ -6,18 +6,18 @@ import java.io.OutputStream
 import edu.psu.ist.plato.kaiming.BBlock
 import edu.psu.ist.plato.kaiming.Arch.KaiMing
 
-object Printer {
+object IRPrinter {
   
-  val out = new Printer(Console.out)
-  val err = new Printer(Console.err)
+  val out = new IRPrinter(Console.out)
+  val err = new IRPrinter(Console.err)
   
   private val endOfStmt = ';' 
   
 }
 
-final class Printer(ps: OutputStream) extends PrintStream(ps) {
+final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
   
-  private def EOS = print(Printer.endOfStmt)
+  private def EOS = print(IRPrinter.endOfStmt)
   
   def printConst(c: Const) {
     if (c.value < 0)

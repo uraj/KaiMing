@@ -31,7 +31,7 @@ class TestAArch64 extends FunSuite with BeforeAndAfter {
   var testFuncs = Vector[Function]()
   
   test("Testing AArch64 parser and CFG construction") {
-    import edu.psu.ist.plato.kaiming.aarch64.Printer
+    import edu.psu.ist.plato.kaiming.aarch64.AArch64Printer
     
     if (!testdir.isDirectory)
       assert(false)
@@ -54,7 +54,7 @@ class TestAArch64 extends FunSuite with BeforeAndAfter {
         case (Some(funcs), _) =>
           println("OK")
           val baos = new ByteArrayOutputStream
-          val printer = new Printer(baos)
+          val printer = new AArch64Printer(baos)
           for (func <- funcs) {
             printer.printCFG(func.cfg)
           }
@@ -67,12 +67,12 @@ class TestAArch64 extends FunSuite with BeforeAndAfter {
   }
   
   test("Testing AArch64 IR lifting and UD analysis") {
-    import edu.psu.ist.plato.kaiming.ir.Printer
+    import edu.psu.ist.plato.kaiming.ir.IRPrinter
     
     failure = 2
     for (func <- testFuncs) {
       val ctx = new Context(func)
-      Printer.out.printContextWithUDInfo(ctx)
+      IRPrinter.out.printContextWithUDInfo(ctx)
       failure -= 1
     }
     

@@ -28,7 +28,39 @@ class TestZ3 extends FunSuite with BeforeAndAfter {
         expr.substitute(1 + vx, vz))
     
     assert(expr.substituteLvals(Map(vx -> (3 * vz), vy -> (vz * vx), vz -> (vz + vy))) ==
-        (1 + (3 * vz)) * (vz * vx) - ((vz + vy) * 31 - 2)) 
+        (1 + (3 * vz)) * (vz * vx) - ((vz + vy) * 31 - 2))
+
+  }
+  
+  test("Simple flattening AArch64") {
+    
+    import edu.psu.ist.plato.kaiming.aarch64._
+    
+    val program = """0x0000 _test:
+    0x0000 mov X1, #12
+    0x0004 mov X2, X1
+    0x0008 add X3, X2, #67
+    0x000c subs X5, X3, X1
+    0x0010 b.eq 0x001c
+    0x0014 mov X6, #1234
+    0x0018 b 0x0020
+    0x001c mov X6, #1235
+    0x0020 ret
+    """
+    
+    val result: (Option[List[Function]], String) = 
+        AArch64Parser.parseAll(AArch64Parser.binaryunit, program) match {
+          case AArch64Parser.Success(value, _) => (Some(value), "")
+          case AArch64Parser.NoSuccess(msg, next) =>
+            println(msg + " " +  next.offset + " " + next.pos)
+            (None, msg + " " +  next.offset + " " + next.pos)
+        }
+    result match {
+      case (Some(func::xs), _) =>
+        val ctx = new Context(func)
+        IRPrinter.out.printContextWithUDInfo(ctx)
+      case _ => assert(false)
+    }
   }
   
   test("Simple simplify") {

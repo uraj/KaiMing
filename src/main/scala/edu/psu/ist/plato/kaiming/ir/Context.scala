@@ -121,7 +121,7 @@ object Context {
 final class Context (val proc: MachProcedure[_ <: MachArch])
     extends Procedure[Arch.KaiMing] {
 
-  def mach = proc.mach
+  @inline def mach = proc.mach
   
   private val _tempVarPrefix = "__tmp_"
   private val _varMap = scala.collection.mutable.Map[String, Var]()
@@ -185,14 +185,14 @@ final class Context (val proc: MachProcedure[_ <: MachArch])
 
   def hasCyclicDefinition(s: Stmt, e: Expr): Boolean = 
     e.enumLvals.exists(hasCyclicDefinition(s, _))
-  
+
   def flattenExpr(s: Stmt, e: Expr): Option[Expr] = {
     def flattenExprImpl(s: Stmt, e: Expr): Option[Expr] = {
       e match {
         case c: Const => Some(c)
         case lv: Lval => definitionFor(s, lv) match {
           case None => None
-          case Some(s) => s.head match {
+          case Some(s) => if (s.size != 1) None else s.head match {
             case Context.Def(ds) => ds match {
               case call: CallStmt => None
               case sel: SelStmt => None
@@ -223,5 +223,5 @@ final class Context (val proc: MachProcedure[_ <: MachArch])
     else
       flattenExprImpl(s, e)
   }
-    
+
 }

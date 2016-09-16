@@ -147,7 +147,7 @@ sealed abstract class Expr(sub: Expr*) {
   
   override def toString = { 
     val baos = new java.io.ByteArrayOutputStream
-    val ps = new Printer(baos);
+    val ps = new IRPrinter(baos);
     ps.printExpr(this)
     new String(baos.toByteArray)
   }

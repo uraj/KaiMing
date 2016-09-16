@@ -1,4 +1,4 @@
-package edu.psu.ist.plato.kaiming.arm
+package edu.psu.ist.plato.kaiming.aarch64
 
 import java.io.PrintStream
 import java.io.OutputStream
@@ -6,18 +6,18 @@ import java.io.OutputStream
 import edu.psu.ist.plato.kaiming.Label
 import edu.psu.ist.plato.kaiming.MachBBlock
 import edu.psu.ist.plato.kaiming.Cfg
-import edu.psu.ist.plato.kaiming.Arch.ARM
+import edu.psu.ist.plato.kaiming.Arch.AArch64
 
 import edu.psu.ist.plato.kaiming.utils.Exception
 
-object Printer {
+object AArch64Printer {
   
-  val out = new Printer(Console.out)
-  val err = new Printer(Console.err)
+  val out = new AArch64Printer(Console.out)
+  val err = new AArch64Printer(Console.err)
   
 }
 
-final class Printer(ps: OutputStream) extends PrintStream(ps) {
+final class AArch64Printer(ps: OutputStream) extends PrintStream(ps) {
   
   private def printSignedHex(value: Long) {
     if (value < 0)
@@ -33,7 +33,11 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
   
   def printOpRegister(reg: Register) {
     print(reg.id.entryName)
-    reg.shift match {
+  }
+  
+  def printOpShiftedRegister(sreg: ShiftedRegister) {
+    printOpRegister(sreg.reg)
+    sreg.shift match {
       case Some(shift) =>
         print(", ")
         print(shift.getClass.getSimpleName.toUpperCase)
@@ -44,31 +48,27 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
   }
   
   def printOpMemory(mem: Memory) {
+    print('[')
     mem.base match {
-      case Some(base) =>
-        print('[')
-        printOpRegister(base)
-        mem.off match {
-          case Left(imm) =>
-            if (imm != 0) {
-              print(", #")
-              printSignedHex(imm)
-            }
-          case Right(reg) =>
-            print(", ")
-            if (reg._1 == Negative)
-              print('-')
-            printOpRegister(reg._2)
-        }
-        print(']')
+      case Some(base) => printOpRegister(base)
       case None =>
-        printSignedHex(mem.off.left.get)
     }
+    mem.off match {
+      case Some(off) =>
+        print(", ")
+        off match {
+          case Left(imm) => printOpImmediate(imm)
+          case Right(sreg) => printOpShiftedRegister(sreg)
+        }
+      case None =>
+    }
+    print(']')
   }
   
   def printOperand(o: Operand) = {
     o match {
       case r: Register => printOpRegister(r)
+      case s: ShiftedRegister => printOpShiftedRegister(s)
       case i: Immediate => printOpImmediate(i)
       case m: Memory => printOpMemory(m)
     }
@@ -77,7 +77,6 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
   def printInstruction(i: Instruction) {
     print(i.opcode.rawcode)
     print('\t')
-    val operands = i.operands 
     i match {
       case b: BranchInst =>
         if (!b.isReturn) {
@@ -86,26 +85,12 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
             case None => 
               b.target match {
                 case r: Register => printOpRegister(r)
-                case Memory(base, Left(off)) => 
-                  printSignedHex(off)
+                case Memory(base, Some(Left(off))) => 
+                  printSignedHex(off.value)
                 case _ => Exception.unreachable()
             }
           }
         }
-      case lsm if (lsm.isInstanceOf[LoadMultipleInst] || lsm.isInstanceOf[StoreMultipleInst]) => {
-        printOpRegister(operands(0).asMemory.base.get)
-        print("!, {")
-        for (op <- operands.slice(1, operands.size - 1)) {
-          printOperand(op)
-          print(", ")
-        }
-        printOperand(i.operands.last)
-        print("}")
-      }
-      case m: MoveInst if m.opcode.mnemonic == Opcode.Mnemonic.LDR =>
-        printOpRegister(m.dest)
-        print(", =")
-        printSignedHex(m.src.asImmediate.value)
       case _ => {
         import AddressingMode._
         val (indexingOperand, addressingMode) = 
@@ -115,39 +100,42 @@ final class Printer(ps: OutputStream) extends PrintStream(ps) {
           } else {
             (-1, Regular)
           }
-        (0 until operands.size).foreach {
+        (0 until i.operands.size).foreach {
           n => 
             if (n == indexingOperand) {
               addressingMode match {
-                case PreIndex => {
-                  printOperand(operands(n))
+                case PreIndex =>
+                  printOperand(i.operands(n))
                   print('!')
-                }
                 case PostIndex => {
-                  val next = operands(n).asMemory
+                  val next = i.operands(n).asMemory
                   printOperand(next.base.get)
-                  print(", #")
-                  printSignedHex(next.off.left.get)
+                  print(", ")
+                  printOpImmediate(next.off.get.left.get)
                 }
                 case Regular =>
-                  printOperand(operands(n))
+                  printOperand(i.operands(n))
               }
             } else {
-              printOperand(operands(n))
+              printOperand(i.operands(n))
             }
-            if (n != operands.size - 1)
+            if (n != i.operands.size - 1)
               print(", ")
         }
       }
     }
+    if (i.isInstanceOf[SelectInst]) {
+      print(", ")
+      print(i.asInstanceOf[SelectInst].condition.entryName)
+    }
   }
   
-  def printBasicBlock(bb: MachBBlock[ARM]) {
+  def printBasicBlock(bb: MachBBlock[AArch64]) {
     println(bb.label)
     bb.foreach { i => print('\t'); printInstruction(i); println() }
   }
   
-  def printCFG(cfg: Cfg[ARM, MachBBlock[ARM]]) {
+  def printCFG(cfg: Cfg[AArch64, MachBBlock[AArch64]]) {
     println(cfg.parent.label)
     for (bb <- cfg) { printBasicBlock(bb) }
   }

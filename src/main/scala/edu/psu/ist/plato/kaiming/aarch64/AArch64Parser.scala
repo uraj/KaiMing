@@ -8,15 +8,18 @@ import scala.collection.JavaConversions.bufferAsJavaList
 import scala.language.postfixOps
 
 import edu.psu.ist.plato.kaiming.Label
+
 import edu.psu.ist.plato.kaiming.utils.Exception
+import edu.psu.ist.plato.kaiming.utils.ParserTrait
 
 import scala.Ordering
 import scala.Vector
 
-object AArch64Parser extends RegexParsers {
-  override val whiteSpace = """[\t \r]+""".r
+object AArch64Parser extends RegexParsers with ParserTrait {
   
-  private def nl: Parser[String] = """\n+""".r 
+  override val whiteSpace = whitespaceWithoutNewline
+
+  private def nl: Parser[String] = newline
   
   private def dec: Parser[Long] = """\d+""".r ^^ 
     { s => java.lang.Long.parseLong(s, 10) }

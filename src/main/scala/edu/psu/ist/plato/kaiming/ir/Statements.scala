@@ -9,7 +9,7 @@ import edu.psu.ist.plato.kaiming.MachArch
 
 sealed abstract class Stmt(val usedExpr: Vector[Expr]) extends Entry[KaiMing] {
   
-  def this(exprs: Expr*) = this(exprs.toVector)
+  final def this(exprs: Expr*) = this(exprs.toVector)
   
   val host: MachEntry[_ <: MachArch]
   

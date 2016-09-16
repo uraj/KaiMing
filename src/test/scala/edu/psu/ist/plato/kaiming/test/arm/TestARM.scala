@@ -22,7 +22,7 @@ class TestARM extends FunSuite with BeforeAndAfter {
   var testFuncs = Vector[Function]()
   
   test("Testing ARM parser and CFG construction") {
-    import edu.psu.ist.plato.kaiming.arm.Printer
+    import edu.psu.ist.plato.kaiming.arm.ARMPrinter
     
     val testdir = new File(getClass.getResource("/test/arm").toURI)
     val testfiles = 
@@ -50,7 +50,7 @@ class TestARM extends FunSuite with BeforeAndAfter {
         case (Some(funcs), _) =>
           println("OK")
           val baos = new ByteArrayOutputStream
-          val printer = new Printer(baos)
+          val printer = new ARMPrinter(baos)
           for (func <- funcs) {
             printer.printCFG(func.cfg)
           }
@@ -64,12 +64,12 @@ class TestARM extends FunSuite with BeforeAndAfter {
   
   var ctxList = Vector[Context]()
   test("Testing ARM IR lifting and UD analysis") {
-    import edu.psu.ist.plato.kaiming.ir.Printer
+    import edu.psu.ist.plato.kaiming.ir.IRPrinter
     
     failure = testFuncs.length
     for (func <- testFuncs) {
       val ctx = new Context(func)
-      Printer.out.printContextWithUDInfo(ctx)
+      IRPrinter.out.printContextWithUDInfo(ctx)
       failure -= 1
       ctxList = ctxList :+ ctx
     }

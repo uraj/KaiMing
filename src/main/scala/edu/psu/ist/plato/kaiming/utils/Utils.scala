@@ -21,3 +21,18 @@ object Exception {
     throw new UnreachableCodeException(message)
   
 }
+
+trait ParserTrait {
+  
+  private def escape(raw: String): String = {
+    import scala.reflect.runtime.universe._
+    val escaped = Literal(Constant(raw)).toString
+    escaped.substring(1, escaped.size - 1)
+  }
+  
+  protected val newline = escape(System.getProperty("line.separator") + "+").r
+  
+  protected val whitespaceWithoutNewline = 
+    escape("[" + (Set('\t', ' ', '\r', '\n') &~ System.getProperty("line.separator").toSet).mkString + "]+").r
+
+}
