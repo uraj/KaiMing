@@ -22,6 +22,8 @@ class BBlock[A <: Arch](val parent: Procedure[A], val entries: Seq[Entry[A]],
   override def compare(b: BBlock[A]) = {
     (firstEntry.index - b.firstEntry.index).toInt
   }
+  
+  override def toString = "[0x" + index.toHexString + ": " + label.name + "]"
 
 }
 

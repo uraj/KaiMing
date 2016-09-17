@@ -162,7 +162,7 @@ final class Context (val proc: MachProcedure[_ <: MachArch])
       definition <- udchain.get(lv)
     } yield definition
 
-  lazy val dataDependency =
+  private lazy val dataDependency =
     entries.foldLeft(Graph[DefStmt, DiEdge]()) {
       case (ddg, ds: DefStmt) =>
         val df = Context.Def(ds)
@@ -178,7 +178,14 @@ final class Context (val proc: MachProcedure[_ <: MachArch])
     definitionFor(s, lv) match {
       case None => false
       case Some(s) => s.exists { 
-        case Context.Def(ds) => dataDependency.get(ds).findCycle.isDefined
+        case Context.Def(ds) => {
+          val start = dataDependency.get(ds)
+          import scalax.collection.GraphEdge.DiEdge
+          start.findCycle.isDefined ||
+            start.outerNodeTraverser.exists {
+              x => dataDependency.contains(new DiEdge(x, x))
+            }
+        }
         case Context.Init => false
       }
     }

@@ -13,12 +13,16 @@ import edu.psu.ist.plato.kaiming.utils.Exception
 
 object Symbolic {
 
+  private val versionString = "0.1"
+  
   private val DS = File.separator
   private val PS = File.pathSeparator
   private val LIB_BIN = DS + "lib-native" + DS
-  private val versionString = "0.1"
+  private val rawLibNames = List("z3", "z3java")
+  private val isWindows = System.getProperty("os.name").startsWith("Windows")
   
-  private val libsToLoad = List("z3", "z3java")
+  private val libsToLoad =
+    if (isWindows) rawLibNames.map("lib" + _) else rawLibNames
 
   private def loadFromJar {
     val path = "KaiMing_" + versionString
@@ -35,6 +39,11 @@ object Symbolic {
         Console.err.println(e.getMessage)
         e.printStackTrace
         System.exit(1)
+    }
+    
+    if (System.getProperty("os.name").startsWith("Windows")) {
+      System.loadLibrary("libz3")
+      System.loadLibrary("libz3java")
     }
   }
 
@@ -132,8 +141,7 @@ object Symbolic {
       
   }
   
-  def apply(e: Expr, ctx: Z3Context = new Z3Context) = {
+  def apply(e: Expr, ctx: Z3Context = new Z3Context) =
     new ASTBuilder(ctx).visit(null, e)._1
-  }
   
 }

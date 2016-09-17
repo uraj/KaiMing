@@ -19,9 +19,9 @@ abstract class Cfg[A <: Arch, B <: BBlock[A]] (val parent : Procedure[A], val en
   import scala.language.postfixOps
   
   def predecessors(bb: B): Set[B] = 
-    (_graph.get(bb) <~|) map { _.value }
+    (_graph.get(bb) <~) map { _.from.value }
   def successors(bb: B): Set[B] = 
-    (_graph.get(bb) ~>|) map { _.value }
+    (_graph.get(bb) ~>) map { _.to.value }
 
   object LEdgeImplicit extends scalax.collection.edge.LBase.LEdgeImplicits[Boolean]
   import LEdgeImplicit._

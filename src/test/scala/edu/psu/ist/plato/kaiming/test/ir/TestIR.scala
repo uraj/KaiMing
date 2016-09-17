@@ -48,6 +48,9 @@ class TestZ3 extends FunSuite with BeforeAndAfter {
     0x0018 b 0x0020
     0x001c mov X6, #1235
     0x0020 mov X7, X6
+    0x0024 adds X7, X7, #1
+    0x0028 b.lo 0x0024
+    0x002c mov X8, X7
     """
     
     val result: (Option[List[Function]], String) = 
@@ -71,8 +74,13 @@ class TestZ3 extends FunSuite with BeforeAndAfter {
     assert(ctx.flattenExpr(stmt1, Reg(Register.Id.X6)) == None)
     
     val stmt2 = bbs(0).entries(3)
-    println(stmt2)
-    println(ctx.flattenExpr(stmt2, Reg(Register.Id.X3) - Reg(Register.Id.X1)))
+    val flattened = ctx.flattenExpr(stmt2, Reg(Register.Id.X3) - Reg(Register.Id.X1))
+    assert(flattened.isDefined)
+    assert(Symbolic(flattened.get).simplify.asInstanceOf[Z3BVNum].getInt == 0x43)
+    
+    val stmt3 = bbs(5).entries(0)
+    assert(ctx.hasCyclicDefinition(stmt3, Reg(Register.Id.X7)))
+    
   }
   
   test("Simple simplify") {
@@ -81,7 +89,7 @@ class TestZ3 extends FunSuite with BeforeAndAfter {
     val y = ctx.mkBVConst("y", 32);
     val z = ctx.mkBVConst("z", 32);
 
-    println(Symbolic(Const(1, 32) + Const(2, 32)).simplify())
+    println(Symbolic(Const(1, 32) + Const(2, 32)).simplify)
   }
 
 }
