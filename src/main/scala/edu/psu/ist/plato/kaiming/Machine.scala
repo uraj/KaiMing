@@ -23,16 +23,12 @@ abstract class Machine[A <: MachArch] {
       IRBuilder(start, StStmt(nextIndex, host, storeTo, storedExpr)::content)
       
     def buildJmp(host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
-        target: Expr) = 
-      IRBuilder(start, JmpStmt(nextIndex, host, target)::content)
+        cond: Expr, target: Expr) = 
+      IRBuilder(start, JmpStmt(nextIndex, host, cond, target)::content)
       
     def buildCall(host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
         target: Expr) =
       IRBuilder(start, CallStmt(nextIndex, host, target)::content)
-      
-    def buildSetFlg(host: MachEntry[_ <: MachArch], extractor: Extractor, definedLval: Flg,
-        usedRval: CompoundExpr) =
-      IRBuilder(start, SetFlgStmt(nextIndex, host, extractor, definedLval, usedRval)::content)
       
     def buildLd(host: MachEntry[_ <: MachArch], definedLval: Lval, loadFrom: Expr) =
       IRBuilder(start, LdStmt(nextIndex, host, definedLval, loadFrom)::content)

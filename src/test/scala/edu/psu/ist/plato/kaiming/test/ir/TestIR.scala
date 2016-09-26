@@ -75,13 +75,18 @@ class TestZ3 extends FunSuite with BeforeAndAfter {
     println(ctx.flattenExpr(stmt2, Reg(Register.Id.X3) - Reg(Register.Id.X1)))
   }
   
-  test("Simple simplify") {
+  test("Simple solving") {
     val ctx = new Z3Context
-    val x = ctx.mkBVConst("x", 32);
-    val y = ctx.mkBVConst("y", 32);
-    val z = ctx.mkBVConst("z", 32);
+    val x = Var(null, "x", 32)
+    val y = Var(null, "y", 32)
 
-    println(Symbolic(Const(1, 32) + Const(2, 32)).simplify())
+    val equation = 
+      ctx.mkEq(ctx.mkBVSRem(Symbolic(x * (x + Const(1, 32)), ctx), ctx.mkBV(2, 32)), ctx.mkBV(1, 32))
+      
+    val solver = ctx.mkSolver
+    solver.add(equation)
+    
+    assert(solver.check.toInt == -1)
   }
 
 }

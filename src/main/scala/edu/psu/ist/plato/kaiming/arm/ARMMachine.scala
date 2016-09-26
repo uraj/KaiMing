@@ -77,12 +77,12 @@ object ARMMachine extends Machine[ARM] {
     case Condition.VS => Flg(Flag.V)
   }
     
-  private def updateFlags(inst: Instruction, ce: CompoundExpr,
+  private def updateFlags(inst: Instruction, be: BExpr,
       builder: IRBuilder) = {
-    builder.buildSetFlg(inst, Extractor.Carry, Flg(Flag.C), ce)
-    .buildSetFlg(inst, Extractor.Negative, Flg(Flag.N), ce)
-    .buildSetFlg(inst, Extractor.Zero, Flg(Flag.Z), ce) 
-    .buildSetFlg(inst, Extractor.Overflow, Flg(Flag.V), ce)
+    builder.buildAssign(inst, Flg(Flag.C), be @!)
+    .buildAssign(inst, Flg(Flag.N), be @-)
+    .buildAssign(inst, Flg(Flag.Z), be @*)
+    .buildAssign(inst, Flg(Flag.V), be @^)
   }
   
   private def toIR(inst: BinaryArithInst, builder: IRBuilder) = {
@@ -177,7 +177,7 @@ object ARMMachine extends Machine[ARM] {
     else if (inst.isCall)
       builder.buildCall(inst, inst.target)
     else
-      builder.buildJmp(inst, inst.target)
+      builder.buildJmp(inst, inst.condition, inst.target)
   }
   
   private def toIR(ctx: Context, inst: LoadStoreInst, builder: IRBuilder) = {

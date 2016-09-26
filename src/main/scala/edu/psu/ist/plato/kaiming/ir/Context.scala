@@ -2,8 +2,11 @@ package edu.psu.ist.plato.kaiming.ir
 
 import edu.psu.ist.plato.kaiming._
 import edu.psu.ist.plato.kaiming.Arch.KaiMing
+
 import edu.psu.ist.plato.kaiming.ir.dataflow.PathInsensitiveProblem
 import edu.psu.ist.plato.kaiming.ir.dataflow.Forward
+
+import edu.psu.ist.plato.kaiming.utils.Exception
 
 import scalax.collection.Graph
 import scalax.collection.GraphEdge.DiEdge
@@ -191,12 +194,13 @@ final class Context (val proc: MachProcedure[_ <: MachArch])
       e match {
         case c: Const => Some(c)
         case lv: Lval => definitionFor(s, lv) match {
-          case None => None
+          case None => Exception.unreachable()
           case Some(s) => if (s.size != 1) None else s.head match {
             case Context.Def(ds) => ds match {
               case call: CallStmt => None
               case sel: SelStmt => None
-              case _ => flattenExprImpl(ds, ds.usedExpr(0))
+              case ld: LdStmt => None 
+              case assign: AssignStmt => flattenExprImpl(ds, ds.usedExpr(0))
             }
             case Context.Init => None
           }

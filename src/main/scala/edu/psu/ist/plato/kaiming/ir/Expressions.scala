@@ -220,7 +220,7 @@ sealed abstract class Expr(sub: Expr*) {
   final def uext(right: Const) = UExt(this, right)
   final def |>(right: Const) = Low(this, right)
   final def |<(right: Const) = High(this, right)
-  final def unary_<> = BSwap(this)
+  final def <> = BSwap(this)
   final def unary_! = Not(this)
   
 }
@@ -278,6 +278,11 @@ sealed abstract class BExpr(val leftSub: Expr, val rightSub: Expr)
     31 * (31 * leftSub.hashCode + getClass.hashCode) + rightSub.hashCode
 
   def gen(left: Expr, right: Expr): BExpr
+  
+  final def @^ = Overflow(this)
+  final def @! = Carry(this)
+  final def @* = Zero(this)
+  final def @- = Negative(this)
 
 }
 
@@ -509,5 +514,35 @@ case class BSwap(override val sub: Expr) extends UExpr(sub) {
   
   override def gen(s: Expr) = BSwap(s)
   
+}
+
+sealed abstract class ExtractorExpr(override val sub: CompoundExpr) extends UExpr(sub) {
+  
+  final override val sizeInBits = 1
+  
+}
+
+case class Overflow(override val sub: BExpr) extends ExtractorExpr(sub) {
+  
+  override def gen(s: Expr) = Overflow(s.asInstanceOf[BExpr])
+
+}
+
+case class Carry(override val sub: BExpr) extends ExtractorExpr(sub) {
+  
+  override def gen(s: Expr) = Carry(s.asInstanceOf[BExpr])
+
+}
+
+case class Zero(override val sub: BExpr) extends ExtractorExpr(sub) {
+  
+  override def gen(s: Expr) = Zero(s.asInstanceOf[BExpr])
+
+}
+
+case class Negative(override val sub: BExpr) extends ExtractorExpr(sub) {
+  
+  override def gen(s: Expr) = Negative(s.asInstanceOf[BExpr])
+
 }
 // end of unary expressions

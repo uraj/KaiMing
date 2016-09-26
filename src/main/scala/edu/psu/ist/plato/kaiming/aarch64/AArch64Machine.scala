@@ -64,7 +64,8 @@ object AArch64Machine extends Machine[AArch64] {
   }
   
   private implicit def toExpr(cond: Condition) = cond match {
-    case Condition.AL | Condition.NV => Const(1, 1)
+    case Condition.AL => Const(1, 1)
+    case Condition.NV => Const(0, 1)
     case Condition.EQ => Flg(Flag.Z)
     case Condition.GE => Flg(Flag.N) - !Flg(Flag.V)
     case Condition.GT => !Flg(Flag.Z) & !(Flg(Flag.N) ^ Flg(Flag.V))
@@ -81,12 +82,12 @@ object AArch64Machine extends Machine[AArch64] {
     case Condition.VS => Flg(Flag.V)
   }
     
-  private def updateFlags(inst: Instruction, ce: CompoundExpr,
+  private def updateFlags(inst: Instruction, be: BExpr,
       builder: IRBuilder) = {
-    builder.buildSetFlg(inst, Extractor.Carry, Flg(Flag.C), ce)
-    .buildSetFlg(inst, Extractor.Negative, Flg(Flag.N), ce)
-    .buildSetFlg(inst, Extractor.Zero, Flg(Flag.Z), ce) 
-    .buildSetFlg(inst, Extractor.Overflow, Flg(Flag.V), ce)
+    builder.buildAssign(inst, Flg(Flag.C), be @!)
+    .buildAssign(inst, Flg(Flag.N), be @-)
+    .buildAssign(inst, Flg(Flag.Z), be @*)
+    .buildAssign(inst, Flg(Flag.V), be @^)
   }
   
   private def toIR(inst: BinaryArithInst, builder: IRBuilder) = {
@@ -189,7 +190,7 @@ object AArch64Machine extends Machine[AArch64] {
     else if (inst.isCall)
       builder.buildCall(inst, inst.target)
     else
-      builder.buildJmp(inst, inst.target)
+      builder.buildJmp(inst, inst.condition, inst.target)
   }
   
   private def toIR(ctx: Context, inst: LoadStoreInst, builder: IRBuilder) = {

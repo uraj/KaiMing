@@ -6,6 +6,8 @@ import java.io.FileOutputStream
 import java.util.zip.ZipInputStream
 
 import com.microsoft.z3.{Context => Z3Context}
+import com.microsoft.z3.{Expr => Z3Expr}
+import com.microsoft.z3.{BoolExpr => Z3BoolExpr}
 import com.microsoft.z3.{BitVecExpr => Z3BVExpr}
 import com.microsoft.z3.{BitVecNum => Z3BVNum}
 
@@ -75,7 +77,7 @@ object Symbolic {
   private class ASTBuilder(val ctx: Z3Context)
     extends Expr.NopVisitor[Z3BVExpr] {
     
-    def merge(be: BExpr, left: Z3BVExpr, right: Z3BVExpr) =
+    protected def merge(be: BExpr, left: Z3BVExpr, right: Z3BVExpr) =
       be match {
         case add: Add => ctx.mkBVAdd(left, right)
         case sub: Sub => ctx.mkBVSub(left, right)
@@ -100,7 +102,7 @@ object Symbolic {
               0, left)
       }
     
-    def lift(ue: UExpr, sub: Z3BVExpr) =
+    protected def lift(ue: UExpr, sub: Z3BVExpr) =
       ue match {
         case not: Not => ctx.mkBVNot(sub)
         case bswap: BSwap => 
@@ -120,15 +122,49 @@ object Symbolic {
                         ctx.mkConcat(ctx.mkExtract(47, 40, sub),
                           ctx.mkConcat(ctx.mkExtract(55, 48, sub),
                             ctx.mkExtract(63, 56, sub))))))))
-            case _ => Exception.unreachable()
+            case _ => 
+              Exception.unreachable("bit size of expression to be byte swapped"
+                 + "is not a multiple of 8")
           }
+        case ee: ExtractorExpr => {
+          val zero = ctx.mkBV(0, ue.sizeInBits)
+          val t = ctx.mkBV(1, 1)
+          val f = ctx.mkBV(0, 1)
+          def toBit(e: Z3BoolExpr) = ctx.mkITE(e, t, f).asInstanceOf[Z3BVExpr]
+          implicit def toBitNeg(e: Z3BoolExpr) = ctx.mkITE(e, f, t).asInstanceOf[Z3BVExpr]
+          val args = sub.getArgs
+          val arg0 = args(0).asInstanceOf[Z3BVExpr]
+          val arg1 = args(1).asInstanceOf[Z3BVExpr]
+          ee match {
+            case Carry(ce) => ce match {
+              case Add(l, r) =>
+                ctx.mkBVAddNoOverflow(arg0, arg1, false)
+              case Sub(l, r) =>
+                ctx.mkBVSubNoUnderflow(arg0, arg1, false)
+              case _ => Exception.unreachable("carry for " + ce + " is undefined")
+            }
+            case Overflow(oe) => oe match {
+              case Add(l, r) =>
+                ctx.mkAnd(ctx.mkBVAddNoUnderflow(arg0, arg1),
+                    ctx.mkBVAddNoOverflow(arg0, arg1, true))
+              case Sub(l, r) =>
+                ctx.mkAnd(ctx.mkBVSubNoOverflow(arg0, arg1),
+                    ctx.mkBVSubNoUnderflow(arg0, arg1, true))
+              case _ => Exception.unreachable("overflow for " + oe + " is undefined")
+            }
+            case Zero(_) =>
+              toBit(ctx.mkEq(zero, sub))
+            case Negative(_) =>
+              ctx.mkExtract(ue.sizeInBits - 1, ue.sizeInBits - 1, sub)
+          }
+        }
       }
     
     override def visitConst(in: Z3BVExpr, c: Const) = 
       SkipChildren(ctx.mkBV(c.value, c.sizeInBits))
 
     override def visitLval(in: Z3BVExpr, lv: Lval) =
-      SkipChildren(ctx.mkBV(lv.name, lv.sizeInBits))
+      SkipChildren(ctx.mkBVConst(lv.name, lv.sizeInBits))
       
   }
   

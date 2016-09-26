@@ -92,8 +92,8 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
   
   def printUExpr(e: UExpr) {
     e match {
-      case _: BSwap => print("<>")
       case _: Not => print("!")
+      case _ =>
     }
     e.sub match {
       case be: BExpr =>
@@ -101,6 +101,14 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
         printBExpr(be)
         print(')')
       case _ => printExpr(e.sub)
+    }
+    e match {
+      case _: BSwap => print("<>")
+      case _: Carry => print("@!")
+      case _: Overflow => print("@^")
+      case _: Zero => print("@*")
+      case _: Negative => print("@-")
+      case _ =>
     }
   }
   
@@ -168,15 +176,6 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
     EOS
   }
   
-  def printSetFlgStmt(s: SetFlgStmt) {
-    printFlg(s.definedLval)
-    print(" <~ ")
-    print(s.extractor.entryName)
-    print(' ')
-    printExpr(s.usedRval)
-    EOS
-  }
-  
   def printRetStmt(s: RetStmt) {
     print("ret")
     EOS
@@ -190,7 +189,6 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
       case s: LdStmt => printLdStmt(s)
       case s: StStmt => printStStmt(s)
       case s: SelStmt => printSelStmt(s)
-      case s: SetFlgStmt => printSetFlgStmt(s)
       case s: RetStmt => printRetStmt(s)
     }
   }

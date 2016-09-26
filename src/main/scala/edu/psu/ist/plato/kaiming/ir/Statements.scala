@@ -37,10 +37,11 @@ object JmpStmt {
 
 case class JmpStmt(override val index: Long,
     override val host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
-    target: Expr) extends Stmt(target +: host.dependentFlags.map(Flg(_)).toVector) {
+    cond: Expr, target: Expr) extends Stmt(cond, target) {
   
-  def dependentFlags = host.dependentFlags.map(Flg(_))
-  def isConditional = !host.dependentFlags.isEmpty
+  val dependentFlags = cond.enumLvals.map(_.asInstanceOf[Flg])
+  
+  def isConditional = !dependentFlags.isEmpty
   
   def relocate(bb: BBlock[KaiMing]) = JmpStmt.relocate(this, bb)
   def relocatedTarget = JmpStmt.lookUpRelocation(this)
@@ -72,10 +73,6 @@ object Extractor extends enumeratum.Enum[Extractor] {
   case object Negative extends Extractor
   
 }
-
-case class SetFlgStmt(override val index: Long, override val host: MachEntry[_ <: MachArch],
-    extractor: Extractor, override val definedLval: Flg, usedRval: CompoundExpr)
-    extends DefStmt(usedRval)
 
 case class CallStmt(override val index: Long,
     override val host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
