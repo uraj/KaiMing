@@ -36,14 +36,27 @@ object AArch64Parser extends RegexParsers with ParserTrait {
     case None ~ positive => positive
   }
   
-  private def imm: Parser[Immediate] = "#" ~> integer ^^ {
-    case integer => Immediate.get(integer)
+  private def plain_imm: Parser[Long] = "#" ~> integer
+  
+  private def shifted_imm: Parser[Long] = (plain_imm <~ ",") ~ ("lsl" ~> plain_imm) ^^ {
+    case base ~ shift => base << shift
   }
   
-  private def label: Parser[String] =
+  private def imm: Parser[Immediate] = (shifted_imm | plain_imm) ^^ {
+    case long => Immediate.get(long)
+  }
+  
+  private def plain_label: Parser[String] =
     """[a-zA-Z_]([_\-@\.a-zA-Z0-9])*:""".r ^^ { 
-      x => x.toString.substring(0, x.length() - 1)
+      x => x.substring(0, x.length() - 1)
     }
+  
+  private def quoted_label: Parser[String] =
+    """\".+\":""".r ^^ {
+      x => x.substring(1, x.length() - 2)
+    }
+  
+  private def label = plain_label | quoted_label
   
   private def reg: Parser[Register] = 
     ("(?i)(" + 

@@ -67,18 +67,18 @@ object AArch64Machine extends Machine[AArch64] {
     case Condition.AL => Const(1, 1)
     case Condition.NV => Const(0, 1)
     case Condition.EQ => Flg(Flag.Z)
-    case Condition.GE => Flg(Flag.N) - !Flg(Flag.V)
-    case Condition.GT => !Flg(Flag.Z) & !(Flg(Flag.N) ^ Flg(Flag.V))
-    case Condition.HI => Flg(Flag.C) & !Flg(Flag.Z)
+    case Condition.GE => Flg(Flag.N) - ~Flg(Flag.V)
+    case Condition.GT => ~Flg(Flag.Z) & ~(Flg(Flag.N) ^ Flg(Flag.V))
+    case Condition.HI => Flg(Flag.C) & ~Flg(Flag.Z)
     case Condition.HS => Flg(Flag.C)
     case Condition.LE => Flg(Flag.Z) | (Flg(Flag.N) - Flg(Flag.Z))
-    case Condition.LO => !Flg(Flag.C)
-    case Condition.LS => Flg(Flag.Z) | !Flg(Flag.C)
+    case Condition.LO => ~Flg(Flag.C)
+    case Condition.LS => Flg(Flag.Z) | ~Flg(Flag.C)
     case Condition.LT => Flg(Flag.N) - Flg(Flag.V)
     case Condition.MI => Flg(Flag.N)
-    case Condition.NE => !Flg(Flag.Z)
-    case Condition.PL => !Flg(Flag.N)
-    case Condition.VC => !Flg(Flag.V)
+    case Condition.NE => ~Flg(Flag.Z)
+    case Condition.PL => ~Flg(Flag.N)
+    case Condition.VC => ~Flg(Flag.V)
     case Condition.VS => Flg(Flag.V)
   }
     
@@ -115,7 +115,7 @@ object AArch64Machine extends Machine[AArch64] {
       case LSL => inst.srcLeft << inst.srcRight
       case LSR => inst.srcLeft >> inst.srcRight
       case ORR => inst.srcLeft | inst.srcRight
-      case ORN => inst.srcLeft | !inst.srcRight
+      case ORN => inst.srcLeft | ~inst.srcRight
       case AND => inst.srcLeft & inst.srcRight
       case _ => Exception.unreachable()
     }
@@ -255,6 +255,11 @@ object AArch64Machine extends Machine[AArch64] {
         inst.condition, inst.srcTrue, inst.srcFalse)
   }
   
+  private def toIR(inst: CompareAndBranchInst, builder: IRBuilder) = {
+    val cond: Expr = if (inst.jumpIfZero) !inst.toCompare else inst.toCompare
+    builder.buildJmp(inst, cond, inst.target)
+  }
+  
   override protected def toIRStatements(ctx: Context, inst: MachEntry[AArch64],
       builder: IRBuilder) = {
     inst.asInstanceOf[Instruction] match {
@@ -263,6 +268,7 @@ object AArch64Machine extends Machine[AArch64] {
       case i: BitfieldMoveInst => toIR(ctx, i, builder)
       case i: ExtensionInst => toIR(i, builder)
       case i: BranchInst => toIR(i, builder)
+      case i: CompareAndBranchInst => toIR(i, builder)
       case i: CompareInst => toIR(i, builder)
       case i: MoveInst => toIR(i, builder)
       case i: SelectInst => toIR(i, builder)

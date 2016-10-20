@@ -33,9 +33,11 @@ object Opcode {
     case object CSINC extends Mnemonic
     case object CINC extends Mnemonic
     case object CSET extends Mnemonic
-    case object MOV extends Mnemonic
     case object MOVK extends Mnemonic
+    case object MOVZ extends Mnemonic
+    case object MOV extends Mnemonic
     case object B extends Mnemonic
+    case object CB extends Mnemonic
     case object BL extends Mnemonic
     case object NOP extends Mnemonic
     case object EXT extends Mnemonic
@@ -56,6 +58,7 @@ object Opcode {
       case AND => List("AND", "ANDS")
       case TST => List("TST")
       case ASR => List("ASR")
+      case CB => List("CBZ", "CBNZ")
       case B => List("B", "BR", "RET")
       case BL => List("BL", "BLR")
       case CMP => List("CMP")
@@ -68,6 +71,7 @@ object Opcode {
       case LSR => List("LSR")
       case MOV => List("MOV")
       case MOVK => List("MOVK")
+      case MOVZ => List("MOVZ")
       case EXT => List("SXTW", "SXTH", "SXTB", "UXTW", "UXTH", "UXTB")
       case BFM => List("SBFX", "SBFM", "UBFX", "UBFM")
       case MUL => List("MUL", "UMUL")

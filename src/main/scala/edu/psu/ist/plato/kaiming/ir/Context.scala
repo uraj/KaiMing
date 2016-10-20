@@ -12,10 +12,12 @@ import scalax.collection.Graph
 import scalax.collection.GraphEdge.DiEdge
 import scalax.collection.edge.LDiEdge
 
+
 class IRCfg(override val parent : Context, override val entryBlock: IRBBlock,
-    graph: Graph[IRBBlock, LDiEdge], hasIndirectJump: Boolean,
-    private val _bbmap: Map[IRBBlock, MachBBlock[_]])
-    extends Cfg[KaiMing, IRBBlock](parent, entryBlock, graph, hasIndirectJump) {
+    graph: Graph[IRBBlock, LDiEdge], override val hasIndirectJmp: Boolean,
+    private val _bbmap: Map[IRBBlock, MachBBlock[_]],
+    override val hasDanglingJump: Boolean)
+    extends Cfg[KaiMing, IRBBlock](graph) {
   
   def getMachBBlock(irbb: IRBBlock) = _bbmap.get(irbb)
   

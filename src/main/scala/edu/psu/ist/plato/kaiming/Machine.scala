@@ -75,8 +75,8 @@ abstract class Machine[A <: MachArch] {
         if (edges.isEmpty) g + irbb else g ++ edges 
       }
     }
-    new IRCfg(ctx, bbmap.get(cfg.entryBlock).get, graph, cfg.hasIndirectJump,
-        bbmap.toList.map { case (a, b) => (b, a) }.toMap)
+    new IRCfg(ctx, bbmap.get(cfg.entryBlock).get, graph, cfg.hasIndirectJmp,
+        bbmap.toList.map { case (a, b) => (b, a) }.toMap, cfg.hasDanglingJump)
   }
 
 }

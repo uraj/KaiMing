@@ -221,7 +221,8 @@ sealed abstract class Expr(sub: Expr*) {
   final def |>(right: Const) = Low(this, right)
   final def |<(right: Const) = High(this, right)
   final def <> = BSwap(this)
-  final def unary_! = Not(this)
+  final def unary_~ = Not(this)
+  final def unary_! = Neg(this)
   
 }
 
@@ -503,6 +504,14 @@ case class Not(override val sub: Expr) extends UExpr(sub) {
   override val sizeInBits = sub.sizeInBits
   
   override def gen(s: Expr) = Not(s)
+  
+}
+
+case class Neg(override val sub: Expr) extends UExpr(sub) {
+  
+  override val sizeInBits = sub.sizeInBits
+  
+  override def gen(s: Expr) = Neg(s)
   
 }
 

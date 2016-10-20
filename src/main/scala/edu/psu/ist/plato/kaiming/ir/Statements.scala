@@ -39,9 +39,9 @@ case class JmpStmt(override val index: Long,
     override val host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
     cond: Expr, target: Expr) extends Stmt(cond, target) {
   
-  val dependentFlags = cond.enumLvals.map(_.asInstanceOf[Flg])
+  val dependentLvals = cond.enumLvals
   
-  def isConditional = !dependentFlags.isEmpty
+  def isConditional = !dependentLvals.isEmpty
   
   def relocate(bb: BBlock[KaiMing]) = JmpStmt.relocate(this, bb)
   def relocatedTarget = JmpStmt.lookUpRelocation(this)

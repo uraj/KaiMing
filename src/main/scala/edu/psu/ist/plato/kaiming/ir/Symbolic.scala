@@ -102,9 +102,14 @@ object Symbolic {
               0, left)
       }
     
-    protected def lift(ue: UExpr, sub: Z3BVExpr) =
+    protected def lift(ue: UExpr, sub: Z3BVExpr) = {
+      val t = ctx.mkBV(1, 1)
+      val f = ctx.mkBV(0, 1)
+      implicit def toBitNeg(e: Z3BoolExpr) = ctx.mkITE(e, f, t).asInstanceOf[Z3BVExpr]
+      def toBit(e: Z3BoolExpr) = ctx.mkITE(e, t, f).asInstanceOf[Z3BVExpr]
       ue match {
         case not: Not => ctx.mkBVNot(sub)
+        case neg: Neg => toBitNeg(ctx.mkEq(sub, ctx.mkBV(0, sub.getSortSize)))
         case bswap: BSwap => 
           ue.sizeInBits match {
             case 8 => sub
@@ -128,10 +133,6 @@ object Symbolic {
           }
         case ee: ExtractorExpr => {
           val zero = ctx.mkBV(0, ue.sizeInBits)
-          val t = ctx.mkBV(1, 1)
-          val f = ctx.mkBV(0, 1)
-          def toBit(e: Z3BoolExpr) = ctx.mkITE(e, t, f).asInstanceOf[Z3BVExpr]
-          implicit def toBitNeg(e: Z3BoolExpr) = ctx.mkITE(e, f, t).asInstanceOf[Z3BVExpr]
           val args = sub.getArgs
           val arg0 = args(0).asInstanceOf[Z3BVExpr]
           val arg1 = args(1).asInstanceOf[Z3BVExpr]
@@ -159,6 +160,7 @@ object Symbolic {
           }
         }
       }
+    }
     
     override def visitConst(in: Z3BVExpr, c: Const) = 
       SkipChildren(ctx.mkBV(c.value, c.sizeInBits))

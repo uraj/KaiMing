@@ -8,9 +8,13 @@ import scalax.collection.edge.LDiEdge
 
 import edu.psu.ist.plato.kaiming.Arch.KaiMing
 
-abstract class Cfg[A <: Arch, B <: BBlock[A]] (val parent : Procedure[A], val entryBlock: BBlock[A],
-    private val _graph: Graph[B, LDiEdge], val hasIndirectJump: Boolean)
+abstract class Cfg[A <: Arch, B <: BBlock[A]] (private val _graph: Graph[B, LDiEdge])
     extends Iterable[B] {
+  
+  val parent : Procedure[A]
+  val entryBlock: BBlock[A]
+  val hasIndirectJmp: Boolean
+  val hasDanglingJump: Boolean
   
   lazy val blocks = _graph.nodes.map(_.value).toVector.sorted[BBlock[A]]
   def entries = blocks.flatMap(_.entries)
@@ -34,8 +38,8 @@ abstract class Cfg[A <: Arch, B <: BBlock[A]] (val parent : Procedure[A], val en
 
 class MachCFG[A <: MachArch] (override val parent: MachProcedure[A],
     override val entryBlock: MachBBlock[A], graph: Graph[MachBBlock[A], LDiEdge],
-    hasIndirectJump: Boolean)
-    extends Cfg[A, MachBBlock[A]](parent, entryBlock, graph, hasIndirectJump) {
+    override val hasIndirectJmp: Boolean, override val hasDanglingJump: Boolean)
+    extends Cfg[A, MachBBlock[A]](graph) {
   
   private val _graph: Graph[MachBBlock[A], LDiEdge] = graph
   

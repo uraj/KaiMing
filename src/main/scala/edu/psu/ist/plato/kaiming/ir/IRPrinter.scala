@@ -92,7 +92,8 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
   
   def printUExpr(e: UExpr) {
     e match {
-      case _: Not => print("!")
+      case _: Not => print("~")
+      case _: Neg => print("!")
       case _ =>
     }
     e.sub match {
@@ -138,7 +139,7 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
     print("jmp")
     if (s.isConditional) {
       print('[')
-      print(s.dependentFlags.map(_.mflag.name).mkString(","))
+      printExpr(s.cond)
       print(']')
     }
     print(" ")

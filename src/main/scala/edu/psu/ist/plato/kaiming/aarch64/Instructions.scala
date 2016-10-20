@@ -99,9 +99,13 @@ object Instruction {
         val zero = if(rd.sizeInBits == 32) Register.get("WZR") else Register.get("XZR")
         SelectInst(addr, Opcode("CSINC"), oplist(0).asRegister, zero, zero, condition.invert)
       }
-      case MOV | MOVK =>
+      case MOV =>
         require(oplist.length == 2)
         require(oplist(0).isRegister)
+        MoveInst(addr, opcode, oplist(0).asRegister, oplist(1))
+      case MOVK | MOVZ =>
+        require(oplist.length == 2)
+        require(oplist(0).isRegister && oplist(1).isImmediate)
         MoveInst(addr, opcode, oplist(0).asRegister, oplist(1))
       case EXT =>
         require(oplist.length == 2)
@@ -121,6 +125,10 @@ object Instruction {
         } else {
           BranchInst(addr, opcode, Register.get("X30"))
         }
+      case CB =>
+        require(oplist.length == 2)
+        require(oplist(0).isRegister && oplist(1).isMemory)
+        CompareAndBranchInst(addr, opcode, oplist(0).asRegister, oplist(1).asMemory)
       case NOP => NopInst(addr, opcode)
     }
     
@@ -212,23 +220,51 @@ case class BitfieldMoveInst(override val addr: Long, override val opcode: Opcode
   
 }
 
-object BranchInst {
+object AbstractBranch {
   import scala.collection.mutable.Map
   import edu.psu.ist.plato.kaiming.utils.RefWrapper
   
   private val _belongs = Map[RefWrapper[BranchInst], MachBBlock[AArch64]]()
-  private def loopUpRelocation(b: BranchInst) = _belongs.get(new RefWrapper(b))
-  private def relocateTarget(b: BranchInst, bb: MachBBlock[AArch64]) =
+  private def loopUpRelocation(b: AbstractBranch) = _belongs.get(new RefWrapper(b))
+  private def relocateTarget(b: AbstractBranch, bb: MachBBlock[AArch64]) =
     _belongs += (new RefWrapper(b) -> bb)
 }
 
+sealed abstract class AbstractBranch(ops: Operand*)
+  extends Instruction(ops: _*) with Terminator[AArch64] {
+  
+  override def relocate(target: MachBBlock[AArch64]) = 
+    AbstractBranch.relocateTarget(this, target)
+
+  override def relocatedTarget = AbstractBranch.loopUpRelocation(this)
+  
+}
+
+case class CompareAndBranchInst(override val addr: Long, override val opcode: Opcode,
+    toCompare: Register, target: Memory) extends AbstractBranch(toCompare, target) {
+  
+  val jumpIfZero = opcode.rawcode.charAt(2) == 'Z'
+  
+  override def dependentFlags = Set()
+  override val isReturn = false
+  override val isCall = false
+  override val isIndirect = false
+  override val isTargetConcrete = true
+  override def targetIndex = 
+    target.off match {
+      case Some(Left(imm)) => imm.value
+      case _ => Exception.unreachable()
+    }
+  
+}
+
 case class BranchInst(override val addr: Long, override val opcode: Opcode,
-    target: Operand) extends Instruction(target) with Terminator[AArch64] {
+    target: Operand) extends AbstractBranch(target) {
   
-  val condition = opcode.getCondition()
-  val hasLink = opcode.mnemonic == Opcode.Mnemonic.BL
-  def dependentFlags = condition.dependentMachFlags
+  def condition = opcode.getCondition()
+  def hasLink = opcode.mnemonic == Opcode.Mnemonic.BL
   
+  override def dependentFlags = condition.dependentMachFlags
   override val isReturn = target.isRegister && target.asRegister.id == Register.Id.X30
   override val isCall = hasLink
   override val isIndirect = target.isRegister
@@ -239,18 +275,16 @@ case class BranchInst(override val addr: Long, override val opcode: Opcode,
     else
       target.asMemory.off match {
         case Some(Left(imm)) => imm.value
-        case _ => throw new UnsupportedOperationException()
-    }
-  override def relocate(target: MachBBlock[AArch64]) = 
-    BranchInst.relocateTarget(this, target)
+        case _ => Exception.unreachable()
+      }
 
-  override def relocatedTarget = BranchInst.loopUpRelocation(this)
+
 }
 
 case class MoveInst(override val addr: Long, override val opcode: Opcode,
     dest: Register, src: Operand) extends Instruction(dest, src) {
   
-  val doesKeep = opcode.mnemonic == Opcode.Mnemonic.MOVK
+  def doesKeep = opcode.mnemonic == Opcode.Mnemonic.MOVK
   
 }
 
@@ -281,7 +315,7 @@ case class LoadInst(override val addr: Long, override val opcode: Opcode,
     dest: Register, mem: Memory, mode: AddressingMode)
     extends LoadStoreInst(mode, dest, mem) {
   
-  override val indexingOperandIndex = 1
+  override def indexingOperandIndex = 1
   
 }
 
@@ -289,7 +323,7 @@ case class LoadPairInst(override val addr: Long, override val opcode: Opcode,
     destLeft: Register, destRight: Register, mem: Memory,
     mode: AddressingMode) extends LoadStoreInst(mode, destLeft, destRight, mem) {
   
-  override val indexingOperandIndex = 2
+  override def indexingOperandIndex = 2
 
 }
 
@@ -297,7 +331,7 @@ case class StoreInst(override val addr: Long, override val opcode: Opcode,
     src: Register, mem: Memory, mode: AddressingMode)
     extends LoadStoreInst(mode, src, mem) {
   
-  override val indexingOperandIndex = 1
+  override def indexingOperandIndex = 1
   
 }
 
@@ -305,7 +339,7 @@ case class StorePairInst(override val addr: Long, override val opcode: Opcode,
     srcLeft: Register, srcRight: Register, mem: Memory,
     mode: AddressingMode) extends LoadStoreInst(mode, srcLeft, srcRight, mem) {
   
-  override val indexingOperandIndex = 2
+  override def indexingOperandIndex = 2
 
 }
 
@@ -313,7 +347,7 @@ case class SelectInst(override val addr: Long, override val opcode: Opcode,
     dest: Register, srcTrue: Register, srcFalse: Register, condition: Condition)
     extends Instruction(dest, srcTrue, srcFalse) {
   
-  val doesIncrementSecond = opcode.mnemonic == Opcode.Mnemonic.CSINC
+  def doesIncrementSecond = opcode.mnemonic == Opcode.Mnemonic.CSINC
   
 }
 

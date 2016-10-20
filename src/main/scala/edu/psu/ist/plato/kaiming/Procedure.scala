@@ -41,20 +41,26 @@ object MachProcedure {
   private def buildCFGImpl[A <: MachArch](parent : MachProcedure[A],
       entries : Seq[MachEntry[A]]) = {
     val sorted = entries.toVector.sorted[Entry[A]]
-    val pivots = (0 until sorted.length).foldLeft(Vector[Int]()) {
-      (vec, i) =>
-        if (sorted(i).isTerminator) {
-          val term = sorted(i).asInstanceOf[Terminator[A]]
-          val nvec = if (!term.isCall) vec :+ (i + 1) else vec
-          if (term.isIntraprocedural && !term.isIndirect && term.isTargetConcrete) {
-            nvec :+ Entry.search(sorted, term.targetIndex).get
+    val (pivots, hasDanglingJmp) =
+      (0 until sorted.length).foldLeft((Vector[Int](), false)) {
+        case ((vec, dang), i) =>
+          val entry = sorted(i)
+          if (entry.isTerminator) {
+            val term = entry.asInstanceOf[Terminator[A]]
+            val nvec = if (!term.isCall) vec :+ (i + 1) else vec
+            if (term.isIntraprocedural && !term.isIndirect && term.isTargetConcrete) {
+              val targetOpt = Entry.search(sorted, term.targetIndex)
+              if (targetOpt.isDefined)
+                (nvec :+ targetOpt.get, dang)
+              else
+                (nvec, true)
+            }
+            else
+              (nvec, dang)
+          } else {
+            (vec, dang)
           }
-          else
-            nvec
-        } else {
-          vec
-        }
-    }
+      }
     val bbs = split(parent, entries, pivots)
     val entry = bbs.head
     val hasIndirectJump = bbs.foldLeft(false) {
@@ -96,12 +102,12 @@ object MachProcedure {
         graph filter graph.having(node = (bb => bb.value == entry || bb.hasPredecessors))
       }
   
-    (hasIndirectJump, trimmedGraph, entry)
+    (hasIndirectJump, trimmedGraph, entry, hasDanglingJmp)
   }
   
   private def buildCFG[A <: MachArch](parent : MachProcedure[A], entries : Seq[MachEntry[A]]) = {
       val _t = buildCFGImpl(parent, entries)
-      new MachCFG(parent, _t._3, _t._2, _t._1)
+      new MachCFG(parent, _t._3, _t._2, _t._1, _t._4)
   }
   
 }
