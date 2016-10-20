@@ -15,6 +15,8 @@ sealed abstract class Stmt(val usedExpr: Vector[Expr]) extends Entry[KaiMing] {
   
   final def usedLvals = usedExpr.map(_.enumLvals).fold(Set[Lval]())(_|_)
   
+  override def toString = index.toString
+  
 }
 
 case class StStmt(override val index: Long, override val host: MachEntry[_ <: MachArch],
