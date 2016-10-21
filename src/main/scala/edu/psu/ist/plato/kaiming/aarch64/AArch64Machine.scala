@@ -169,8 +169,20 @@ object AArch64Machine extends Machine[AArch64] {
   
   private def toIR(inst: MoveInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
-    if (inst.doesKeep)
-      builder.buildAssign(inst, lv, (inst.src |> 16) :+ (lv |< 16))
+    if (inst.doesKeep) {
+      val op = inst.src.asImmediate
+      val move = 16 + op.lShift
+      val retain = lv.sizeInBits - move
+      if (retain > 0)
+        builder.buildAssign(inst, lv, (inst.src |> move) :+ (lv |< retain))
+      else
+        builder.buildAssign(inst, lv, Const(op.value, lv.sizeInBits))
+    }
+    else if (inst.doesInverse) {
+      val op = inst.src.asImmediate
+      val mask = (1 << lv.sizeInBits) - 1
+      builder.buildAssign(inst, lv, Const(~op.value & mask, lv.sizeInBits))
+    }
     else
       builder.buildAssign(inst, lv, inst.src)
   }
@@ -255,8 +267,15 @@ object AArch64Machine extends Machine[AArch64] {
         inst.condition, inst.srcTrue, inst.srcFalse)
   }
   
-  private def toIR(inst: CompareAndBranchInst, builder: IRBuilder) = {
-    val cond: Expr = if (inst.jumpIfZero) !inst.toCompare else inst.toCompare
+  private def toIR(inst: CmpBranchInst, builder: IRBuilder) = {
+    val cond: Expr = if (inst.jumpOnZero) !inst.toCompare else inst.toCompare
+    builder.buildJmp(inst, cond, inst.target)
+  }
+  
+  private def toIR(inst: TstBranchInst, builder: IRBuilder) = {
+    val cond: Expr =
+      if (inst.jumpOnZero) !(inst.toTest & inst.imm)
+      else (inst.toTest & inst.imm)
     builder.buildJmp(inst, cond, inst.target)
   }
   
@@ -268,7 +287,8 @@ object AArch64Machine extends Machine[AArch64] {
       case i: BitfieldMoveInst => toIR(ctx, i, builder)
       case i: ExtensionInst => toIR(i, builder)
       case i: BranchInst => toIR(i, builder)
-      case i: CompareAndBranchInst => toIR(i, builder)
+      case i: CmpBranchInst => toIR(i, builder)
+      case i: TstBranchInst => toIR(i, builder)
       case i: CompareInst => toIR(i, builder)
       case i: MoveInst => toIR(i, builder)
       case i: SelectInst => toIR(i, builder)

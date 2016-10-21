@@ -103,7 +103,7 @@ object Instruction {
         require(oplist.length == 2)
         require(oplist(0).isRegister)
         MoveInst(addr, opcode, oplist(0).asRegister, oplist(1))
-      case MOVK | MOVZ =>
+      case MOVK | MOVZ | MOVN =>
         require(oplist.length == 2)
         require(oplist(0).isRegister && oplist(1).isImmediate)
         MoveInst(addr, opcode, oplist(0).asRegister, oplist(1))
@@ -120,15 +120,19 @@ object Instruction {
       case B | BL =>
         require(oplist.length <= 1)
         if (oplist.length == 1) {
-          require(oplist(0).isMemory || oplist(0).isRegister)
+          require(!oplist(0).isImmediate)
           BranchInst(addr, opcode, oplist(0))
         } else {
           BranchInst(addr, opcode, Register.get("X30"))
         }
-      case CB =>
+      case CBZ | CBNZ =>
         require(oplist.length == 2)
         require(oplist(0).isRegister && oplist(1).isMemory)
-        CompareAndBranchInst(addr, opcode, oplist(0).asRegister, oplist(1).asMemory)
+        CmpBranchInst(addr, opcode, oplist(0).asRegister, oplist(1).asMemory)
+      case TBZ | TBNZ =>
+        require(oplist.length == 3)
+        require(oplist(0).isRegister && oplist(1).isImmediate && oplist(2).isMemory)
+        TstBranchInst(addr, opcode, oplist(0).asRegister, oplist(1).asImmediate, oplist(1).asMemory)
       case NOP => NopInst(addr, opcode)
     }
     
@@ -240,10 +244,29 @@ sealed abstract class AbstractBranch(ops: Operand*)
   
 }
 
-case class CompareAndBranchInst(override val addr: Long, override val opcode: Opcode,
+case class TstBranchInst(override val addr: Long, override val opcode: Opcode,
+    toTest: Register, imm: Immediate, target: Memory)
+    extends AbstractBranch(toTest, imm, target) {
+  
+  def jumpOnZero = opcode.mnemonic == Opcode.Mnemonic.TBZ
+  
+  override def dependentFlags = Set()
+  override val isReturn = false
+  override val isCall = false
+  override val isIndirect = false
+  override val isTargetConcrete = true
+  override def targetIndex = 
+    target.off match {
+      case Some(Left(imm)) => imm.value
+      case _ => Exception.unreachable()
+    }
+  
+}
+
+case class CmpBranchInst(override val addr: Long, override val opcode: Opcode,
     toCompare: Register, target: Memory) extends AbstractBranch(toCompare, target) {
   
-  val jumpIfZero = opcode.rawcode.charAt(2) == 'Z'
+  def jumpOnZero = opcode.mnemonic == Opcode.Mnemonic.CBZ
   
   override def dependentFlags = Set()
   override val isReturn = false
@@ -261,7 +284,7 @@ case class CompareAndBranchInst(override val addr: Long, override val opcode: Op
 case class BranchInst(override val addr: Long, override val opcode: Opcode,
     target: Operand) extends AbstractBranch(target) {
   
-  def condition = opcode.getCondition()
+  def condition = opcode.getCondition
   def hasLink = opcode.mnemonic == Opcode.Mnemonic.BL
   
   override def dependentFlags = condition.dependentMachFlags
@@ -285,7 +308,7 @@ case class MoveInst(override val addr: Long, override val opcode: Opcode,
     dest: Register, src: Operand) extends Instruction(dest, src) {
   
   def doesKeep = opcode.mnemonic == Opcode.Mnemonic.MOVK
-  
+  def doesInverse = opcode.mnemonic == Opcode.Mnemonic.MOVN
 }
 
 sealed trait CompareCode

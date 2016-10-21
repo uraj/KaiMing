@@ -35,9 +35,13 @@ object Opcode {
     case object CSET extends Mnemonic
     case object MOVK extends Mnemonic
     case object MOVZ extends Mnemonic
+    case object MOVN extends Mnemonic
     case object MOV extends Mnemonic
     case object B extends Mnemonic
-    case object CB extends Mnemonic
+    case object CBZ extends Mnemonic
+    case object CBNZ extends Mnemonic
+    case object TBZ extends Mnemonic
+    case object TBNZ extends Mnemonic
     case object BL extends Mnemonic
     case object NOP extends Mnemonic
     case object EXT extends Mnemonic
@@ -58,7 +62,10 @@ object Opcode {
       case AND => List("AND", "ANDS")
       case TST => List("TST")
       case ASR => List("ASR")
-      case CB => List("CBZ", "CBNZ")
+      case CBZ => List("CBZ")
+      case CBNZ => List("CBNZ")
+      case TBZ => List("TBZ")
+      case TBNZ => List("TBNZ")
       case B => List("B", "BR", "RET")
       case BL => List("BL", "BLR")
       case CMP => List("CMP")
@@ -71,6 +78,7 @@ object Opcode {
       case LSR => List("LSR")
       case MOV => List("MOV")
       case MOVK => List("MOVK")
+      case MOVN => List("MOVN")
       case MOVZ => List("MOVZ")
       case EXT => List("SXTW", "SXTH", "SXTB", "UXTW", "UXTH", "UXTB")
       case BFM => List("SBFX", "SBFM", "UBFX", "UBFM")
@@ -91,7 +99,7 @@ case class Opcode(rawcode: String) {
   val mnemonic: Opcode.Mnemonic =
     Opcode.rawToMnem(rawcode.split("\\.")(0))
   
-  def getCondition() = {
+  def getCondition = {
     val parts = rawcode.split("\\.")
     assert(parts.length <= 2)
     if (parts.length == 2) {

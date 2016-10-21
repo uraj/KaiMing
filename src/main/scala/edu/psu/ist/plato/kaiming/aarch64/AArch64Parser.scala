@@ -36,15 +36,13 @@ object AArch64Parser extends RegexParsers with ParserTrait {
     case None ~ positive => positive
   }
   
-  private def plain_imm: Parser[Long] = "#" ~> integer
+  private def plain_imm: Parser[Immediate] = "#" ~> integer ^^ { Immediate(_) }
   
-  private def shifted_imm: Parser[Long] = (plain_imm <~ ",") ~ ("lsl" ~> plain_imm) ^^ {
-    case base ~ shift => base << shift
+  private def shifted_imm: Parser[Immediate] = ("#" ~> integer <~ ",") ~ ("lsl" ~> "#" ~> integer) ^^ {
+    case base ~ shift => Immediate(base << shift, shift.toInt)
   }
   
-  private def imm: Parser[Immediate] = (shifted_imm | plain_imm) ^^ {
-    case long => Immediate.get(long)
-  }
+  private def imm: Parser[Immediate] = shifted_imm | plain_imm
   
   private def plain_label: Parser[String] =
     """[a-zA-Z_]([_\-@\.a-zA-Z0-9])*:""".r ^^ { 
@@ -99,9 +97,10 @@ object AArch64Parser extends RegexParsers with ParserTrait {
       case None => Memory.get(reg)
       case Some(int: Immediate) => Memory.get(reg, int)
       case Some(off: ShiftedRegister) => Memory.get(reg, off)
+      case Some(reg: Register) => Memory.get(reg) 
       case _ => Exception.unreachable()
     }
-    case addr: Long => Memory.get(Immediate.get(addr))
+    case addr: Long => Memory.get(Immediate(addr))
   }
   
   private def cond: Parser[Condition] = 
