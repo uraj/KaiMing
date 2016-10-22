@@ -112,8 +112,10 @@ object Register {
     
   }
   
-  implicit def get(name: String) = Register(Id.withName(name))
-  implicit def get(id: Register.Id) = Register(id)
+  private val _singletons = Id.values.map(x => (x -> Register(x))).toMap
+  
+  implicit def get(name: String) = _singletons(Id.withName(name))
+  implicit def get(id: Register.Id) = _singletons(id)
   
 }
 
