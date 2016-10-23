@@ -171,7 +171,7 @@ object AArch64Parser extends RegexParsers with ParserTrait {
   def parseFile(f: File): List[Function] = 
     Source.fromFile(f).getLines.foldLeft(
         List[Function](), None: Option[(Label, List[Instruction])]) {
-    case ((lf, int), x) => print(x); parseAll(singleLine, x) match {
+    case ((lf, int), x) => parseAll(singleLine, x) match {
         case Success(value, input) if input.atEnd => value match {
           case Left(label) => int match {
             case None => (lf, Some(label, Nil))
