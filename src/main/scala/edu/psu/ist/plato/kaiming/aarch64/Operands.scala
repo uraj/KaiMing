@@ -35,7 +35,15 @@ case class Ror(override val value: Int) extends Shift
 
 object Register {
   
-  sealed trait Id extends EnumEntry
+  sealed trait Id extends EnumEntry {
+    val (no, prefix) =
+      try {
+        (entryName.substring(1).toInt, entryName.charAt(0))
+      }
+      catch {
+        case _: NumberFormatException => (-1, '\0')
+      }
+  }
   
   object Id extends Enum[Id] {
     
@@ -122,16 +130,16 @@ object Register {
 case class Register private (id: Register.Id)
   extends MachRegister[AArch64] with Operand {
   
-  override def name = id.entryName
+  override val name = id.entryName 
   override val sizeInBits = if (name == "SP" || name.startsWith("X")) 64 else 32
   override lazy val containingRegister = 
-    if (name.startsWith("W"))
-      Register(Register.Id.withName('X' + name.substring(1)))
+    if (id.prefix == 'W')
+      Register.get("X" + id.no)
     else
       this
   override lazy val subsumedRegisters = 
-    if (name.startsWith("X"))
-      Set[MachRegister[AArch64]](Register.get('W' + name.substring(1)))
+    if (id.prefix == 'X')
+      Set[MachRegister[AArch64]](Register.get("W" + id.no))
     else
       Set[MachRegister[AArch64]]()
   
