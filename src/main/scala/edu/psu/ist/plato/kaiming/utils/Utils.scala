@@ -22,8 +22,8 @@ object Exception {
   
 }
 
-trait ParserTrait {
-  
+trait ParserTrait { self: scala.util.parsing.combinator.Parsers =>
+
   private def escape(raw: String): String = {
     import scala.reflect.runtime.universe._
     val escaped = Literal(Constant(raw)).toString
@@ -34,5 +34,13 @@ trait ParserTrait {
   
   protected val whitespaceWithoutNewline = 
     escape("[" + (Set('\t', ' ', '\r', '\n') &~ System.getProperty("line.separator").toSet).mkString + "]+").r
-
+    
+  protected def EOI: Parser[Any] =
+    new Parser[Any] {
+      def apply(in: Input) = {
+        if (in.atEnd) new Success( "EOI", in )
+        else Failure("End of Input expected", in)
+      }
+  }
+  
 }

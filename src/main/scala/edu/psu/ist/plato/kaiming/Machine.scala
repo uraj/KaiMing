@@ -48,7 +48,6 @@ abstract class Machine[A <: MachArch] {
     import scalax.collection.edge.Implicits._
     import scalax.collection.edge.LDiEdge
     import edu.psu.ist.plato.kaiming.ir.JmpStmt
-    
     val (bbs, bbmap, nStmts) = cfg.blocks.foldLeft(
       (List[IRBBlock](), Map[MachBBlock[A], IRBBlock](), 0L)) {
         case ((bblist, map, start), bb) => {

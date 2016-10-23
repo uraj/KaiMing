@@ -12,6 +12,9 @@ import edu.psu.ist.plato.kaiming.Label
 import edu.psu.ist.plato.kaiming.utils.Exception
 import edu.psu.ist.plato.kaiming.utils.ParserTrait
 
+import java.io.File
+import scala.io.Source
+
 import scala.Ordering
 import scala.Vector
 
@@ -19,7 +22,7 @@ object AArch64Parser extends RegexParsers with ParserTrait {
   
   override val whiteSpace = whitespaceWithoutNewline
 
-  private def nl: Parser[String] = newline
+  private def nl: Parser[Any] = newline | EOI
   
   private def dec: Parser[Long] = """\d+""".r ^^ 
     { s => java.lang.Long.parseLong(s, 10) }
@@ -138,20 +141,48 @@ object AArch64Parser extends RegexParsers with ParserTrait {
     case label => Label(label)
   }
   
-  private def function: Parser[Function] = funlabel ~ (inst +) ^^ {
+  private def function: Parser[Function] = funlabel ~ (inst *) ^^ {
     case label ~ insts => new Function(label, insts)
   }
+  
+  private def funlabelLine: Parser[Either[Label, Instruction]] = funlabel ^^ { 
+    case label => Left[Label, Instruction](label)
+  }
+  
+  private def instLine: Parser[Either[Label, Instruction]] = inst ^^ {
+    case inst => Right(inst)
+  }
+  
+  private def singleLine = (funlabelLine | instLine)
    
   def binaryunit: Parser[List[Function]] = rep(function)
   
   @throws(classOf[edu.psu.ist.plato.kaiming.utils.ParsingException])
   def parseBinaryUnit(input: String): List[Function] = 
-    parseAll(binaryunit, if (!input.endsWith("\n")) input + '\n' else input ) match {
+    parseAll(binaryunit, input) match {
       case Success(value, _) => value
       case failure: NoSuccess =>
         Exception.parseError(failure.msg + "\n" + failure.next.offset + " " + failure.next.pos)
     }
-   
+
   @throws(classOf[edu.psu.ist.plato.kaiming.utils.ParsingException])
   def parseBinaryUnitJava(input: String): java.util.List[Function] = ListBuffer(parseBinaryUnit(input):_*)
+  
+  def parseFile(f: File): List[Function] = 
+    Source.fromFile(f).getLines.foldLeft(
+        List[Function](), None: Option[(Label, List[Instruction])]) {
+    case ((lf, int), x) => print(x); parseAll(singleLine, x) match {
+        case Success(value, input) if input.atEnd => value match {
+          case Left(label) => int match {
+            case None => (lf, Some(label, Nil))
+            case Some((oldL, insts)) => (new Function(oldL, insts.reverse)::lf, None)
+          }
+          case Right(inst) => int match {
+            case None => (lf, None)
+            case Some((oldL, insts)) => (lf, Some((oldL, inst::insts)))
+          }
+        }
+        case _ => (lf, None)
+      }
+  }._1.reverse
 }

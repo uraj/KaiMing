@@ -18,8 +18,6 @@ object AArch64Machine extends Machine[AArch64] {
   
   import scala.language.implicitConversions
   
-  private implicit def toExpr(imm: Immediate): Const = Const(imm.value, imm.sizeInBits)
-  
   private implicit def toExpr(i: Int): Const = Const(i, wordSizeInBits)
   private implicit def toExpr(i: Long): Const = Const(i, wordSizeInBits)
   
@@ -43,7 +41,7 @@ object AArch64Machine extends Machine[AArch64] {
       case None => ret.get
       case Some(off) => {
         val oe: Expr = off match {
-          case Left(imm) => imm
+          case Left(imm) => Const(imm.value, wordSizeInBits)
           case Right(reg) => reg
         }
         ret match {
@@ -54,13 +52,14 @@ object AArch64Machine extends Machine[AArch64] {
     }
   }
   
-  private implicit def operandToExpr(op : Operand): Expr = {
-    op match {
-      case imm: Immediate => imm
+  private def operandToExpr = (width: Int) => (op : Operand) => {
+    val ret: Expr = op match {
+      case imm: Immediate => Const(imm.value, width)
       case reg: Register => reg
       case mem: Memory => mem
       case sreg: ShiftedRegister => sreg
     }
+    ret
   }
   
   private implicit def toExpr(cond: Condition) = cond match {
@@ -93,6 +92,7 @@ object AArch64Machine extends Machine[AArch64] {
   private def toIR(inst: BinaryArithInst, builder: IRBuilder) = {
     val lval = Reg(inst.dest.asRegister)
     import edu.psu.ist.plato.kaiming.aarch64.Opcode.Mnemonic._
+    implicit val operand2expr = operandToExpr(inst.srcLeft.sizeInBits)
     val rval = inst.opcode.mnemonic match {
       case ADD => {
         val add = inst.srcLeft + inst.srcRight
@@ -169,6 +169,7 @@ object AArch64Machine extends Machine[AArch64] {
   
   private def toIR(inst: MoveInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
+    implicit val operand2expr = operandToExpr(lv.sizeInBits)
     if (inst.doesKeep) {
       val op = inst.src.asImmediate
       val move = 16 + op.lShift
@@ -188,6 +189,7 @@ object AArch64Machine extends Machine[AArch64] {
   }
   
   private def toIR(inst: CompareInst, builder: IRBuilder) = {
+    implicit val operand2expr = operandToExpr(inst.left.sizeInBits)
     val cmp = inst.code match {
       case Test => inst.left & inst.right
       case Compare => inst.left - inst.right
@@ -197,6 +199,7 @@ object AArch64Machine extends Machine[AArch64] {
   }
   
   private def toIR(inst: BranchInst, builder: IRBuilder) = {
+    implicit val operand2expr = operandToExpr(wordSizeInBits)
     if (inst.isReturn)
       builder.buildRet(inst, inst.target)
     else if (inst.isCall)
@@ -255,6 +258,7 @@ object AArch64Machine extends Machine[AArch64] {
   private def toIR(inst: UnaryArithInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
     import edu.psu.ist.plato.kaiming.aarch64.Opcode.Mnemonic._
+    implicit val operand2expr = operandToExpr(lv.sizeInBits)
     inst.opcode.mnemonic match {
       case ADR => builder.buildAssign(inst, lv, inst.src)
       case NEG => builder.buildAssign(inst, lv, Const(0, inst.src.sizeInBits) - inst.src)
@@ -273,6 +277,7 @@ object AArch64Machine extends Machine[AArch64] {
   }
   
   private def toIR(inst: TstBranchInst, builder: IRBuilder) = {
+    implicit val operand2expr = operandToExpr(inst.toTest.sizeInBits)
     val cond: Expr =
       if (inst.jumpOnZero) !(inst.toTest & inst.imm)
       else (inst.toTest & inst.imm)

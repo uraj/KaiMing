@@ -6,37 +6,26 @@ import java.io.File
 import java.io.ByteArrayOutputStream
 
 import org.scalatest.FunSuite
-import org.scalatest.BeforeAndAfter
-import org.scalatest.junit.JUnitRunner
+import org.scalatest.concurrent.TimeLimitedTests
+import org.scalatest.time.SpanSugar._
 
 import edu.psu.ist.plato.kaiming.aarch64.Function
 import edu.psu.ist.plato.kaiming.aarch64.AArch64Parser
 
 import edu.psu.ist.plato.kaiming.ir.Context
 
-class TestAArch64 extends FunSuite with BeforeAndAfter {
+class TestAArch64 extends FunSuite with TimeLimitedTests {
   
-  var testdir: File = null
-  var testfiles: Array[File] = null
-  var total = 0
-  var failure = 0
-  
-  before {
-    testdir = new File(getClass.getResource("/test/aarch64").toURI)
-    testfiles = testdir.listFiles.filter { x => x.isFile && !x.isHidden}
-    testfiles = testfiles.sortWith {(x, y)=> x.getName < y.getName}
-    total = testfiles.size
-  }
+  override val timeLimit = 5000.millis
   
   var testFuncs = Vector[Function]()
   
   test("Testing AArch64 parser and CFG construction") {
     import edu.psu.ist.plato.kaiming.aarch64.AArch64Printer
-    
-    if (!testdir.isDirectory)
-      assert(false)
 
-    for (file <- testfiles; if file.getName == "test-03.s") {
+    for (no <- List(1, 2)) {
+      val name = "/test/aarch64/test-" + "%02d".format(no) + ".s"
+      val file = new File(getClass.getResource(name).toURI) 
       println(file.getName)
       val source = Source.fromFile(file, "UTF-8")
       val input = source.mkString
@@ -49,7 +38,6 @@ class TestAArch64 extends FunSuite with BeforeAndAfter {
         }
       result match {
         case (None, msg) =>
-          failure += 1
           println("Fail (" + msg + ")")
         case (Some(funcs), _) =>
           println("OK")
@@ -68,18 +56,18 @@ class TestAArch64 extends FunSuite with BeforeAndAfter {
   
   test("Testing AArch64 IR lifting and UD analysis") {
     import edu.psu.ist.plato.kaiming.ir.IRPrinter
-    
-    failure = 3
     for (func <- testFuncs) {
       val ctx = new Context(func)
       IRPrinter.out.printContextWithUDInfo(ctx)
-      failure -= 1
     }
     
   }
   
-  after {
-    println((total - failure) + "/" + total + " parsing tests passed.")
+  test("Test large-scale parsing") {
+    val name = "/test/aarch64/test-03.s"
+    val file = new File(getClass.getResource(name).toURI) 
+    val funcs = AArch64Parser.parseFile(file)
+    println(funcs.length + " functions successfully parsed")
   }
-    
+
 }

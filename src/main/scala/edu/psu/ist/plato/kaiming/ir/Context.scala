@@ -133,11 +133,9 @@ final class Context (val proc: MachProcedure[_ <: MachArch])
 
   override def label = proc.label
   override val cfg = proc.liftCFGToIR(this)
-
   override def deriveLabelForIndex(index: Long) = {
     Label("_sub_" + index.toHexString)
   }
-
   def getNewVar(name: String, sizeInBits: Int = mach.wordSizeInBits) = {
     if (_varMap.contains(name))
       None
@@ -147,7 +145,6 @@ final class Context (val proc: MachProcedure[_ <: MachArch])
       Some(v)
     }
   }
-  
   def getNewTempVar(sizeInBits: Int) = {
     def tryUntilSuccess(number: Int): Var =
       getNewVar(_tempVarPrefix + number, sizeInBits) match {
@@ -157,7 +154,7 @@ final class Context (val proc: MachProcedure[_ <: MachArch])
     tryUntilSuccess(_varMap.size)
   }
   def getNewTempVar: Var = getNewTempVar(mach.wordSizeInBits)
-       
+
   lazy val useDefMap = Context.useDefAnalysis(this)
   def definitionFor(s: Stmt) = useDefMap.get(s)
 
