@@ -14,14 +14,3 @@ object Arch {
   final abstract class KaiMing extends Arch
   
 }
-
-import java.io.File
-import edu.psu.ist.plato.kaiming.aarch64.AArch64Parser
-
-object Main {
-  def main(args: Array[String]): Unit = {
-    val file = new File("/home/pxw172/git/KaiMing/src/test/resources/test/aarch64/test-03.s") 
-    val funcs = AArch64Parser.parseFile(file)
-    println(funcs.length + " functions successfully parsed")
-  }
-}
