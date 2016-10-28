@@ -21,14 +21,13 @@ object Instruction {
   
   private def resizeIfImm(op: Operand, sizeInBits: Int): Operand =
     if (op.isImmediate) op.asImmediate.resize(sizeInBits) else op
-    
+
   def create(addr: Long, opcode: Opcode, oplist: Vector[Operand],
       cond: Option[Condition], preidx: Boolean): Instruction = {
     val condition = cond.getOrElse(Condition.AL)
     import edu.psu.ist.plato.kaiming.aarch64.Opcode.Mnemonic._
     opcode.mnemonic match {
-      case ADD | SUB | MUL | SDIV | UDIV | ASR | LSL | LSR | ORR | ORN | AND => 
-        require(oplist(0).isRegister)
+      case BinArith => 
         require((oplist.length == 3 && oplist(1).isRegister) || oplist.length == 2)
         val rd = oplist(0).asRegister
         if (oplist.length == 3)
@@ -36,13 +35,25 @@ object Instruction {
               resizeIfImm(oplist(2), rd.sizeInBits))
         else
           BinaryArithInst(addr, opcode, rd, rd, resizeIfImm(oplist(1), rd.sizeInBits))
-      case ADR | NEG =>
+      case PCRelative =>
         require(oplist.length == 2)
-        require(oplist(0).isRegister && (oplist(1).isRegister || oplist(1).isImmediate))
+        PCRelativeInst(addr, opcode, oplist(0).asRegister,
+            oplist(1).asImmediate.resize(AArch64.wordSizeInBits))
+      case UnArith =>
+        require(oplist.length == 2 && !oplist(1).isMemory)
         UnaryArithInst(addr, opcode, oplist(0).asRegister, oplist(1))
+      case MADD | MSUB =>
+        require(oplist.length == 4)
+        TrinaryArithInst(addr, opcode, oplist(0).asRegister,
+            oplist(1).asRegister, oplist(2).asRegister, oplist(3).asRegister)
+      case MNEG =>
+        require(oplist.length == 3)
+        require(oplist.forall(_.isRegister))
+        val zero = if (oplist(0).sizeInBits == 64) Register.Id.XZR else Register.Id.WZR  
+        TrinaryArithInst(addr, Opcode("MSUB"), oplist(0).asRegister,
+            oplist(1).asRegister, oplist(2).asRegister, zero)
       case LDR | STR => {
         require(oplist.length == 2 || oplist.length == 3)
-        require(oplist(0).isRegister && oplist(1).isMemory)
         val rd = oplist(0).asRegister
         val m = oplist(1).asMemory
         val (mem, mode) = 
@@ -60,7 +71,6 @@ object Instruction {
       }
       case LDP | STP => {
         require(oplist.length == 3 || oplist.length == 4)
-        require(oplist(0).isRegister && oplist(1).isRegister && oplist(2).isMemory)
         val rd1 = oplist(0).asRegister
         val rd2 = oplist(1).asRegister
         val m = oplist(2).asMemory
@@ -77,47 +87,60 @@ object Instruction {
         else
           StorePairInst(addr, opcode, rd1, rd2, mem, mode)
       }
-      case TST | CMP | CMN =>
-        require(oplist.length == 2)
-        require(oplist(0).isRegister && (oplist(1).isRegister || oplist(1).isImmediate))
+      case STX =>
+        require(oplist.length == 3)
+        StoreExclusiveInst(addr, opcode, oplist(0).asRegister,
+            oplist(1).asRegister, oplist(2).asMemory)
+      case STXP =>
+        require(oplist.length == 4)
+        StorePairExclusiveInst(addr, opcode, oplist(0).asRegister,
+            oplist(1).asRegister, oplist(2).asRegister, oplist(3).asMemory)
+      case Compare =>
+        require(oplist.length == 2 && !oplist(1).isMemory)
         val rd = oplist(0).asRegister
         CompareInst(addr, opcode, rd, resizeIfImm(oplist(1), rd.sizeInBits))
-      case CSEL | CSINC =>
-        require(oplist.length == 3)
-        require(oplist(0).isRegister && oplist(1).isRegister && oplist(2).isRegister)
-        SelectInst(addr, opcode, oplist(0).asRegister, 
-            oplist(1).asRegister, oplist(2).asRegister, condition)
-      case CINC =>
-        require(oplist.length == 2)
-        require(oplist(0).isRegister && oplist(1).isRegister)
-        SelectInst(addr, Opcode("CSINC"), oplist(0).asRegister, oplist(1).asRegister,
-            oplist(1).asRegister, condition.invert)
-      case CSET => {
-        require(oplist.length == 1)
-        require(oplist(0).isRegister)
+      case CondCompare =>
+        require(oplist.length == 3 && cond.isDefined && !oplist(1).isMemory)
         val rd = oplist(0).asRegister
-        val zero = if(rd.sizeInBits == 32) Register.get("WZR") else Register.get("XZR")
-        SelectInst(addr, Opcode("CSINC"), oplist(0).asRegister, zero, zero, condition.invert)
-      }
-      case MOV =>
+        CondCompareInst(addr, opcode, rd, resizeIfImm(oplist(1), rd.sizeInBits),
+            oplist(2).asImmediate.value.toInt, condition)
+      case UnSel =>
+        require(oplist.length == 1)
+        UnarySelectInst(addr, opcode, oplist(0).asRegister, condition)
+      case BinSel =>
         require(oplist.length == 2)
-        require(oplist(0).isRegister)
-        MoveInst(addr, opcode, oplist(0).asRegister, oplist(1))
-      case MOVK | MOVZ | MOVN =>
+        BinarySelectInst(addr, opcode, oplist(0).asRegister,
+            oplist(1).asRegister, condition)
+      case TriSel =>
+        require(oplist.length == 3)
+        TrinarySelectInst(addr, opcode, oplist(0).asRegister,
+            oplist(1).asRegister, oplist(2).asRegister, condition)
+      case Move =>
         require(oplist.length == 2)
-        require(oplist(0).isRegister && oplist(1).isImmediate)
-        MoveInst(addr, opcode, oplist(0).asRegister, oplist(1))
+        val rd = oplist(0).asRegister
+        if (opcode.rawcode != "MOV") {
+          val imm = oplist(1).asImmediate
+          if (imm.sizeInBits == 0)
+            MoveInst(addr, opcode, rd, imm.resize(16))
+          else
+            MoveInst(addr, opcode, rd, imm)
+        }
+        else
+          MoveInst(addr, opcode, rd, oplist(1))
       case EXT =>
         require(oplist.length == 2)
         require(oplist(0).isRegister && oplist(1).isRegister)
         ExtensionInst(addr, opcode, oplist(0).asRegister, oplist(1).asRegister)
-      case BFM =>
+      case BFM => // FIXME: Interpretation of this opcode is incomplete
         require(oplist.length == 4)
         require(oplist(0).isRegister && oplist(1).isRegister 
             && oplist(2).isImmediate && oplist(3).isImmediate)
         BitfieldMoveInst(addr, opcode, oplist(0).asRegister, 
             oplist(1).asRegister, oplist(2).asImmediate, oplist(3).asImmediate)
-      case B | BL =>
+      case DataProcess =>
+        require(oplist.length == 2)
+        DataProcessInst(addr, opcode, oplist(0).asRegister, oplist(1).asRegister)
+      case Branch =>
         require(oplist.length <= 1)
         if (oplist.length == 1) {
           require(!oplist(0).isImmediate)
@@ -125,15 +148,17 @@ object Instruction {
         } else {
           BranchInst(addr, opcode, Register.get("X30"))
         }
-      case CBZ | CBNZ =>
+      case CompBranch =>
         require(oplist.length == 2)
         require(oplist(0).isRegister && oplist(1).isMemory)
-        CmpBranchInst(addr, opcode, oplist(0).asRegister, oplist(1).asMemory)
-      case TBZ | TBNZ =>
+        CompBranchInst(addr, opcode, oplist(0).asRegister, oplist(1).asMemory)
+      case TestBranch =>
         require(oplist.length == 3)
         require(oplist(0).isRegister && oplist(1).isImmediate && oplist(2).isMemory)
-        TstBranchInst(addr, opcode, oplist(0).asRegister, oplist(1).asImmediate, oplist(1).asMemory)
-      case NOP => NopInst(addr, opcode)
+        TestBranchInst(addr, opcode, oplist(0).asRegister, oplist(1).asImmediate, oplist(1).asMemory)
+      case System => SystemInst(addr, opcode, oplist)
+      case Nop => NopInst(addr, opcode)
+      case Unsupported => Exception.unreachable()
     }
     
   }
@@ -144,35 +169,35 @@ sealed abstract class Instruction(oplist: Operand*)
   extends MachEntry[AArch64] with Iterable[Operand] {
   
   val mach = AArch64Machine
-  
-  val operands = oplist.toVector
   val addr: Long
-  val opcode: Opcode
+  val opcode: Opcode 
+  val operands = oplist.toVector
   
   protected final def operand(idx: Int) = operands(idx)
   protected final def numOfOperands = operands.length
   
-  // This method should not be used inside Instruction and its subclasses.
-  // By override this method, specific instructions can ``hide'' certain 
-  // operands from outside. This is useful for implementing alias instructions
-  // which are frequently seen in ARM64
   override def iterator = operands.iterator
-    
   override val index = addr
   
 }
 
-case class BinaryArithInst(override val addr: Long, override val opcode: Opcode,
-    dest: Register, srcLeft: Register, srcRight: Operand)
-  extends Instruction(dest, srcLeft, srcRight) {
-  
+case class TrinaryArithInst(addr: Long, opcode: Opcode, dest: Register,
+    src1: Register, src2: Register, src3: Register)
+    extends Instruction(dest, src1, src2, src3)
+
+case class BinaryArithInst(addr: Long, opcode: Opcode, dest: Register,
+    srcLeft: Register, srcRight: Operand)
+    extends Instruction(dest, srcLeft, srcRight) {
+
+  def subtype = Opcode.Mnemonic.BinArith.Subtype.withName(opcode.rawcode)
   def updateFlags = opcode.rawcode.endsWith("S")
   
 }
 
-case class UnaryArithInst(override val addr: Long, override val opcode: Opcode,
-    dest: Register, src: Operand) extends Instruction(dest, src) {
+case class UnaryArithInst(addr: Long, opcode: Opcode, dest: Register,
+    src: Operand) extends Instruction(dest, src) {
   
+  def subtype = Opcode.Mnemonic.UnArith.Subtype.withName(opcode.rawcode)
   def updateFlags = opcode.rawcode.endsWith("S")
   
 }
@@ -190,8 +215,8 @@ object Extension {
 // This is actually a pseudo instruction. In the original Java implementation,
 // ExtensionInst is a subclass of BitfieldMoveInst. In Scala, however, it
 // is not possible to inherit from a case class
-case class ExtensionInst(override val addr: Long, override val opcode: Opcode,
-    dest: Register, src: Register) extends Instruction(dest, src) {
+case class ExtensionInst(addr: Long, opcode: Opcode, dest: Register,
+    src: Register) extends Instruction(dest, src) {
   
   val extension = {
     val first = opcode.rawcode.charAt(0)
@@ -208,9 +233,9 @@ case class ExtensionInst(override val addr: Long, override val opcode: Opcode,
   
 }
 
-case class BitfieldMoveInst(override val addr: Long, override val opcode: Opcode,
-    dest: Register, src: Register, rotate: Immediate, shift: Immediate)
-  extends Instruction(dest, src, rotate, shift) {
+case class BitfieldMoveInst(addr: Long, opcode: Opcode, dest: Register,
+    src: Register, rotate: Immediate, shift: Immediate)
+    extends Instruction(dest, src, rotate, shift) {
   
   val extension = {
     val first = opcode.rawcode.charAt(0)
@@ -235,7 +260,7 @@ object AbstractBranch {
 }
 
 sealed abstract class AbstractBranch(ops: Operand*)
-  extends Instruction(ops: _*) with Terminator[AArch64] {
+    extends Instruction(ops: _*) with Terminator[AArch64] {
   
   override def relocate(target: MachBBlock[AArch64]) = 
     AbstractBranch.relocateTarget(this, target)
@@ -244,29 +269,10 @@ sealed abstract class AbstractBranch(ops: Operand*)
   
 }
 
-case class TstBranchInst(override val addr: Long, override val opcode: Opcode,
-    toTest: Register, imm: Immediate, target: Memory)
-    extends AbstractBranch(toTest, imm, target) {
+case class TestBranchInst(addr: Long, opcode: Opcode, toTest: Register,
+    imm: Immediate, target: Memory) extends AbstractBranch(toTest, imm, target) {
   
-  def jumpOnZero = opcode.mnemonic == Opcode.Mnemonic.TBZ
-  
-  override def dependentFlags = Set()
-  override val isReturn = false
-  override val isCall = false
-  override val isIndirect = false
-  override val isTargetConcrete = true
-  override def targetIndex = 
-    target.off match {
-      case Some(Left(imm)) => imm.value
-      case _ => Exception.unreachable()
-    }
-  
-}
-
-case class CmpBranchInst(override val addr: Long, override val opcode: Opcode,
-    toCompare: Register, target: Memory) extends AbstractBranch(toCompare, target) {
-  
-  def jumpOnZero = opcode.mnemonic == Opcode.Mnemonic.CBZ
+  def subtype = Opcode.Mnemonic.TestBranch.Subtype.withName(opcode.rawcode)
   
   override def dependentFlags = Set()
   override val isReturn = false
@@ -281,11 +287,35 @@ case class CmpBranchInst(override val addr: Long, override val opcode: Opcode,
   
 }
 
-case class BranchInst(override val addr: Long, override val opcode: Opcode,
-    target: Operand) extends AbstractBranch(target) {
+case class CompBranchInst(addr: Long, opcode: Opcode, toCompare: Register,
+    target: Memory) extends AbstractBranch(toCompare, target) {
+  
+  def subtype = Opcode.Mnemonic.CompBranch.Subtype.withName(opcode.rawcode)
+  
+  override def dependentFlags = Set()
+  override val isReturn = false
+  override val isCall = false
+  override val isIndirect = false
+  override val isTargetConcrete = true
+  override def targetIndex = 
+    target.off match {
+      case Some(Left(imm)) => imm.value
+      case _ => Exception.unreachable()
+    }
+  
+}
+
+case class BranchInst(addr: Long, opcode: Opcode, target: Operand)
+    extends AbstractBranch(target) {
+  
+  val subtype = Opcode.Mnemonic.Branch.Subtype.withName(opcode.rawcode.split("\\.")(0))
+  import Opcode.Mnemonic.Branch.Subtype._
   
   def condition = opcode.getCondition
-  def hasLink = opcode.mnemonic == Opcode.Mnemonic.BL
+  def hasLink = subtype match {
+    case BL | BLR => true
+    case B | RET | BR => false
+  }
   
   override def dependentFlags = condition.dependentMachFlags
   override val isReturn = target.isRegister && target.asRegister.id == Register.Id.X30
@@ -304,28 +334,37 @@ case class BranchInst(override val addr: Long, override val opcode: Opcode,
 
 }
 
-case class MoveInst(override val addr: Long, override val opcode: Opcode,
+case class MoveInst(addr: Long, opcode: Opcode,
     dest: Register, src: Operand) extends Instruction(dest, src) {
   
-  def doesKeep = opcode.mnemonic == Opcode.Mnemonic.MOVK
-  def doesInverse = opcode.mnemonic == Opcode.Mnemonic.MOVN
+  def subtype = Opcode.Mnemonic.Move.Subtype.withName(opcode.rawcode)
+  
 }
 
-sealed trait CompareCode
-case object Compare extends CompareCode
-case object Test extends CompareCode
-case object CompareNeg extends CompareCode
-
-case class CompareInst(override val addr: Long, override val opcode: Opcode,
-    left: Register, right: Operand) extends Instruction(left, right) {
-  val code = opcode.mnemonic match {
-    case Opcode.Mnemonic.CMP => Compare
-    case Opcode.Mnemonic.CMN => CompareNeg
-    case Opcode.Mnemonic.TST => Test
-    case _ => Exception.unreachable()
-  }
+case class CompareInst(addr: Long, opcode: Opcode,  left: Register,
+    right: Operand) extends Instruction(left, right) {
+  
+  def subtype = Opcode.Mnemonic.Compare.Subtype.withName(opcode.rawcode)
+  
 }
 
+case class CondCompareInst(addr: Long, opcode: Opcode, left: Register,
+    right: Operand, nzcv: Int, cond: Condition) extends Instruction(left, right) {
+  
+  def subtype = Opcode.Mnemonic.CondCompare.Subtype.withName(opcode.rawcode)
+  
+}
+
+case class PCRelativeInst(addr: Long, opcode: Opcode, dest: Register, ptr: Immediate)
+    extends Instruction(dest, ptr)
+
+case class DataProcessInst(addr: Long, opcode: Opcode, dest: Register, src: Register)
+    extends Instruction(dest, src) {
+  
+  def subtype = Opcode.Mnemonic.DataProcess.Subtype.withName(opcode.rawcode)
+  
+}
+  
 sealed abstract class LoadStoreInst(val addressingMode: AddressingMode,
     oplist: Operand*) extends Instruction(oplist:_*) {
   
@@ -334,7 +373,7 @@ sealed abstract class LoadStoreInst(val addressingMode: AddressingMode,
   
 }
 
-case class LoadInst(override val addr: Long, override val opcode: Opcode,
+case class LoadInst(addr: Long, opcode: Opcode,
     dest: Register, mem: Memory, mode: AddressingMode)
     extends LoadStoreInst(mode, dest, mem) {
   
@@ -342,38 +381,73 @@ case class LoadInst(override val addr: Long, override val opcode: Opcode,
   
 }
 
-case class LoadPairInst(override val addr: Long, override val opcode: Opcode,
-    destLeft: Register, destRight: Register, mem: Memory,
-    mode: AddressingMode) extends LoadStoreInst(mode, destLeft, destRight, mem) {
+case class LoadPairInst(addr: Long, opcode: Opcode, destLeft: Register,
+    destRight: Register, mem: Memory, mode: AddressingMode)
+    extends LoadStoreInst(mode, destLeft, destRight, mem) {
   
   override def indexingOperandIndex = 2
 
 }
 
-case class StoreInst(override val addr: Long, override val opcode: Opcode,
-    src: Register, mem: Memory, mode: AddressingMode)
-    extends LoadStoreInst(mode, src, mem) {
+case class StoreInst(addr: Long, opcode: Opcode, src: Register, mem: Memory,
+    mode: AddressingMode) extends LoadStoreInst(mode, src, mem) {
   
   override def indexingOperandIndex = 1
   
 }
 
-case class StorePairInst(override val addr: Long, override val opcode: Opcode,
-    srcLeft: Register, srcRight: Register, mem: Memory,
-    mode: AddressingMode) extends LoadStoreInst(mode, srcLeft, srcRight, mem) {
+case class StorePairInst(addr: Long, opcode: Opcode, srcLeft: Register,
+    srcRight: Register, mem: Memory, mode: AddressingMode)
+    extends LoadStoreInst(mode, srcLeft, srcRight, mem) {
   
   override def indexingOperandIndex = 2
 
 }
 
-case class SelectInst(override val addr: Long, override val opcode: Opcode,
-    dest: Register, srcTrue: Register, srcFalse: Register, condition: Condition)
-    extends Instruction(dest, srcTrue, srcFalse) {
+case class StoreExclusiveInst(addr: Long, opcode: Opcode, result: Register,
+    src: Register, mem: Memory)
+    extends LoadStoreInst(AddressingMode.Regular, result, src, mem) {
   
-  def doesIncrementSecond = opcode.mnemonic == Opcode.Mnemonic.CSINC
+  override def indexingOperandIndex = 2
   
 }
 
-case class NopInst(override val addr: Long, override val opcode: Opcode)
-    extends Instruction()
+case class StorePairExclusiveInst(addr: Long, opcode: Opcode, result: Register,
+    srcLeft: Register, srcRight: Register, mem: Memory)
+    extends LoadStoreInst(AddressingMode.Regular, result, srcLeft, srcRight, mem) {
+  
+  override def indexingOperandIndex = 3
+  
+}
 
+sealed abstract class SelectInst(regs: Register*) extends Instruction(regs: _*) {
+  val dest: Register
+  val condition: Condition
+}
+
+case class UnarySelectInst(addr: Long, opcode: Opcode, dest: Register,
+    condition: Condition) extends SelectInst(dest) {
+  
+  def subtype = Opcode.Mnemonic.UnSel.Subtype.withName(opcode.rawcode)
+  
+}
+
+case class BinarySelectInst(addr: Long, opcode: Opcode, dest: Register,
+    src: Register, condition: Condition) extends SelectInst(dest) {
+  
+  def subtype = Opcode.Mnemonic.BinSel.Subtype.withName(opcode.rawcode)
+  
+}
+
+case class TrinarySelectInst(addr: Long, opcode: Opcode, dest: Register,
+    srcTrue: Register, srcFalse: Register, condition: Condition)
+    extends SelectInst(dest) {
+  
+  def subtype = Opcode.Mnemonic.TriSel.Subtype.withName(opcode.rawcode)
+  
+}
+
+case class SystemInst(addr: Long, opcode: Opcode,
+    override val operands: Vector[Operand]) extends Instruction(operands: _*)
+
+case class NopInst(addr: Long, opcode: Opcode) extends Instruction()

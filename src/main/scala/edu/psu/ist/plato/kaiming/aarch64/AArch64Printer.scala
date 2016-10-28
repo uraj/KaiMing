@@ -32,7 +32,7 @@ final class AArch64Printer(ps: OutputStream) extends PrintStream(ps) {
   }
   
   def printOpRegister(reg: Register) {
-    print(reg.id.entryName)
+    print(reg.name)
   }
   
   def printOpShiftedRegister(sreg: ShiftedRegister) {

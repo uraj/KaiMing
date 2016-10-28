@@ -18,8 +18,14 @@ object AArch64Machine extends Machine[AArch64] {
   
   import scala.language.implicitConversions
   
+  @inline
   private implicit def toExpr(i: Int): Const = Const(i, wordSizeInBits)
+  
+  @inline
   private implicit def toExpr(i: Long): Const = Const(i, wordSizeInBits)
+  
+  @inline
+  private implicit def toExpr(f: Flag): Flg = Flg(f)
   
   private implicit def toExpr(sreg: ShiftedRegister): Expr = {
     val ret = Reg(sreg.reg)
@@ -33,7 +39,11 @@ object AArch64Machine extends Machine[AArch64] {
     }
   }
   
+  @inline
   private implicit def toExpr(reg: Register): Expr = Reg(reg)
+  
+  @inline
+  private implicit def toExpr(imm: Immediate): Expr = Const(imm.value, imm.sizeInBits)
   
   private implicit def toExpr(mem: Memory): Expr = {
     val ret: Option[Expr] = mem.base.map { x => x }
@@ -52,9 +62,9 @@ object AArch64Machine extends Machine[AArch64] {
     }
   }
   
-  private def operandToExpr = (width: Int) => (op : Operand) => {
+  private implicit def operandToExpr(op : Operand) = {
     val ret: Expr = op match {
-      case imm: Immediate => Const(imm.value, width)
+      case imm: Immediate => imm
       case reg: Register => reg
       case mem: Memory => mem
       case sreg: ShiftedRegister => sreg
@@ -62,52 +72,44 @@ object AArch64Machine extends Machine[AArch64] {
     ret
   }
   
-  private implicit def toExpr(cond: Condition) = cond match {
-    case Condition.AL => Const(1, 1)
-    case Condition.NV => Const(0, 1)
-    case Condition.EQ => Flg(Flag.Z)
-    case Condition.GE => Flg(Flag.N) - ~Flg(Flag.V)
-    case Condition.GT => ~Flg(Flag.Z) & ~(Flg(Flag.N) ^ Flg(Flag.V))
-    case Condition.HI => Flg(Flag.C) & ~Flg(Flag.Z)
-    case Condition.HS => Flg(Flag.C)
-    case Condition.LE => Flg(Flag.Z) | (Flg(Flag.N) - Flg(Flag.Z))
-    case Condition.LO => ~Flg(Flag.C)
-    case Condition.LS => Flg(Flag.Z) | ~Flg(Flag.C)
-    case Condition.LT => Flg(Flag.N) - Flg(Flag.V)
-    case Condition.MI => Flg(Flag.N)
-    case Condition.NE => ~Flg(Flag.Z)
-    case Condition.PL => ~Flg(Flag.N)
-    case Condition.VC => ~Flg(Flag.V)
-    case Condition.VS => Flg(Flag.V)
+  private implicit def toExpr(cond: Condition): Expr = {
+    import Flag._
+    cond match {
+      case Condition.AL => Const(1, 1)
+      case Condition.NV => Const(0, 1)
+      case Condition.EQ => Z
+      case Condition.GE => N - ~V
+      case Condition.GT => ~Z & ~(N ^ V)
+      case Condition.HI => C & ~Z
+      case Condition.HS => C
+      case Condition.LE => Z | (N - Z)
+      case Condition.LO => ~C
+      case Condition.LS => Z | ~C
+      case Condition.LT => N - V
+      case Condition.MI => N
+      case Condition.NE => ~Z
+      case Condition.PL => ~N
+      case Condition.VC => ~V
+      case Condition.VS => V
+    }
   }
     
   private def updateFlags(inst: Instruction, be: BExpr,
       builder: IRBuilder) = {
-    builder.buildAssign(inst, Flg(Flag.C), be @!)
-    .buildAssign(inst, Flg(Flag.N), be @-)
-    .buildAssign(inst, Flg(Flag.Z), be @*)
-    .buildAssign(inst, Flg(Flag.V), be @^)
+    import Flag._
+    builder.buildAssign(inst, C, be @!).buildAssign(inst, N, be @-)
+    .buildAssign(inst, Z, be @*).buildAssign(inst, V, be @^)
   }
   
   private def toIR(inst: BinaryArithInst, builder: IRBuilder) = {
     val lval = Reg(inst.dest.asRegister)
-    import edu.psu.ist.plato.kaiming.aarch64.Opcode.Mnemonic._
-    implicit val operand2expr = operandToExpr(inst.srcLeft.sizeInBits)
-    val rval = inst.opcode.mnemonic match {
-      case ADD => {
-        val add = inst.srcLeft + inst.srcRight
-        if (inst.opcode.rawcode.charAt(2) == 'C')
-          add + Flg(Flag.C)
-        else
-          add
-      }
-      case SUB => {
-        val sub = inst.srcLeft - inst.srcRight
-        if (inst.opcode.rawcode.charAt(2) == 'C')
-          sub - Flg(Flag.C)
-        else
-          sub
-      }
+    import Opcode.Mnemonic.BinArith.Subtype._
+    import Flag._
+    val rval = inst.subtype match {
+      case ADD => inst.srcLeft + inst.srcRight
+      case ADC => inst.srcLeft + inst.srcRight + C
+      case SUB => inst.srcLeft - inst.srcRight
+      case SBC => inst.srcLeft - inst.srcRight - C
       case MUL => inst.srcLeft * inst.srcRight
       case SDIV => inst.srcLeft -/ inst.srcRight
       case UDIV => inst.srcLeft +/ inst.srcRight
@@ -117,7 +119,9 @@ object AArch64Machine extends Machine[AArch64] {
       case ORR => inst.srcLeft | inst.srcRight
       case ORN => inst.srcLeft | ~inst.srcRight
       case AND => inst.srcLeft & inst.srcRight
-      case _ => Exception.unreachable()
+      case EOR => inst.srcLeft ^ inst.srcRight
+      case BIC => inst.srcLeft & ~inst.srcRight
+      case EON => inst.srcLeft ^ ~inst.srcRight 
     }
     val nbuilder = builder.buildAssign(inst, lval, rval)
     if (inst.updateFlags)
@@ -169,37 +173,37 @@ object AArch64Machine extends Machine[AArch64] {
   
   private def toIR(inst: MoveInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
-    implicit val operand2expr = operandToExpr(lv.sizeInBits)
-    if (inst.doesKeep) {
-      val op = inst.src.asImmediate
-      val move = 16 + op.lShift
-      val retain = lv.sizeInBits - move
-      if (retain > 0)
-        builder.buildAssign(inst, lv, (inst.src |> move) :+ (lv |< retain))
-      else
-        builder.buildAssign(inst, lv, Const(op.value, lv.sizeInBits))
+    import Opcode.Mnemonic.Move.Subtype._
+    val rv: Expr = inst.subtype match {
+      case MOVK=>
+        val op = inst.src.asImmediate
+        val move = op.sizeInBits
+        val retain = lv.sizeInBits - move
+        if (retain > 0)
+          (inst.src |> move) :+ (lv |< retain)
+        else
+          Const(op.value, lv.sizeInBits)
+      case MOVN =>
+        val op = inst.src.asImmediate
+        val mask = (1 << lv.sizeInBits) - 1
+        Const(~op.value & mask, lv.sizeInBits)
+      case MOVZ | MOV =>
+        inst.src
     }
-    else if (inst.doesInverse) {
-      val op = inst.src.asImmediate
-      val mask = (1 << lv.sizeInBits) - 1
-      builder.buildAssign(inst, lv, Const(~op.value & mask, lv.sizeInBits))
-    }
-    else
-      builder.buildAssign(inst, lv, inst.src)
+    builder.buildAssign(inst, lv, rv)
   }
   
   private def toIR(inst: CompareInst, builder: IRBuilder) = {
-    implicit val operand2expr = operandToExpr(inst.left.sizeInBits)
-    val cmp = inst.code match {
-      case Test => inst.left & inst.right
-      case Compare => inst.left - inst.right
-      case CompareNeg => inst.left + inst.right
+    import Opcode.Mnemonic.Compare.Subtype._
+    val cmp = inst.subtype match {
+      case TST => inst.left & inst.right
+      case CMP => inst.left - inst.right
+      case CMN => inst.left + inst.right
     }
     updateFlags(inst, cmp, builder)
   }
   
   private def toIR(inst: BranchInst, builder: IRBuilder) = {
-    implicit val operand2expr = operandToExpr(wordSizeInBits)
     if (inst.isReturn)
       builder.buildRet(inst, inst.target)
     else if (inst.isCall)
@@ -221,10 +225,12 @@ object AArch64Machine extends Machine[AArch64] {
             inst.indexingOperand)
     }
     val b = inst match {
-      case l: LoadInst => processLoadStore(l, addr, nbuilder)
-      case l: LoadPairInst => processLoadStore(l, addr, nbuilder)
-      case l: StoreInst => processLoadStore(l, addr, nbuilder)
-      case l: StorePairInst => processLoadStore(l, addr, nbuilder)
+      case l: LoadInst => processLoad(l, addr, nbuilder)
+      case l: LoadPairInst => processLoadPair(l, addr, nbuilder)
+      case l: StoreInst => processStore(l, addr, nbuilder)
+      case l: StorePairInst => processStorePair(l, addr, nbuilder)
+      case l: StoreExclusiveInst => processStoreEx(l, addr, nbuilder)
+      case l: StorePairExclusiveInst => processStorePairEx(l, addr, nbuilder)
     }
     inst.addressingMode match {
       case PreIndex | Regular => b
@@ -233,72 +239,145 @@ object AArch64Machine extends Machine[AArch64] {
     }
   }
   
-  private def processLoadStore(inst: LoadInst, addr: Expr, builder: IRBuilder) = {
+  private def processLoad(inst: LoadInst, addr: Expr, builder: IRBuilder) = {
     builder.buildLd(inst, Reg(inst.dest), addr)
   }
   
-  private def processLoadStore(inst: LoadPairInst, addr: Expr, builder: IRBuilder) = {
+  private def processLoadPair(inst: LoadPairInst, addr: Expr, builder: IRBuilder) = {
     val first = Reg(inst.destLeft)
     val second = Reg(inst.destRight)
     val sizeInBytes = first.sizeInBits / 8
     builder.buildLd(inst, first, addr).buildLd(inst, second, addr + Const(sizeInBytes, wordSizeInBits))
   }
   
-  private def processLoadStore(inst: StoreInst, addr: Expr, builder: IRBuilder) = {
+  private def processStore(inst: StoreInst, addr: Expr, builder: IRBuilder) = {
     builder.buildSt(inst, addr, inst.src)
   }
   
-  private def processLoadStore(inst: StorePairInst, addr: Expr, builder: IRBuilder) = {
+  private def processStorePair(inst: StorePairInst, addr: Expr, builder: IRBuilder) = {
     val first = Reg(inst.srcLeft)
     val second = Reg(inst.srcRight)
     val sizeInBytes = first.sizeInBits / 8
     builder.buildSt(inst, first, addr).buildSt(inst, second, addr + Const(sizeInBytes, wordSizeInBits))
   }
   
+  private def processStoreEx(inst: StoreExclusiveInst, addr: Expr, builder: IRBuilder) = {
+    builder.buildLd(inst, Reg(inst.src), addr)
+    .buildAssign(inst, Reg(inst.result), Const(0, 32))
+  }
+  
+  private def processStorePairEx(inst: StorePairExclusiveInst, addr: Expr, builder: IRBuilder) = {
+    val first = Reg(inst.srcLeft)
+    val second = Reg(inst.srcRight)
+    val sizeInBytes = first.sizeInBits / 8
+    builder.buildSt(inst, first, addr)
+    .buildSt(inst, second, addr + Const(sizeInBytes, wordSizeInBits))
+    .buildAssign(inst, Reg(inst.result), Const(0, 32))
+  }
+  
   private def toIR(inst: UnaryArithInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
-    import edu.psu.ist.plato.kaiming.aarch64.Opcode.Mnemonic._
-    implicit val operand2expr = operandToExpr(lv.sizeInBits)
-    inst.opcode.mnemonic match {
-      case ADR => builder.buildAssign(inst, lv, inst.src)
-      case NEG => builder.buildAssign(inst, lv, Const(0, inst.src.sizeInBits) - inst.src)
-      case _ => Exception.unreachable()
+    import Opcode.Mnemonic.UnArith.Subtype._
+    val rv = inst.subtype match {
+      case NEG => Const(0, inst.src.sizeInBits) - inst.src
+      case NGC => Const(0, inst.src.sizeInBits) - inst.src - 1 + Flag.C
+      case MVN => ~inst.src
     }
+    builder.buildAssign(inst, lv, rv)
   }
   
   private def toIR(inst: SelectInst, builder: IRBuilder) = {
-    builder.buildSel(inst, Reg(inst.dest),
-        inst.condition, inst.srcTrue, inst.srcFalse)
+    import Opcode.Mnemonic._
+    val size = inst.dest.sizeInBits
+    val (tv: Expr, fv: Expr) = inst match {
+      case i: UnarySelectInst =>
+        import UnSel.Subtype._ 
+        i.subtype match {
+          case CSET => (Const(1, size), Const(0, size))
+          case CSETM => (Const(1 << size - 1, size), Const(0, size))
+        }
+      case i: BinarySelectInst =>
+        import BinSel.Subtype._
+        val src = i.src
+        i.subtype match {
+          case CINC => (src + Const(1, size), src)
+          case CNEG => (-src, src)
+          case CINV => (~src, src)
+        }
+      case i: TrinarySelectInst =>
+        import TriSel.Subtype._
+        val st = i.srcTrue
+        val sf = i.srcFalse
+        i.subtype match {
+          case CSEL => (st, sf)
+          case CSINV => (st, ~sf)
+          case CSNEG => (st, -sf)
+          case CSINC => (st, sf + 1)
+        }
+        (i.srcTrue, i.srcFalse)
+    }
+    builder.buildSel(inst, Reg(inst.dest), inst.condition, tv, fv)
+    
   }
   
-  private def toIR(inst: CmpBranchInst, builder: IRBuilder) = {
-    val cond: Expr = if (inst.jumpOnZero) !inst.toCompare else inst.toCompare
+  private def toIR(inst: CompBranchInst, builder: IRBuilder) = {
+    import Opcode.Mnemonic.CompBranch.Subtype._
+    val cond: Expr = inst.subtype match {
+      case CBNZ => !inst.toCompare
+      case CBZ => inst.toCompare
+    }
     builder.buildJmp(inst, cond, inst.target)
   }
   
-  private def toIR(inst: TstBranchInst, builder: IRBuilder) = {
-    implicit val operand2expr = operandToExpr(inst.toTest.sizeInBits)
-    val cond: Expr =
-      if (inst.jumpOnZero) !(inst.toTest & inst.imm)
-      else (inst.toTest & inst.imm)
+  private def toIR(inst: TestBranchInst, builder: IRBuilder) = {
+    import Opcode.Mnemonic.TestBranch.Subtype._
+    val cond: Expr = inst.subtype match {
+      case TBNZ => !(inst.toTest & inst.imm)
+      case TBZ => inst.toTest & inst.imm
+    }
     builder.buildJmp(inst, cond, inst.target)
+  }
+  
+  private def toIR(inst: DataProcessInst, builder: IRBuilder) = {
+    import Opcode.Mnemonic.DataProcess.Subtype._
+    inst.subtype match {
+      case REV => builder.buildAssign(inst, Reg(inst.dest), inst.src<>)
+      case _ => Exception.unsupported()
+    }
+  }
+  
+  private def toIR(inst: TrinaryArithInst, builder: IRBuilder) = {
+    Exception.unsupported()
+  }
+  
+  private def toIR(inst: CondCompareInst, builder: IRBuilder) = {
+    Exception.unsupported()
+  }
+  
+  private def toIR(inst: PCRelativeInst, builder: IRBuilder) = {
+    builder.buildAssign(inst, Reg(inst.dest), inst.ptr)
   }
   
   override protected def toIRStatements(ctx: Context, inst: MachEntry[AArch64],
       builder: IRBuilder) = {
     inst.asInstanceOf[Instruction] match {
-      case i: BinaryArithInst => toIR(i, builder)
       case i: UnaryArithInst => toIR(i, builder)
+      case i: TrinaryArithInst => toIR(i, builder)
+      case i: BinaryArithInst => toIR(i, builder)
       case i: BitfieldMoveInst => toIR(ctx, i, builder)
       case i: ExtensionInst => toIR(i, builder)
       case i: BranchInst => toIR(i, builder)
-      case i: CmpBranchInst => toIR(i, builder)
-      case i: TstBranchInst => toIR(i, builder)
+      case i: CompBranchInst => toIR(i, builder)
+      case i: TestBranchInst => toIR(i, builder)
       case i: CompareInst => toIR(i, builder)
+      case i: CondCompareInst => toIR(i, builder)
       case i: MoveInst => toIR(i, builder)
       case i: SelectInst => toIR(i, builder)
       case i: LoadStoreInst => toIR(ctx, i, builder)
+      case i: DataProcessInst => toIR(i, builder)
+      case i: PCRelativeInst => toIR(i, builder)
       case i: NopInst => builder
+      case i: SystemInst => builder
     }
   }
 

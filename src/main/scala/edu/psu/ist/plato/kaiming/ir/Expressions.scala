@@ -223,6 +223,7 @@ sealed abstract class Expr(sub: Expr*) {
   final def <> = BSwap(this)
   final def unary_~ = Not(this)
   final def unary_! = Neg(this)
+  final def unary_- = Const(0, this.sizeInBits) - this
   
 }
 

@@ -187,12 +187,9 @@ object Immediate {
 }
 
 // AArch64 immediate numbers do not have a unified format like A32 did.  
-case class Immediate(val value: Long, val lShift: Int) extends Operand {
+case class Immediate(val value: Long, override val sizeInBits: Int) extends Operand {
   
   override def asImmediate = this
-  override def sizeInBits =
-    throw new UnsupportedOperationException("cannot take size of an A64 immediate")
-
   def resize(newSize: Int) = Immediate(value, newSize)
   
 }

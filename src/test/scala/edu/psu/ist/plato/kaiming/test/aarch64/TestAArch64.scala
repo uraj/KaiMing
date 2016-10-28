@@ -14,12 +14,10 @@ import edu.psu.ist.plato.kaiming.aarch64.AArch64Parser
 
 import edu.psu.ist.plato.kaiming.ir.Context
 
-class TestAArch64 extends FunSuite with TimeLimitedTests {
-  
-  override val timeLimit = 5000.millis
+class TestAArch64 extends FunSuite {
   
   var testFuncs = Vector[Function]()
-  
+  /*
   test("Testing AArch64 parser and CFG construction") {
     import edu.psu.ist.plato.kaiming.aarch64.AArch64Printer
 
@@ -61,7 +59,7 @@ class TestAArch64 extends FunSuite with TimeLimitedTests {
       IRPrinter.out.printContextWithUDInfo(ctx)
     }
     
-  }
+  }*/
   
   test("Test large-scale parsing") {
     val name = "/test/aarch64/test-03.s"

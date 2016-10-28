@@ -28,38 +28,42 @@ object AArch64Parser extends RegexParsers with ParserTrait {
     { s => java.lang.Long.parseLong(s, 10) }
   
   private def hex: Parser[Long] = """0x[\da-fA-F]+""".r ^^ 
-    { s => java.lang.Long.parseLong(s.substring(2).toLowerCase(), 16) }
+    { s => parseInteger(s.substring(2), 16) }
   
   private def positive: Parser[Long] = hex | dec
   
   private def address = positive
   
-  private def integer: Parser[Long] = opt("-") ~ positive ^^ {
+  private def integer: Parser[Long] = ("-" ?) ~ positive ^^ {
     case Some(_) ~ positive => -positive
     case None ~ positive => positive
   }
   
-  private def plain_imm: Parser[Immediate] = "#" ~> integer ^^ { Immediate(_) }
+  private val plainImm: Parser[Immediate] = "#" ~> integer ^^ { Immediate(_) }
   
-  private def shifted_imm: Parser[Immediate] = ("#" ~> integer <~ ",") ~ ("lsl" ~> "#" ~> integer) ^^ {
-    case base ~ shift => Immediate(base << shift, shift.toInt)
+  private val shiftedImm: Parser[Immediate] = ("#" ~> integer <~ ",") ~ ("lsl" ~> "#" ~> integer) ^^ {
+    case base ~ shift =>
+      if(shift % 16 == 0)
+        Immediate(base << shift, 16 + shift.toInt)
+      else
+        Immediate(base << shift, 0)
   }
   
-  private def imm: Parser[Immediate] = shifted_imm | plain_imm
+  private val imm: Parser[Immediate] = plainImm | shiftedImm 
   
-  private def plain_label: Parser[String] =
+  private val plainLabel: Parser[String] =
     """[a-zA-Z_]([_\-@\.a-zA-Z0-9])*:""".r ^^ { 
       x => x.substring(0, x.length() - 1)
     }
   
-  private def quoted_label: Parser[String] =
+  private val quotedLabel: Parser[String] =
     """\".+\":""".r ^^ {
       x => x.substring(1, x.length() - 2)
     }
   
-  private def label = plain_label | quoted_label
+  private val label = plainLabel | quotedLabel
   
-  private def reg: Parser[Register] = 
+  private val reg: Parser[Register] = 
     ("(?i)(" + 
         Register.Id.values.map(_.entryName).sorted(Ordering[String].reverse).mkString("|")
         + ")").r ^^ {
@@ -82,12 +86,12 @@ object AArch64Parser extends RegexParsers with ParserTrait {
     
   }
 
-  private def shiftType: Parser[Shift.Type] =
+  private val shiftType: Parser[Shift.Type] =
     ("(?i)" + "(" + Shift.Type.values.map(_.entryName).mkString("|") + ")").r ^^ { 
       x => Shift.Type.withName(x.toUpperCase())
     }
     
-  private def shifted: Parser[ShiftedRegister] = (reg <~ ",") ~ shiftType ~ integer ^^ {
+  private val shifted: Parser[ShiftedRegister] = (reg <~ ",") ~ shiftType ~ integer ^^ {
     case reg ~ st ~ sh => st match {
       case Shift.Type.ASR => ShiftedRegister(reg, if (sh == 0) None else Some(Asr(sh.toInt)))
       case Shift.Type.LSL => ShiftedRegister(reg, if (sh == 0) None else Some(Lsl(sh.toInt)))
@@ -95,7 +99,7 @@ object AArch64Parser extends RegexParsers with ParserTrait {
     }
   }
   
-  private def mem: Parser[Memory] = (("[" ~> reg ~ (("," ~> (shifted | imm | reg)?) <~ "]")) | address) ^^ {
+  private val mem: Parser[Memory] = (("[" ~> reg ~ (("," ~> (shifted | imm | reg)?) <~ "]")) | address) ^^ {
     case (reg: Register) ~ someInt => someInt match {
       case None => Memory.get(reg)
       case Some(int: Immediate) => Memory.get(reg, int)
@@ -106,30 +110,33 @@ object AArch64Parser extends RegexParsers with ParserTrait {
     case addr: Long => Memory.get(Immediate(addr))
   }
   
-  private def cond: Parser[Condition] = 
+  private val cond: Parser[Condition] =
     ("(?i)" + "(" + Condition.values.map(_.entryName).mkString("|") + ")").r ^^ { 
       x => Condition.withName(x.toUpperCase())
     }
   
-  private def operand: Parser[(Operand, Boolean)] = (((shifted | reg | mem) ~ ("!" ?)) | imm) ^^ {
+  private val operand: Parser[(Operand, Boolean)] = (((shifted | reg | mem) ~ ("!" ?)) | imm) ^^ {
     case imm: Immediate => (imm, false)
     case (op: Operand) ~ (preidx: Option[_]) => (op, preidx.isDefined)
   }
   
-  private def operands: Parser[(List[Operand], Boolean)] = operand ~ (("," ~> operand)*) ^^ {
+  private val operands: Parser[(List[Operand], Boolean)] = operand ~ (("," ~> operand)*) ^^ {
     case head ~ tail => (head::tail).foldRight((List[Operand](), false)){ 
       case (x, (l, preidx)) => (x._1:: l, x._2 || preidx) 
     }
   }
   
-  private def mnemonic: Parser[String] = 
+  private val mnemonic: Parser[String] = 
     ("""(?i)[a-z]+([a-z\d])*((\.(""" + Condition.values.map(_.entryName).mkString("|") + "))?)").r
   
-  private def opcode: Parser[Opcode] = mnemonic ^^ {
+  private val opcode: Parser[Opcode] = mnemonic ^^ {
     case opcode => Opcode(opcode.toUpperCase())
-  }
+  } ^? (
+    { case opcode if opcode.mnemonic != Opcode.Mnemonic.Unsupported => opcode },
+    s => s"Unsupported opcode: ${s.rawcode}"
+  )
   
-  private def inst: Parser[Instruction] = address ~ opcode ~ (operands ?) ~ (("," ~> cond) ?) <~ nl ^^ {
+  private val inst: Parser[Instruction] = address ~ opcode ~ (operands ?) ~ (("," ~> cond) ?) <~ nl ^^ {
     case addr ~ code ~ oplist ~ cond => oplist match {
       case None => Instruction.create(addr, code, Vector[Operand](), cond, false)
       case Some(operands) => 
@@ -137,25 +144,25 @@ object AArch64Parser extends RegexParsers with ParserTrait {
     }
   }
   
-  private def funlabel: Parser[Label] = address ~> label <~ nl ^^ { 
+  private val funlabel: Parser[Label] = address ~> label <~ nl ^^ { 
     case label => Label(label)
   }
   
-  private def function: Parser[Function] = funlabel ~ (inst *) ^^ {
+  private val function: Parser[Function] = funlabel ~ (inst *) ^^ {
     case label ~ insts => new Function(label, insts)
   }
   
-  private def funlabelLine: Parser[Either[Label, Instruction]] = funlabel ^^ { 
+  private val funlabelLine: Parser[Either[Label, Instruction]] = funlabel ^^ { 
     case label => Left[Label, Instruction](label)
   }
   
-  private def instLine: Parser[Either[Label, Instruction]] = inst ^^ {
+  private val instLine: Parser[Either[Label, Instruction]] = inst ^^ {
     case inst => Right(inst)
   }
   
-  private def singleLine = (funlabelLine | instLine)
+  private val singleLine = (funlabelLine | instLine)
    
-  def binaryunit: Parser[List[Function]] = rep(function)
+  val binaryunit: Parser[List[Function]] = function *
   
   @throws(classOf[edu.psu.ist.plato.kaiming.utils.ParsingException])
   def parseBinaryUnit(input: String): List[Function] = 

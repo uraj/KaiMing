@@ -20,6 +20,9 @@ object Exception {
   def unreachable(message: String = null): Nothing = 
     throw new UnreachableCodeException(message)
   
+  def unsupported(message: String = null): Nothing =
+    throw new UnsupportedOperationException(message)
+  
 }
 
 trait ParserTrait { self: scala.util.parsing.combinator.Parsers =>
@@ -41,6 +44,16 @@ trait ParserTrait { self: scala.util.parsing.combinator.Parsers =>
         if (in.atEnd) new Success( "EOI", in )
         else Failure("End of Input expected", in)
       }
+  }
+  
+  protected def parseInteger(input: String, radix: Long): Long = {
+    val lower = input.toLowerCase
+    (0 until lower.length).foldLeft(0L) {
+      case (sum, x) =>
+        val c = lower.charAt(x)
+        val digit = if (c.isDigit) c - '0' else (c - 'a') + 10
+        sum * radix + digit
+    }
   }
   
 }
