@@ -42,16 +42,10 @@ object Instruction {
       case UnArith =>
         require(oplist.length == 2 && !oplist(1).isMemory)
         UnaryArithInst(addr, opcode, oplist(0).asRegister, oplist(1))
-      case MADD | MSUB =>
+      case TriArith =>
         require(oplist.length == 4)
         TrinaryArithInst(addr, opcode, oplist(0).asRegister,
             oplist(1).asRegister, oplist(2).asRegister, oplist(3).asRegister)
-      case MNEG =>
-        require(oplist.length == 3)
-        require(oplist.forall(_.isRegister))
-        val zero = if (oplist(0).sizeInBits == 64) Register.Id.XZR else Register.Id.WZR  
-        TrinaryArithInst(addr, Opcode("MSUB"), oplist(0).asRegister,
-            oplist(1).asRegister, oplist(2).asRegister, zero)
       case LDR | STR => {
         require(oplist.length == 2 || oplist.length == 3)
         val rd = oplist(0).asRegister
@@ -127,14 +121,12 @@ object Instruction {
         }
         else
           MoveInst(addr, opcode, rd, oplist(1))
-      case EXT =>
+      case Extend =>
         require(oplist.length == 2)
         require(oplist(0).isRegister && oplist(1).isRegister)
-        ExtensionInst(addr, opcode, oplist(0).asRegister, oplist(1).asRegister)
-      case BFM => // FIXME: Interpretation of this opcode is incomplete
+        ExtendInst(addr, opcode, oplist(0).asRegister, oplist(1).asRegister)
+      case BFMove =>
         require(oplist.length == 4)
-        require(oplist(0).isRegister && oplist(1).isRegister 
-            && oplist(2).isImmediate && oplist(3).isImmediate)
         BitfieldMoveInst(addr, opcode, oplist(0).asRegister, 
             oplist(1).asRegister, oplist(2).asImmediate, oplist(3).asImmediate)
       case DataProcess =>
@@ -150,12 +142,10 @@ object Instruction {
         }
       case CompBranch =>
         require(oplist.length == 2)
-        require(oplist(0).isRegister && oplist(1).isMemory)
         CompBranchInst(addr, opcode, oplist(0).asRegister, oplist(1).asMemory)
       case TestBranch =>
         require(oplist.length == 3)
-        require(oplist(0).isRegister && oplist(1).isImmediate && oplist(2).isMemory)
-        TestBranchInst(addr, opcode, oplist(0).asRegister, oplist(1).asImmediate, oplist(1).asMemory)
+        TestBranchInst(addr, opcode, oplist(0).asRegister, oplist(1).asImmediate, oplist(2).asMemory)
       case System => SystemInst(addr, opcode, oplist)
       case Nop => NopInst(addr, opcode)
       case Unsupported => Exception.unreachable()
@@ -183,7 +173,11 @@ sealed abstract class Instruction(oplist: Operand*)
 
 case class TrinaryArithInst(addr: Long, opcode: Opcode, dest: Register,
     src1: Register, src2: Register, src3: Register)
-    extends Instruction(dest, src1, src2, src3)
+    extends Instruction(dest, src1, src2, src3) {
+  
+  def subtype = Opcode.Mnemonic.TriArith.Subtype.withName(opcode.rawcode)
+  
+}
 
 case class BinaryArithInst(addr: Long, opcode: Opcode, dest: Register,
     srcLeft: Register, srcRight: Operand)
@@ -208,43 +202,40 @@ object Extension {
   
   case object Signed extends Extension 
   case object Unsigned extends Extension 
-  case object NoExtension extends Extension
   
 }
 
 // This is actually a pseudo instruction. In the original Java implementation,
 // ExtensionInst is a subclass of BitfieldMoveInst. In Scala, however, it
 // is not possible to inherit from a case class
-case class ExtensionInst(addr: Long, opcode: Opcode, dest: Register,
+case class ExtendInst(addr: Long, opcode: Opcode, dest: Register,
     src: Register) extends Instruction(dest, src) {
   
-  val extension = {
-    val first = opcode.rawcode.charAt(0)
-    if (first == 'S')
-      Extension.Signed
-    else if (first == 'U')
-      Extension.Unsigned
-    else
-      Extension.NoExtension
-      
-  }
+  def subtype = Opcode.Mnemonic.Extend.Subtype.withName(opcode.rawcode)
+  import Opcode.Mnemonic.Extend.Subtype._
   
-  require(extension != Extension.NoExtension)
+  val (extension, width) = subtype match {
+    case SXTB => (Extension.Signed, 8)
+    case SXTH => (Extension.Signed, 16)
+    case SXTW => (Extension.Signed, 32)
+    case UXTB => (Extension.Unsigned, 8)
+    case UXTH => (Extension.Unsigned, 16)
+    case UXTW => (Extension.Unsigned, 32)
+  }
   
 }
 
 case class BitfieldMoveInst(addr: Long, opcode: Opcode, dest: Register,
-    src: Register, rotate: Immediate, shift: Immediate)
-    extends Instruction(dest, src, rotate, shift) {
+    src: Register, imm1: Immediate, imm2: Immediate)
+    extends Instruction(dest, src, imm1, imm2) {
   
-  val extension = {
-    val first = opcode.rawcode.charAt(0)
-    if (first == 'S')
-      Extension.Signed
-    else if (first == 'U')
-      Extension.Unsigned
-    else
-      Extension.NoExtension
+  def subtype = Opcode.Mnemonic.BFMove.Subtype.withName(opcode.rawcode)
+  import Opcode.Mnemonic.BFMove.Subtype._
+  
+  val extension = subtype match {
+    case BFM | BFI | BFXIL => None
+    case SBFM | SBFIZ | SBFX => Extension.Signed
+    case UBFM | UBFIZ | UBFX => Extension.Unsigned
   }
   
 }

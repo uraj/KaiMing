@@ -31,9 +31,17 @@ object Opcode {
         case object ADC extends Subtype("ADCS")
         case object SUB extends Subtype("SUBS")
         case object SBC extends Subtype("SBCS")
-        case object MUL extends Subtype("MULS",
-            "UMULL", "UMULH", "SMULL", "SMULH",
-            "UMULLS", "UMULHS", "SMULLS", "SMULHS")
+        
+        case object MUL extends Subtype
+        case object UMULL extends Subtype
+        case object UMULH extends Subtype
+        case object SMULL extends Subtype
+        case object SMULH extends Subtype
+        
+        case object MNEG extends Subtype
+        case object UMNEGL extends Subtype
+        case object SMNEGL extends Subtype
+                  
         case object SDIV extends Subtype("SDIVS")
         case object UDIV extends Subtype("UDIVS")
         case object ASR extends Subtype
@@ -64,10 +72,19 @@ object Opcode {
         case object MVN extends Subtype
       }
     }
-
-    case object MADD extends Mnemonic
-    case object MSUB extends Mnemonic
-    case object MNEG extends Mnemonic
+    
+    case object TriArith extends Mnemonic {
+      object Subtype extends Enum[Subtype] {
+        val values = findValues
+        case object MADD extends Subtype
+        case object MSUB extends Subtype
+        case object SMADDL extends Subtype
+        case object SMSUBL extends Subtype
+        case object UMADDL extends Subtype
+        case object UMSUBL extends Subtype
+      }
+    }
+    
     case object LDR extends Mnemonic
     case object LDP extends Mnemonic
     case object STR extends Mnemonic
@@ -157,8 +174,34 @@ object Opcode {
     }
     
     case object Nop extends Mnemonic
-    case object EXT extends Mnemonic
-    case object BFM extends Mnemonic
+    
+    case object Extend extends Mnemonic {
+      object Subtype extends Enum[Subtype] {
+        val values = findValues
+        case object SXTW extends Subtype
+        case object SXTH extends Subtype
+        case object SXTB extends Subtype
+        case object UXTW extends Subtype
+        case object UXTH extends Subtype
+        case object UXTB extends Subtype
+      }
+    }
+    case object BFMove extends Mnemonic {
+      object Subtype extends Enum[Subtype] {
+        val values = findValues
+        case object BFM extends Subtype
+        case object SBFM extends Subtype
+        case object UBFM extends Subtype
+        
+        case object BFI extends Subtype
+        case object SBFX extends Subtype
+        case object UBFX extends Subtype
+        
+        case object BFXIL extends Subtype
+        case object UBFIZ extends Subtype
+        case object SBFIZ extends Subtype
+      }
+    }
     
     case object DataProcess extends Mnemonic {
       object Subtype extends Enum[Subtype] {
@@ -226,11 +269,9 @@ object Opcode {
       case TriSel => TriSel.Subtype.values.map(_.variants).flatten
       case DataProcess => DataProcess.Subtype.values.map(_.variants).flatten
       case Move => Move.Subtype.values.map(_.variants).flatten
-      case EXT => List("SXTW", "SXTH", "SXTB", "UXTW", "UXTH", "UXTB")
-      case BFM => List("BFM", "SBFM", "UBFM", "BFI", "UBFX", "SBFX", "BFXIL", "UBFIZ", "SBFIZ")
-      case MADD => List("MADD")
-      case MSUB => List("MSUB")
-      case MNEG => List("MNEG")
+      case Extend => Extend.Subtype.values.map(_.variants).flatten
+      case BFMove => BFMove.Subtype.values.map(_.variants).flatten
+      case TriArith => TriArith.Subtype.values.map(_.variants).flatten
       case Nop => List("NOP")
       case System => System.Subtype.values.map(_.variants).flatten
       case Unsupported =>

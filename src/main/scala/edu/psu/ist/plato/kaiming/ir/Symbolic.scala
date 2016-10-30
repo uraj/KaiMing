@@ -119,6 +119,7 @@ object Symbolic {
       ue match {
         case not: Not => ctx.mkBVNot(sub)
         case neg: Neg => toBitNeg(ctx.mkEq(sub, ctx.mkBV(0, sub.getSortSize)))
+        case rbit: RBit => Exception.unsupported()
         case bswap: BSwap => 
           ue.sizeInBits match {
             case 8 => sub

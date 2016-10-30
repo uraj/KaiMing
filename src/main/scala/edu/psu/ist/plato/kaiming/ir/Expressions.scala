@@ -220,7 +220,8 @@ sealed abstract class Expr(sub: Expr*) {
   final def uext(right: Const) = UExt(this, right)
   final def |>(right: Const) = Low(this, right)
   final def |<(right: Const) = High(this, right)
-  final def <> = BSwap(this)
+  final def bswap = BSwap(this)
+  final def rbit = RBit(this)
   final def unary_~ = Not(this)
   final def unary_! = Neg(this)
   final def unary_- = Const(0, this.sizeInBits) - this
@@ -469,7 +470,7 @@ case class Low(override val leftSub: Expr, override val rightSub: Const)
   extends BExpr(leftSub, rightSub) {
   
   require(leftSub.sizeInBits >= rightSub.value, 
-      "Left operand of Low is not long enough to be truncated")
+      "Left operand of Low (|>) is not long enough to be truncated")
   
   override val sizeInBits = rightSub.value.toInt
   
@@ -486,7 +487,7 @@ case class High(override val leftSub: Expr, override val rightSub: Const)
   extends BExpr(leftSub, rightSub) {
   
     require(leftSub.sizeInBits > rightSub.value, 
-      "Left operand of How is not long enough to be truncated")
+      "Left operand of High (<|) is not long enough to be truncated")
       
   override val sizeInBits = leftSub.sizeInBits - rightSub.value.toInt
   
@@ -523,6 +524,13 @@ case class BSwap(override val sub: Expr) extends UExpr(sub) {
   require(sizeInBits % 8 == 0, "Can only swap bytes")
   
   override def gen(s: Expr) = BSwap(s)
+  
+}
+
+case class RBit(override val sub: Expr) extends UExpr(sub) {
+  
+  override val sizeInBits = sub.sizeInBits
+  override def gen(s: Expr) = RBit(s)
   
 }
 

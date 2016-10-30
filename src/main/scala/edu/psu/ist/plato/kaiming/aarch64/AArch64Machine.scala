@@ -104,13 +104,20 @@ object AArch64Machine extends Machine[AArch64] {
   private def toIR(inst: BinaryArithInst, builder: IRBuilder) = {
     val lval = Reg(inst.dest.asRegister)
     import Opcode.Mnemonic.BinArith.Subtype._
-    import Flag._
+
     val rval = inst.subtype match {
       case ADD => inst.srcLeft + inst.srcRight
-      case ADC => inst.srcLeft + inst.srcRight + C
+      case ADC => inst.srcLeft + inst.srcRight + Flag.C
       case SUB => inst.srcLeft - inst.srcRight
-      case SBC => inst.srcLeft - inst.srcRight - C
+      case SBC => inst.srcLeft - inst.srcRight - Flag.C
       case MUL => inst.srcLeft * inst.srcRight
+      case UMULL => (inst.srcLeft uext 64) * (inst.srcRight uext 64)
+      case SMULL => (inst.srcLeft sext 64) * (inst.srcRight sext 64)
+      case UMULH => ((inst.srcLeft uext 128) * (inst.srcRight uext 128)) |< 64
+      case SMULH => ((inst.srcLeft sext 128) * (inst.srcRight sext 128)) |< 64
+      case MNEG => -(inst.srcLeft * inst.srcRight)
+      case SMNEGL => -((inst.srcLeft sext 64) * (inst.srcRight sext 64))
+      case UMNEGL => -((inst.srcLeft uext 64) * (inst.srcRight uext 64))
       case SDIV => inst.srcLeft -/ inst.srcRight
       case UDIV => inst.srcLeft +/ inst.srcRight
       case ASR => inst.srcLeft >>> inst.srcRight
@@ -130,19 +137,27 @@ object AArch64Machine extends Machine[AArch64] {
       nbuilder
   }
   
-  private def toIR(inst: ExtensionInst, builder: IRBuilder) = {
+  private def toIR(inst: ExtendInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
+    val rv: Expr = if (inst.width == inst.src.sizeInBits) inst.src else inst.src |> inst.width 
     val e = inst.extension match {
-      case Extension.Signed => lv sext lv.sizeInBits
-      case _ => lv uext lv.sizeInBits
+      case Extension.Signed => rv sext lv.sizeInBits
+      case Extension.Unsigned => rv uext lv.sizeInBits
     }
     builder.buildAssign(inst, lv, e)
   }
   
   private def toIR(ctx: Context, inst: BitfieldMoveInst, builder: IRBuilder) = {
+    import Opcode.Mnemonic.BFMove.Subtype._
+    
     val lv = Reg(inst.dest)
-    val rotate = inst.rotate.value.toInt
-    val shift = inst.shift.value.toInt
+    val imm1 = inst.imm1.value.toInt
+    val imm2 = inst.imm2.value.toInt
+    val (rotate, shift) = inst.subtype match {
+      case BFM | UBFM | SBFM => (imm1, imm2)
+      case BFI | SBFIZ | UBFIZ => (-imm1 % lv.sizeInBits, imm2 - 1)
+      case BFXIL | SBFX | UBFX => (imm1, imm1 + imm2 - 1)
+    }
     val size = lv.sizeInBits
     val (destInsig, destSig, srcInsig, srcSig) =
       if (shift >= rotate) (0, shift - rotate, rotate, shift)
@@ -159,9 +174,9 @@ object AArch64Machine extends Machine[AArch64] {
         (tmp, b) 
       }
     val assigned3 = inst.extension match {
-      case Extension.Signed => assigned2 sext size
-      case Extension.Unsigned => assigned2 uext size
-      case Extension.NoExtension => (destInsig, destSig) match {
+      case Some(Extension.Signed) => assigned2 sext size
+      case Some(Extension.Unsigned) => assigned2 uext size
+      case None => (destInsig, destSig) match {
         case (0, left) if left == size => assigned2
         case (0, _) => assigned2 :+ (lv |< destSig)
         case (_, left) if left == size => (lv |> destInsig) :+ assigned2 
@@ -341,13 +356,30 @@ object AArch64Machine extends Machine[AArch64] {
   private def toIR(inst: DataProcessInst, builder: IRBuilder) = {
     import Opcode.Mnemonic.DataProcess.Subtype._
     inst.subtype match {
-      case REV => builder.buildAssign(inst, Reg(inst.dest), inst.src<>)
-      case _ => Exception.unsupported()
+      case REV => builder.buildAssign(inst, Reg(inst.dest), inst.src bswap)
+      case CLS => Exception.unsupported()
+      case CLZ => Exception.unsupported()
+      case RBIT => Exception.unsupported()
+      case REV16 => Exception.unsupported()
+      case REV32 => Exception.unsupported()
     }
   }
   
   private def toIR(inst: TrinaryArithInst, builder: IRBuilder) = {
-    Exception.unsupported()
+    val lv = Reg(inst.dest)
+    import Opcode.Mnemonic.TriArith.Subtype._
+    
+    val rv = inst.subtype match {
+      case MADD => inst.src3 + inst.src1 * inst.src2
+      case MSUB => inst.src3 - inst.src1 * inst.src2
+      case SMADDL => inst.src3 + (inst.src1 sext 64) * (inst.src2 sext 64)
+      case SMSUBL => inst.src3 - (inst.src1 sext 64) * (inst.src2 sext 64)
+      case UMADDL => inst.src3 + (inst.src1 uext 64) * (inst.src2 uext 64)
+      case UMSUBL => inst.src3 + (inst.src1 uext 64) * (inst.src2 uext 64)
+    }
+    
+    builder.buildAssign(inst, lv, rv)
+    
   }
   
   private def toIR(inst: CondCompareInst, builder: IRBuilder) = {
@@ -365,7 +397,7 @@ object AArch64Machine extends Machine[AArch64] {
       case i: TrinaryArithInst => toIR(i, builder)
       case i: BinaryArithInst => toIR(i, builder)
       case i: BitfieldMoveInst => toIR(ctx, i, builder)
-      case i: ExtensionInst => toIR(i, builder)
+      case i: ExtendInst => toIR(i, builder)
       case i: BranchInst => toIR(i, builder)
       case i: CompBranchInst => toIR(i, builder)
       case i: TestBranchInst => toIR(i, builder)
