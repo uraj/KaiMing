@@ -75,7 +75,7 @@ final class AArch64Printer(ps: OutputStream) extends PrintStream(ps) {
   }
   
   def printInstruction(i: Instruction) {
-    print(i.opcode.rawcode)
+    print(i.mnem)
     print('\t')
     i match {
       case b: BranchInst =>

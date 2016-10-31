@@ -132,7 +132,7 @@ object AArch64Parser extends RegexParsers with ParserTrait {
   private val opcode: Parser[Opcode] = mnemonic ^^ {
     case opcode => Opcode(opcode.toUpperCase())
   } ^? (
-    { case opcode if opcode.mnemonic != Opcode.Mnemonic.Unsupported => opcode },
+    { case opcode if opcode.mnemonic != Opcode.OpClass.Unsupported => opcode },
     s => s"Unsupported opcode: ${s.rawcode}"
   )
   

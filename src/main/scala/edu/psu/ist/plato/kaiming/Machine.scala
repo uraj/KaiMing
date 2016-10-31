@@ -11,37 +11,37 @@ abstract class Machine[A <: MachArch] {
   val wordSizeInBits: Int
   val registers: Set[MachRegister[A]]
   
-  protected case class IRBuilder(private val start: Long, private val content: List[Stmt]) {
+  protected case class IRBuilder(val ctx: Context, private val start: Long, private val content: List[Stmt]) {
     
     def get = content.reverse
     def nextIndex = start + content.size
     
-    def buildAssign(host: MachEntry[_ <: MachArch], definedLval: Lval, usedRval: Expr) =
-      IRBuilder(start, AssignStmt(nextIndex, host, definedLval, usedRval)::content)
+    def assign(host: MachEntry[_ <: MachArch], definedLval: Lval, usedRval: Expr) =
+      IRBuilder(ctx, start, AssignStmt(nextIndex, host, definedLval, usedRval)::content)
       
-    def buildSt(host: MachEntry[_ <: MachArch], storeTo: Expr, storedExpr: Expr) =
-      IRBuilder(start, StStmt(nextIndex, host, storeTo, storedExpr)::content)
+    def store(host: MachEntry[_ <: MachArch], storeTo: Expr, storedExpr: Expr) =
+      IRBuilder(ctx, start, StStmt(nextIndex, host, storeTo, storedExpr)::content)
       
-    def buildJmp(host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
+    def jump(host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
         cond: Expr, target: Expr) = 
-      IRBuilder(start, JmpStmt(nextIndex, host, cond, target)::content)
+      IRBuilder(ctx, start, JmpStmt(nextIndex, host, cond, target)::content)
       
-    def buildCall(host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
+    def call(host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
         target: Expr) =
-      IRBuilder(start, CallStmt(nextIndex, host, target)::content)
+      IRBuilder(ctx, start, CallStmt(nextIndex, host, target)::content)
       
-    def buildLd(host: MachEntry[_ <: MachArch], definedLval: Lval, loadFrom: Expr) =
-      IRBuilder(start, LdStmt(nextIndex, host, definedLval, loadFrom)::content)
+    def load(host: MachEntry[_ <: MachArch], definedLval: Lval, loadFrom: Expr) =
+      IRBuilder(ctx, start, LdStmt(nextIndex, host, definedLval, loadFrom)::content)
       
-    def buildSel(host: MachEntry[_ <: MachArch], definedLval: Lval, condition: Expr,
+    def select(host: MachEntry[_ <: MachArch], definedLval: Lval, condition: Expr,
         trueValue: Expr, falseValue: Expr) =
-      IRBuilder(start, SelStmt(nextIndex, host, definedLval, condition, trueValue, falseValue)::content)
+      IRBuilder(ctx, start, SelStmt(nextIndex, host, definedLval, condition, trueValue, falseValue)::content)
       
-    def buildRet(host: MachEntry[_ <: MachArch], target: Expr) =
-      IRBuilder(start, RetStmt(nextIndex, host, target)::content)
+    def ret(host: MachEntry[_ <: MachArch], target: Expr) =
+      IRBuilder(ctx, start, RetStmt(nextIndex, host, target)::content)
   }
   
-  protected def toIRStatements(ctx: Context, inst: MachEntry[A], builder: IRBuilder): IRBuilder
+  protected def toIRStatements(inst: MachEntry[A], builder: IRBuilder): IRBuilder
   
   def liftToIR(ctx: Context, cfg: MachCFG[A]): IRCfg = {
     import scalax.collection.Graph
@@ -51,8 +51,8 @@ abstract class Machine[A <: MachArch] {
     val (bbs, bbmap, nStmts) = cfg.blocks.foldLeft(
       (List[IRBBlock](), Map[MachBBlock[A], IRBBlock](), 0L)) {
         case ((bblist, map, start), bb) => {
-          val builder = bb.foldLeft(IRBuilder(start, Nil)) {
-            (b, inst) => toIRStatements(ctx, inst, b)
+          val builder = bb.foldLeft(IRBuilder(ctx, start, Nil)) {
+            (b, inst) => toIRStatements(inst, b)
           }
           val irlist = builder.get
           val irbb = new IRBBlock(ctx, irlist, Label("L_" + bblist.size))

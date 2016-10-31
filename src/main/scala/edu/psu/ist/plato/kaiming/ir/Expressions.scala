@@ -222,6 +222,7 @@ sealed abstract class Expr(sub: Expr*) {
   final def |<(right: Const) = High(this, right)
   final def bswap = BSwap(this)
   final def rbit = RBit(this)
+  final def clz = CLeadingZero(this)
   final def unary_~ = Not(this)
   final def unary_! = Neg(this)
   final def unary_- = Const(0, this.sizeInBits) - this
@@ -531,6 +532,13 @@ case class RBit(override val sub: Expr) extends UExpr(sub) {
   
   override val sizeInBits = sub.sizeInBits
   override def gen(s: Expr) = RBit(s)
+  
+}
+
+case class CLeadingZero(override val sub: Expr) extends UExpr(sub) {
+  
+  override val sizeInBits = 16
+  override def gen(s: Expr) = CLeadingZero(s)
   
 }
 
