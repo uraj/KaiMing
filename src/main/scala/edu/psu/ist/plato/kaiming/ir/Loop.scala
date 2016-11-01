@@ -28,7 +28,7 @@ case class Loop private (header: IRBBlock, body: Set[IRBBlock], cfg: IRCfg) {
 
 object Loop {
   
-  def detectBigLoops(cfg: IRCfg): List[Loop] = {
+  def detectOuterLoops(cfg: IRCfg): List[Loop] = {
     val loops = detectLoops(cfg)
     loops.groupBy(_.header).foldLeft(List[Loop]()) {
       case (list, (header, group)) =>

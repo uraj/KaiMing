@@ -14,12 +14,14 @@ import scalax.collection.edge.LDiEdge
 
 
 class IRCfg(override val parent : Context, override val entryBlock: IRBBlock,
-    graph: Graph[IRBBlock, LDiEdge], override val hasIndirectJmp: Boolean,
+    protected val graph: Graph[IRBBlock, LDiEdge], override val hasIndirectJmp: Boolean,
     private val _bbmap: Map[IRBBlock, MachBBlock[_]],
     override val hasDanglingJump: Boolean)
-    extends Cfg[KaiMing, IRBBlock](graph) {
+    extends Cfg[KaiMing, IRBBlock] {
   
   def getMachBBlock(irbb: IRBBlock) = _bbmap.get(irbb)
+  
+  def componentTraverse = graph.componentTraverser().view.map { x => ??? }
   
 }
 

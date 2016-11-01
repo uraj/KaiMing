@@ -62,7 +62,11 @@ sealed abstract class DefStmt(usedExpr: Vector[Expr]) extends Stmt(usedExpr) {
 }
 
 case class AssignStmt(override val index: Long, override val host: MachEntry[_ <: MachArch],
-    override val definedLval: Lval, usedRval: Expr) extends DefStmt(Vector(usedRval))
+    override val definedLval: Lval, usedRval: Expr) extends DefStmt(Vector(usedRval)) {
+  
+  require(definedLval.sizeInBits == usedRval.sizeInBits)
+  
+}
 
 sealed trait Extractor extends enumeratum.EnumEntry
 object Extractor extends enumeratum.Enum[Extractor] {
@@ -86,7 +90,12 @@ case class CallStmt(override val index: Long,
 
 case class SelStmt(override val index: Long, override val host: MachEntry[_ <: MachArch],
     override val definedLval: Lval, condition: Expr, trueValue: Expr, falseValue: Expr)
-    extends DefStmt(condition, trueValue, falseValue)
+    extends DefStmt(condition, trueValue, falseValue) {
+  
+  require(definedLval.sizeInBits == trueValue.sizeInBits &&
+      definedLval.sizeInBits == falseValue.sizeInBits)
+  
+}
   
 case class LdStmt(override val index: Long, override val host: MachEntry[_ <: MachArch],
     override val definedLval: Lval, loadFrom: Expr) extends DefStmt(loadFrom)

@@ -1,7 +1,7 @@
 val libraries = Seq(
   "org.scalatest" % "scalatest_2.11" % "2.2.6" % "test",
   "org.scala-lang.modules" % "scala-parser-combinators_2.11" % "1.0.4",
-  "com.assembla.scala-incubator" % "graph-core_2.11" % "1.11.0",
+  "org.scala-graph" % "graph-core_2.11" % "1.11.3",
   "com.beachape" % "enumeratum_2.11" % "1.4.4"
 )
 

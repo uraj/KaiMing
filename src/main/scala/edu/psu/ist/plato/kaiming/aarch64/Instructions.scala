@@ -19,9 +19,6 @@ object Instruction {
   implicit def toInstruction(entry: Entry[AArch64]) = 
     entry.asInstanceOf[Instruction]
   
-  private def resizeIfImm(op: Operand, sizeInBits: Int): Operand =
-    if (op.isImmediate) op.asImmediate.resize(sizeInBits) else op
-
   def create(addr: Long, opcode: Opcode, oplist: Vector[Operand],
       cond: Option[Condition], preidx: Boolean): Instruction = {
     val condition = cond.getOrElse(Condition.AL)
@@ -31,14 +28,12 @@ object Instruction {
         require((oplist.length == 3 && oplist(1).isRegister) || oplist.length == 2)
         val rd = oplist(0).asRegister
         if (oplist.length == 3)
-          BinaryArithInst(addr, opcode.rawcode, rd, oplist(1).asRegister, 
-              resizeIfImm(oplist(2), rd.sizeInBits))
+          BinaryArithInst(addr, opcode.rawcode, rd, oplist(1).asRegister, oplist(2))
         else
-          BinaryArithInst(addr, opcode.rawcode, rd, rd, resizeIfImm(oplist(1), rd.sizeInBits))
+          BinaryArithInst(addr, opcode.rawcode, rd, rd, oplist(1))
       case PCRelative =>
         require(oplist.length == 2)
-        PCRelativeInst(addr, opcode.rawcode, oplist(0).asRegister,
-            oplist(1).asImmediate.resize(AArch64.wordSizeInBits))
+        PCRelativeInst(addr, opcode.rawcode, oplist(0).asRegister, oplist(1).asImmediate)
       case UnArith =>
         require(oplist.length == 2 && !oplist(1).isMemory)
         UnaryArithInst(addr, opcode.rawcode, oplist(0).asRegister, oplist(1))
@@ -92,12 +87,12 @@ object Instruction {
       case Compare =>
         require(oplist.length == 2 && !oplist(1).isMemory)
         val rd = oplist(0).asRegister
-        CompareInst(addr, opcode.rawcode, rd, resizeIfImm(oplist(1), rd.sizeInBits))
+        CompareInst(addr, opcode.rawcode, rd, oplist(1))
       case CondCompare =>
         require(oplist.length == 3 && cond.isDefined && !oplist(1).isMemory)
         val rd = oplist(0).asRegister
-        CondCompareInst(addr, opcode.rawcode, rd, resizeIfImm(oplist(1), rd.sizeInBits),
-            oplist(2).asImmediate.resize(4), condition)
+        CondCompareInst(addr, opcode.rawcode, rd, oplist(1),
+            oplist(2).asImmediate, condition)
       case UnSel =>
         require(oplist.length == 1)
         UnarySelectInst(addr, opcode.rawcode, oplist(0).asRegister, condition)
@@ -111,16 +106,7 @@ object Instruction {
             oplist(1).asRegister, oplist(2).asRegister, condition)
       case Move =>
         require(oplist.length == 2)
-        val rd = oplist(0).asRegister
-        if (opcode.rawcode != "MOV") {
-          val imm = oplist(1).asImmediate
-          if (imm.sizeInBits == 0)
-            MoveInst(addr, opcode.rawcode, rd, imm.resize(16))
-          else
-            MoveInst(addr, opcode.rawcode, rd, imm)
-        }
-        else
-          MoveInst(addr, opcode.rawcode, rd, oplist(1))
+        MoveInst(addr, opcode.rawcode, oplist(0).asRegister, oplist(1))
       case Extend =>
         require(oplist.length == 2)
         require(oplist(0).isRegister && oplist(1).isRegister)
@@ -135,7 +121,7 @@ object Instruction {
       case Branch =>
         require(oplist.length <= 1)
         if (oplist.length == 1) {
-            require(!oplist(0).isImmediate)
+            require(!oplist(0).isImmediate, addr.toHexString)
             BranchInst(addr, opcode.rawcode, oplist(0))
         } else {
           BranchInst(addr, opcode.rawcode, Register.get(Register.Id.X30))
@@ -145,7 +131,8 @@ object Instruction {
         CompBranchInst(addr, opcode.rawcode, oplist(0).asRegister, oplist(1).asMemory)
       case TestBranch =>
         require(oplist.length == 3)
-        TestBranchInst(addr, opcode.rawcode, oplist(0).asRegister, oplist(1).asImmediate, oplist(2).asMemory)
+        val r = oplist(0).asRegister
+        TestBranchInst(addr, opcode.rawcode, r, oplist(1).asImmediate, oplist(2).asMemory)
       case System => SystemInst(addr, opcode.rawcode, oplist)
       case Nop => NopInst(addr)
       case Unsupported => Exception.unreachable()
@@ -232,10 +219,10 @@ case class BitfieldMoveInst(addr: Long, mnem: String, dest: Register,
   def subtype = Opcode.OpClass.BFMove.Mnemonic.withName(mnem)
   import Opcode.OpClass.BFMove.Mnemonic._
   
-  val extension = subtype match {
+  val extension: Option[Extension] = subtype match {
     case BFM | BFI | BFXIL => None
-    case SBFM | SBFIZ | SBFX => Extension.Signed
-    case UBFM | UBFIZ | UBFX => Extension.Unsigned
+    case SBFM | SBFIZ | SBFX => Some(Extension.Signed)
+    case UBFM | UBFIZ | UBFX => Some(Extension.Unsigned)
   }
   
 }
@@ -332,7 +319,6 @@ case class BranchInst(addr: Long, mnem: String, target: Operand)
         case _ => Exception.unreachable()
       }
 
-
 }
 
 case class MoveInst(addr: Long, mnem: String,
@@ -350,7 +336,7 @@ case class CompareInst(addr: Long, mnem: String,  left: Register,
 }
 
 case class CondCompareInst(addr: Long, mnem: String, left: Register,
-    right: Operand, nzcv: Immediate, cond: Condition) extends Instruction(left, right, nzcv) {
+    right: Operand, nzcv: Immediate, condition: Condition) extends Instruction(left, right, nzcv) {
   
   def subtype = Opcode.OpClass.CondCompare.Mnemonic.withName(mnem)
   

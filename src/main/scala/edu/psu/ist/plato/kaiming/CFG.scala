@@ -8,41 +8,45 @@ import scalax.collection.edge.LDiEdge
 
 import edu.psu.ist.plato.kaiming.Arch.KaiMing
 
-abstract class Cfg[A <: Arch, B <: BBlock[A]] (private val _graph: Graph[B, LDiEdge])
-    extends Iterable[B] {
+abstract class Cfg[A <: Arch, B <: BBlock[A]] extends Iterable[B] {
   
   val parent : Procedure[A]
   val entryBlock: BBlock[A]
   val hasIndirectJmp: Boolean
   val hasDanglingJump: Boolean
+  protected val graph: Graph[B, LDiEdge]
   
-  lazy val blocks = _graph.nodes.map(_.value).toVector.sorted[BBlock[A]]
+  lazy val blocks = graph.nodes.map(_.value).toVector.sorted[BBlock[A]]
   def entries = blocks.flatMap(_.entries)
   def iterator = blocks.iterator
   
   import scala.language.postfixOps
   
   def predecessors(bb: B): Set[B] = 
-    (_graph.get(bb) <~) map { _.from.value }
+    (graph.get(bb) <~) map { _.from.value }
   def successors(bb: B): Set[B] = 
-    (_graph.get(bb) ~>) map { _.to.value }
+    (graph.get(bb) ~>) map { _.to.value }
+  
+  def isConnected = graph.isConnected
+  def belongingComponent(b: B) =
+    if (graph.contains(b)) {
+      val inner = graph.get(b)
+      graph.componentTraverser().find { _.nodes.contains(inner) }
+    } else None 
 
   object LEdgeImplicit extends scalax.collection.edge.LBase.LEdgeImplicits[Boolean]
   import LEdgeImplicit._
   def labeledPredecessors(bb: B): Set[(B, Boolean)] = 
-    (_graph.get(bb) <~) map { x => (x.from.value, x: Boolean) }
+    (graph.get(bb) <~) map { x => (x.from.value, x: Boolean) }
   def labeledSuccessors(bb: B): Set[(B, Boolean)] = 
-    (_graph.get(bb) ~>) map { x => (x.to.value, x: Boolean) }
+    (graph.get(bb) ~>) map { x => (x.to.value, x: Boolean) }
 
 }
 
-class MachCFG[A <: MachArch] (override val parent: MachProcedure[A],
-    override val entryBlock: MachBBlock[A], graph: Graph[MachBBlock[A], LDiEdge],
-    override val hasIndirectJmp: Boolean, override val hasDanglingJump: Boolean)
-    extends Cfg[A, MachBBlock[A]](graph) {
+class MachCFG[A <: MachArch] (val parent: MachProcedure[A], val entryBlock: MachBBlock[A],
+    protected val graph: Graph[MachBBlock[A], LDiEdge], val hasIndirectJmp: Boolean,
+    val hasDanglingJump: Boolean) extends Cfg[A, MachBBlock[A]] {
   
-  private val _graph: Graph[MachBBlock[A], LDiEdge] = graph
-  
-  override lazy val blocks = _graph.nodes.map(_.value).toVector.sorted[BBlock[A]]
+  override lazy val blocks = graph.nodes.map(_.value).toVector.sorted[BBlock[A]]
   
 }

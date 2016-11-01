@@ -5,7 +5,7 @@ import scala.io.Source
 import java.io.File
 import java.io.ByteArrayOutputStream
 
-import org.scalatest.FunSpec
+import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfter
 import org.scalatest.time.SpanSugar._
 import org.scalatest.concurrent.TimeLimitedTests
@@ -16,16 +16,14 @@ import edu.psu.ist.plato.kaiming.arm.Function
 import edu.psu.ist.plato.kaiming.arm.ARMParser
 import edu.psu.ist.plato.kaiming.ir.Context
 
-class TestARM extends FunSpec with BeforeAndAfter with TimeLimitedTests {
+class TestARM extends FunSuite with BeforeAndAfter {
   
   var total = 0
   var failure = 0
 
   var testFuncs = Vector[Function]()
   
-  override val timeLimit = 5000.millis
-  
-  describe("Testing ARM parser and CFG construction") {
+  test("Testing ARM parser and CFG construction") {
     import edu.psu.ist.plato.kaiming.arm.ARMPrinter
     
     val testdir = new File(getClass.getResource("/test/arm").toURI)
@@ -67,7 +65,7 @@ class TestARM extends FunSpec with BeforeAndAfter with TimeLimitedTests {
   }
   
   var ctxList = Vector[Context]()
-  describe("Testing ARM IR lifting and UD analysis") {
+  test("Testing ARM IR lifting and UD analysis") {
     import edu.psu.ist.plato.kaiming.ir.IRPrinter
     
     failure = testFuncs.length
@@ -80,7 +78,7 @@ class TestARM extends FunSpec with BeforeAndAfter with TimeLimitedTests {
     
   }
 
-  describe("Testing ARM loop detection") {
+  test("Testing ARM loop detection") {
     for (ctx <- ctxList) {
       val loops = Loop.detectLoops(ctx.cfg)
       println(loops.size + " loops detected in " + ctx.label.name)

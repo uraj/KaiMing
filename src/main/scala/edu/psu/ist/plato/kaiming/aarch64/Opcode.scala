@@ -19,10 +19,14 @@ object Opcode {
     case object BinArith extends OpClass {
       override object Mnemonic extends Enum[Mnemonic] {
         val values = findValues
-        case object ADD extends Mnemonic("ADDS")
-        case object ADC extends Mnemonic("ADCS")
-        case object SUB extends Mnemonic("SUBS")
-        case object SBC extends Mnemonic("SBCS")
+        case object ADD extends Mnemonic
+        case object ADDS extends Mnemonic
+        case object ADC extends Mnemonic
+        case object ADCS extends Mnemonic
+        case object SUB extends Mnemonic
+        case object SUBS extends Mnemonic
+        case object SBC extends Mnemonic
+        case object SBCS extends Mnemonic
         
         case object MUL extends Mnemonic
         case object UMULL extends Mnemonic
@@ -34,8 +38,10 @@ object Opcode {
         case object UMNEGL extends Mnemonic
         case object SMNEGL extends Mnemonic
                   
-        case object SDIV extends Mnemonic("SDIVS")
-        case object UDIV extends Mnemonic("UDIVS")
+        case object SDIV extends Mnemonic
+        case object SDIVS extends Mnemonic
+        case object UDIV extends Mnemonic
+        case object UDIVS extends Mnemonic
         case object ASR extends Mnemonic
         case object LSL extends Mnemonic
         case object LSR extends Mnemonic
@@ -43,8 +49,10 @@ object Opcode {
         case object EOR extends Mnemonic
         case object EON extends Mnemonic
         case object ORN extends Mnemonic
-        case object AND extends Mnemonic("ANDS")
-        case object BIC extends Mnemonic("BICS")
+        case object AND extends Mnemonic
+        case object ANDS extends Mnemonic
+        case object BIC extends Mnemonic
+        case object BICS extends Mnemonic
       }
     }
     

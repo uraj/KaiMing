@@ -44,9 +44,9 @@ object AArch64Parser extends RegexParsers with ParserTrait {
   private val shiftedImm: Parser[Immediate] = ("#" ~> integer <~ ",") ~ ("lsl" ~> "#" ~> integer) ^^ {
     case base ~ shift =>
       if(shift % 16 == 0)
-        Immediate(base << shift, 16 + shift.toInt)
+        Immediate(base, shift.toInt)
       else
-        Immediate(base << shift, 0)
+        Immediate(base, shift.toInt)
   }
   
   private val imm: Parser[Immediate] = plainImm | shiftedImm 
@@ -175,21 +175,25 @@ object AArch64Parser extends RegexParsers with ParserTrait {
   @throws(classOf[edu.psu.ist.plato.kaiming.utils.ParsingException])
   def parseBinaryUnitJava(input: String): java.util.List[Function] = ListBuffer(parseBinaryUnit(input):_*)
   
-  def parseFile(f: File): List[Function] = 
+  def parseFile(f: File) = 
     Source.fromFile(f).getLines.foldLeft(
         List[Function](), None: Option[(Label, List[Instruction])]) {
-    case ((lf, int), x) => parseAll(singleLine, x) match {
-        case Success(value, input) if input.atEnd => value match {
-          case Left(label) => int match {
-            case None => (lf, Some(label, Nil))
-            case Some((oldL, insts)) => (new Function(oldL, insts.reverse)::lf, None)
+    case (prev, line) =>
+      if (prev._2.isDefined || line.contains(':'))
+        parseAll(singleLine, line) match {
+          case Success(value, input) if input.atEnd => value match {
+            case Left(label) => prev._2 match {
+              case None => (prev._1, Some(label, Nil))
+              case Some((oldL, insts)) => (new Function(oldL, insts.reverse)::prev._1, None)
+            }
+            case Right(inst) => prev._2 match {
+              case None => (prev._1, None)
+              case Some((oldL, insts)) => (prev._1, Some((oldL, inst::insts)))
+            }
           }
-          case Right(inst) => int match {
-            case None => (lf, None)
-            case Some((oldL, insts)) => (lf, Some((oldL, inst::insts)))
-          }
+          case _ => (prev._1, None)
         }
-        case _ => (lf, None)
-      }
+      else
+        prev
   }._1.reverse
 }

@@ -6,19 +6,18 @@ import java.io.File
 import java.io.ByteArrayOutputStream
 
 import org.scalatest.FunSuite
-import org.scalatest.concurrent.TimeLimitedTests
-import org.scalatest.time.SpanSugar._
 
 import edu.psu.ist.plato.kaiming.aarch64.Function
 import edu.psu.ist.plato.kaiming.aarch64.AArch64Parser
 
 import edu.psu.ist.plato.kaiming.ir.Context
+import edu.psu.ist.plato.kaiming.ir.Loop
 
 class TestAArch64 extends FunSuite {
   
   var testFuncs = Vector[Function]()
-  /*
-  test("Testing AArch64 parser and CFG construction") {
+
+  test("Testing AArch64 parser and CFG construction [OK]") {
     import edu.psu.ist.plato.kaiming.aarch64.AArch64Printer
 
     for (no <- List(1, 2)) {
@@ -52,20 +51,44 @@ class TestAArch64 extends FunSuite {
     }
   }
   
-  test("Testing AArch64 IR lifting and UD analysis") {
+  test("Testing AArch64 IR lifting and UD analysis [OK]") {
     import edu.psu.ist.plato.kaiming.ir.IRPrinter
     for (func <- testFuncs) {
       val ctx = new Context(func)
       IRPrinter.out.printContextWithUDInfo(ctx)
     }
     
-  }*/
+  }
   
-  test("Test large-scale parsing") {
+  test("Test large-scale parsing and IR lifting [OK]") {
     val name = "/test/aarch64/test-03.s"
     val file = new File(getClass.getResource(name).toURI) 
     val funcs = AArch64Parser.parseFile(file)
-    println(funcs.length + " functions successfully parsed")
+    val ctxes = funcs.map(new Context(_))
+    var flaCount = 0
+    val threshold = .8
+    for (c <- ctxes) {
+      val cfg = c.cfg
+      val bloops = Loop.detectOuterLoops(cfg)
+      if (cfg.isConnected) {
+        for (bloop <- bloops) {
+          if (bloop.body.size >= cfg.size * threshold) {
+            flaCount += 1
+            println(c.proc.name)
+          }
+        }
+      }
+      else {
+        for (bloop <- bloops) {
+          val subcfg = cfg.belongingComponent(bloop.header).get
+          if (bloop.body.size >= subcfg.nodes.size * threshold) {
+            flaCount += 1
+            println(c.proc.name, c.proc.index.toHexString)
+          }
+        }
+      }
+    }
+    println(s"${funcs.length} functions successfully parsed, $flaCount flattened")
   }
 
 }

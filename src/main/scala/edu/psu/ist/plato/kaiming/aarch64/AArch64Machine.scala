@@ -42,9 +42,6 @@ object AArch64Machine extends Machine[AArch64] {
   @inline
   private implicit def toExpr(reg: Register): Expr = Reg(reg)
   
-  @inline
-  private implicit def toExpr(imm: Immediate): Expr = Const(imm.value, imm.sizeInBits)
-  
   private implicit def toExpr(mem: Memory): Expr = {
     val ret: Option[Expr] = mem.base.map { x => x }
     mem.off match {
@@ -64,7 +61,7 @@ object AArch64Machine extends Machine[AArch64] {
   
   private implicit def operandToExpr(op : Operand) = {
     val ret: Expr = op match {
-      case imm: Immediate => imm
+      case imm: Immediate => Exception.unreachable()
       case reg: Register => reg
       case mem: Memory => mem
       case sreg: ShiftedRegister => sreg
@@ -104,31 +101,36 @@ object AArch64Machine extends Machine[AArch64] {
   private def toIR(inst: BinaryArithInst, builder: IRBuilder) = {
     val lval = Reg(inst.dest.asRegister)
     import Opcode.OpClass.BinArith.Mnemonic._
-
+    
+    val right: Expr = inst.srcRight match {
+      case i: Immediate => Const(i.value, inst.srcLeft.sizeInBits)
+      case o => o
+    }
+    
     val rval = inst.subtype match {
-      case ADD => inst.srcLeft + inst.srcRight
-      case ADC => inst.srcLeft + inst.srcRight + Flag.C
-      case SUB => inst.srcLeft - inst.srcRight
-      case SBC => inst.srcLeft - inst.srcRight - Flag.C
-      case MUL => inst.srcLeft * inst.srcRight
-      case UMULL => (inst.srcLeft uext 64) * (inst.srcRight uext 64)
-      case SMULL => (inst.srcLeft sext 64) * (inst.srcRight sext 64)
-      case UMULH => ((inst.srcLeft uext 128) * (inst.srcRight uext 128)) |< 64
-      case SMULH => ((inst.srcLeft sext 128) * (inst.srcRight sext 128)) |< 64
+      case ADD | ADDS => inst.srcLeft + right
+      case ADC | ADCS => inst.srcLeft + right + Flag.C
+      case SUB | SUBS => inst.srcLeft - right
+      case SBC | SBCS => inst.srcLeft - right - Flag.C
+      case MUL => inst.srcLeft * right
+      case UMULL => (inst.srcLeft uext 64) * (right uext 64)
+      case SMULL => (inst.srcLeft sext 64) * (right sext 64)
+      case UMULH => ((inst.srcLeft uext 128) * (right uext 128)) |< 64
+      case SMULH => ((inst.srcLeft sext 128) * (right sext 128)) |< 64
       case MNEG => -(inst.srcLeft * inst.srcRight)
-      case SMNEGL => -((inst.srcLeft sext 64) * (inst.srcRight sext 64))
-      case UMNEGL => -((inst.srcLeft uext 64) * (inst.srcRight uext 64))
-      case SDIV => inst.srcLeft -/ inst.srcRight
-      case UDIV => inst.srcLeft +/ inst.srcRight
-      case ASR => inst.srcLeft >>> inst.srcRight
-      case LSL => inst.srcLeft << inst.srcRight
-      case LSR => inst.srcLeft >> inst.srcRight
-      case ORR => inst.srcLeft | inst.srcRight
-      case ORN => inst.srcLeft | ~inst.srcRight
-      case AND => inst.srcLeft & inst.srcRight
-      case EOR => inst.srcLeft ^ inst.srcRight
-      case BIC => inst.srcLeft & ~inst.srcRight
-      case EON => inst.srcLeft ^ ~inst.srcRight 
+      case SMNEGL => -((inst.srcLeft sext 64) * (right sext 64))
+      case UMNEGL => -((inst.srcLeft uext 64) * (right uext 64))
+      case SDIV | SDIVS => inst.srcLeft -/ right
+      case UDIV | UDIVS => inst.srcLeft +/ right
+      case ASR => inst.srcLeft >>> right
+      case LSL => inst.srcLeft << right
+      case LSR => inst.srcLeft >> right
+      case ORR => inst.srcLeft | right
+      case ORN => inst.srcLeft | ~right
+      case AND | ANDS => inst.srcLeft & right
+      case EOR => inst.srcLeft ^ right
+      case BIC | BICS => inst.srcLeft & ~right
+      case EON => inst.srcLeft ^ ~right 
     }
     val nbuilder = builder.assign(inst, lval, rval)
     if (inst.updateFlags)
@@ -153,67 +155,71 @@ object AArch64Machine extends Machine[AArch64] {
     val lv = Reg(inst.dest)
     val imm1 = inst.imm1.value.toInt
     val imm2 = inst.imm2.value.toInt
+    val size = lv.sizeInBits
     val (rotate, shift) = inst.subtype match {
       case BFM | UBFM | SBFM => (imm1, imm2)
-      case BFI | SBFIZ | UBFIZ => (-imm1 % lv.sizeInBits, imm2 - 1)
+      case BFI | SBFIZ | UBFIZ => (((-imm1 % size) + size) % size, imm2 - 1)
       case BFXIL | SBFX | UBFX => (imm1, imm1 + imm2 - 1)
     }
-    val size = lv.sizeInBits
     val (destInsig, destSig, srcInsig, srcSig) =
-      if (shift >= rotate) (0, shift - rotate, rotate, shift)
-      else (size - rotate, size + shift - rotate, 0, shift)
+      if (shift >= rotate) (0, shift - rotate + 1, rotate, shift + 1)
+      else (size - rotate, size + shift - rotate + 1, 0, shift + 1)
     val assigned: Expr =
-      if (srcInsig > 0) inst.src >> Const(srcInsig, inst.src.sizeInBits) else inst.src
-    val tmp = builder.ctx.getNewTempVar(srcSig - srcInsig + 1)
-    val b = builder.assign(inst, tmp, 0)
-    val (assigned2, b2) =
-      if (srcInsig > 0) {
-        val tmp2 = b.ctx.getNewTempVar(srcInsig)
-        (tmp2 :+ tmp2, b.assign(inst, tmp2, 0)) 
-      } else {
-        (tmp, b) 
-      }
-    val assigned3 = inst.extension match {
-      case Some(Extension.Signed) => assigned2 sext size
-      case Some(Extension.Unsigned) => assigned2 uext size
+      if (srcInsig > 0) (inst.src |> srcSig) |< (srcInsig) else inst.src |> srcSig
+    val assigned2 = inst.extension match {
+      case Some(Extension.Signed) => 
+        (if (srcInsig > 0) assigned :+ Const(0, srcInsig) else assigned) sext size
+      case Some(Extension.Unsigned) =>
+        (if (srcInsig > 0) assigned :+ Const(0, srcInsig) else assigned) uext size
       case None => (destInsig, destSig) match {
-        case (0, left) if left == size => assigned2
-        case (0, _) => assigned2 :+ (lv |< destSig)
-        case (_, left) if left == size => (lv |> destInsig) :+ assigned2 
-        case (_, _) => (lv |> destInsig) :+ assigned2 :+ (lv |< destSig) 
+        case (0, left) if left == size => assigned
+        case (0, _) => assigned :+ (lv |< destSig)
+        case (_, left) if left == size => (lv |> destInsig) :+ assigned 
+        case (_, _) => (lv |> destInsig) :+ assigned :+ (lv |< destSig) 
       }
     }
-    b2.assign(inst, lv, assigned3)
+    builder.assign(inst, lv, assigned2)
   }
   
   private def toIR(inst: MoveInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
     import Opcode.OpClass.Move.Mnemonic._
     val rv: Expr = inst.subtype match {
-      case MOVK=>
+      case MOVK =>
         val op = inst.src.asImmediate
-        val move = op.sizeInBits
-        val retain = lv.sizeInBits - move
-        if (retain > 0)
-          (inst.src |> move) :+ (lv |< retain)
+        val retain = 16 + op.lShift
+        if (retain < lv.sizeInBits && op.lShift > 0)
+          (lv |< retain) :+ Const(op.value, 16) :+ (lv |> op.lShift) 
+        else if (op.lShift > 0)
+          Const(op.value, 16) :+ (lv |> op.lShift)
         else
-          Const(op.value, lv.sizeInBits)
+          (lv |< retain) :+ Const(op.value, 16) 
       case MOVN =>
         val op = inst.src.asImmediate
         val mask = (1 << lv.sizeInBits) - 1
         Const(~op.value & mask, lv.sizeInBits)
       case MOVZ | MOV =>
-        inst.src
+        inst.src match {
+          case r: Register => r
+          case i: Immediate => Const(i.value, lv.sizeInBits)
+          case _ => Exception.unreachable()
+        }
     }
     builder.assign(inst, lv, rv)
   }
   
   private def toIR(inst: CompareInst, builder: IRBuilder) = {
     import Opcode.OpClass.Compare.Mnemonic._
+    
+    val right: Expr = inst.right match {
+      case i: Immediate => Const(i.value, inst.left.sizeInBits)
+      case o => o
+    }
+    
     val cmp = inst.subtype match {
-      case TST => inst.left & inst.right
-      case CMP => inst.left - inst.right
-      case CMN => inst.left + inst.right
+      case TST => inst.left & right
+      case CMP => inst.left - right
+      case CMN => inst.left + right
     }
     updateFlags(inst, cmp, builder)
   }
@@ -304,7 +310,7 @@ object AArch64Machine extends Machine[AArch64] {
   private def toIR(inst: SelectInst, builder: IRBuilder) = {
     import Opcode.OpClass._
     val size = inst.dest.sizeInBits
-    val (tv: Expr, fv: Expr) = inst match {
+    val (tv, fv): (Expr, Expr) = inst match {
       case i: UnarySelectInst =>
         import UnSel.Mnemonic._ 
         i.subtype match {
@@ -327,7 +333,7 @@ object AArch64Machine extends Machine[AArch64] {
           case CSEL => (st, sf)
           case CSINV => (st, ~sf)
           case CSNEG => (st, -sf)
-          case CSINC => (st, sf + 1)
+          case CSINC => (st, sf + Const(1, size))
         }
         (i.srcTrue, i.srcFalse)
     }
@@ -346,9 +352,10 @@ object AArch64Machine extends Machine[AArch64] {
   
   private def toIR(inst: TestBranchInst, builder: IRBuilder) = {
     import Opcode.OpClass.TestBranch.Mnemonic._
+    val c = Const(inst.imm.value, inst.toTest.sizeInBits)
     val cond: Expr = inst.subtype match {
-      case TBNZ => !(inst.toTest & inst.imm)
-      case TBZ => inst.toTest & inst.imm
+      case TBNZ => !(inst.toTest & c)
+      case TBZ => inst.toTest & c
     }
     builder.jump(inst, cond, inst.target)
   }
@@ -385,11 +392,15 @@ object AArch64Machine extends Machine[AArch64] {
   
   private def toIR(inst: CondCompareInst, builder: IRBuilder) = {
     import Opcode.OpClass.CondCompare.Mnemonic._
-    val cmp = inst.subtype match {
-      case CCMP => inst.left - inst.right
-      case CCMN => inst.left + inst.right
+    val right: Expr = inst.right match {
+      case i: Immediate => Const(i.value, inst.left.sizeInBits)
+      case o => o
     }
-    val cond: Expr = inst.cond
+    val cmp = inst.subtype match {
+      case CCMP => inst.left - right
+      case CCMN => inst.left + right
+    }
+    val cond: Expr = inst.condition
     builder
     .select(inst, Flag.V, cond, cmp @^, Const(inst.nzcv.value & (1 << 0), 1))
     .select(inst, Flag.C, cond, cmp @!, Const(inst.nzcv.value & (1 << 1), 1))
@@ -398,7 +409,7 @@ object AArch64Machine extends Machine[AArch64] {
   }
   
   private def toIR(inst: PCRelativeInst, builder: IRBuilder) = {
-    builder.assign(inst, Reg(inst.dest), inst.ptr)
+    builder.assign(inst, Reg(inst.dest), Const(inst.ptr.value, wordSizeInBits))
   }
   
   override protected def toIRStatements(inst: MachEntry[AArch64],

@@ -29,6 +29,8 @@ final class AArch64Printer(ps: OutputStream) extends PrintStream(ps) {
   def printOpImmediate(imm: Immediate) {
     print('#')
     printSignedHex(imm.value)
+    if (imm.lShift != 0)
+      print(s", LSL #${imm.lShift}")
   }
   
   def printOpRegister(reg: Register) {
@@ -127,6 +129,9 @@ final class AArch64Printer(ps: OutputStream) extends PrintStream(ps) {
     if (i.isInstanceOf[SelectInst]) {
       print(", ")
       print(i.asInstanceOf[SelectInst].condition.entryName)
+    } else if (i.isInstanceOf[CondCompareInst]) {
+      print(", ")
+      print(i.asInstanceOf[CondCompareInst].condition.entryName)
     }
   }
   

@@ -3,6 +3,8 @@ package edu.psu.ist.plato.kaiming.aarch64
 import edu.psu.ist.plato.kaiming.MachRegister
 import edu.psu.ist.plato.kaiming.Arch.AArch64
 
+import edu.psu.ist.plato.kaiming.utils.Exception
+
 import enumeratum._
 
 sealed trait Operand {
@@ -166,8 +168,8 @@ case class ShiftedRegister(reg: Register, shift: Option[Shift]) extends Operand 
 object Memory {
     
   def get(base: Register) = Memory(Some(base), None)
-  def get(imm: Immediate) = Memory(None, Some(Left(imm.resize(AArch64Machine.wordSizeInBits))))
-  def get(base: Register, imm: Immediate) = Memory(Some(base), Some(Left(imm.resize(base.sizeInBits))))
+  def get(imm: Immediate) = Memory(None, Some(Left(imm)))
+  def get(base: Register, imm: Immediate) = Memory(Some(base), Some(Left(imm)))
   def get(base: Register, off: ShiftedRegister) = Memory(Some(base), Some(Right(off)))
   
 }
@@ -187,10 +189,10 @@ object Immediate {
 }
 
 // AArch64 immediate numbers do not have a unified format like A32 did.  
-case class Immediate(val value: Long, override val sizeInBits: Int) extends Operand {
+case class Immediate(val value: Long, lShift: Int) extends Operand {
   
   override def asImmediate = this
-  def resize(newSize: Int) = Immediate(value, newSize)
-  
+  override def sizeInBits = Exception.unsupported("cannot take the size of an Immediate")
+
 }
 
