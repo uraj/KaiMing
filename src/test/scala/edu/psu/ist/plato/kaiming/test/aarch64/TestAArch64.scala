@@ -9,6 +9,7 @@ import org.scalatest.FunSuite
 
 import edu.psu.ist.plato.kaiming.aarch64.Function
 import edu.psu.ist.plato.kaiming.aarch64.AArch64Parser
+import edu.psu.ist.plato.kaiming.aarch64.AArch64Printer
 
 import edu.psu.ist.plato.kaiming.ir.Context
 import edu.psu.ist.plato.kaiming.ir.Loop
@@ -18,8 +19,6 @@ class TestAArch64 extends FunSuite {
   var testFuncs = Vector[Function]()
 
   test("Testing AArch64 parser and CFG construction [OK]") {
-    import edu.psu.ist.plato.kaiming.aarch64.AArch64Printer
-
     for (no <- List(1, 2)) {
       val name = "/test/aarch64/test-" + "%02d".format(no) + ".s"
       val file = new File(getClass.getResource(name).toURI) 
@@ -38,30 +37,22 @@ class TestAArch64 extends FunSuite {
           println("Fail (" + msg + ")")
         case (Some(funcs), _) =>
           println("OK")
-          val baos = new ByteArrayOutputStream
-          val printer = new AArch64Printer(baos)
-          for (func <- funcs) {
-            printer.printCFG(func.cfg)
-          }
           testFuncs ++= funcs
           source.close
-          printer.close
-          println(baos.toString)
       }
     }
   }
   
   test("Testing AArch64 IR lifting and UD analysis [OK]") {
-    import edu.psu.ist.plato.kaiming.ir.IRPrinter
     for (func <- testFuncs) {
       val ctx = new Context(func)
-      IRPrinter.out.printContextWithUDInfo(ctx)
+      ctx.useDefMap
     }
     
   }
   
   test("Test large-scale parsing and IR lifting [OK]") {
-    val name = "/test/aarch64/test-03.s"
+    val name = "/test/aarch64/test-04.s"
     val file = new File(getClass.getResource(name).toURI) 
     val funcs = AArch64Parser.parseFile(file)
     val ctxes = funcs.map(new Context(_))
@@ -71,19 +62,18 @@ class TestAArch64 extends FunSuite {
       val cfg = c.cfg
       val bloops = Loop.detectOuterLoops(cfg)
       if (cfg.isConnected) {
-        for (bloop <- bloops) {
+        for (bloop <- bloops if bloop.body.size > 2) {
           if (bloop.body.size >= cfg.size * threshold) {
             flaCount += 1
-            println(c.proc.name)
+            println(c.name, c.proc.index.toHexString)
           }
         }
       }
       else {
-        for (bloop <- bloops) {
+        for (bloop <- bloops if bloop.body.size > 2) {
           val subcfg = cfg.belongingComponent(bloop.header).get
           if (bloop.body.size >= subcfg.nodes.size * threshold) {
             flaCount += 1
-            println(c.proc.name, c.proc.index.toHexString)
           }
         }
       }

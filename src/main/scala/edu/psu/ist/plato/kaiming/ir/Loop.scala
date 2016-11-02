@@ -2,8 +2,9 @@ package edu.psu.ist.plato.kaiming.ir
 
 import edu.psu.ist.plato.kaiming.BBlock
 import edu.psu.ist.plato.kaiming.Arch.KaiMing
+import edu.psu.ist.plato.kaiming.MachArch
 
-case class Loop private (header: IRBBlock, body: Set[IRBBlock], cfg: IRCfg) {
+case class Loop private (header: IRBBlock, body: Set[IRBBlock], cfg: IRCfg[_ <: MachArch]) {
   
   override def toString = {
     val b = new StringBuilder
@@ -28,7 +29,7 @@ case class Loop private (header: IRBBlock, body: Set[IRBBlock], cfg: IRCfg) {
 
 object Loop {
   
-  def detectOuterLoops(cfg: IRCfg): List[Loop] = {
+  def detectOuterLoops(cfg: IRCfg[_ <: MachArch]): List[Loop] = {
     val loops = detectLoops(cfg)
     loops.groupBy(_.header).foldLeft(List[Loop]()) {
       case (list, (header, group)) =>
@@ -36,7 +37,7 @@ object Loop {
     }
   }
   
-  def detectLoops(cfg: IRCfg): List[Loop] = {
+  def detectLoops(cfg: IRCfg[_ <: MachArch]): List[Loop] = {
     val allBBs = cfg.blocks.toSet
     val initDominators =
       allBBs.foldLeft(Map[IRBBlock, Set[IRBBlock]]()) {
@@ -67,7 +68,7 @@ object Loop {
     }
   }
   
-  private def findLoopNodes(cfg: IRCfg, backEdge: (IRBBlock, IRBBlock),
+  private def findLoopNodes(cfg: IRCfg[_ <: MachArch], backEdge: (IRBBlock, IRBBlock),
       candidates: Set[IRBBlock]): Loop = {
     val visited = Set[IRBBlock](backEdge._2)
     new Loop(
@@ -81,7 +82,7 @@ object Loop {
     }, cfg)
   }
   
-  private def reachable(cfg: IRCfg, start: IRBBlock, end: IRBBlock,
+  private def reachable(cfg: IRCfg[_ <: MachArch], start: IRBBlock, end: IRBBlock,
       candidates: Set[IRBBlock], reached: Set[IRBBlock],
       visited: Set[IRBBlock]): (Boolean, Set[IRBBlock]) = {
     if (start == end)

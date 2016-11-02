@@ -41,8 +41,7 @@ trait Terminator[A <: MachArch] {
   final def isInterprocedural: Boolean = isCall || isReturn
   final def isIntraprocedural = !isInterprocedural
   def isTargetConcrete: Boolean
-  def dependentFlags: Set[MachFlag[A]]
-  final def isConditional = !dependentFlags.isEmpty
+  def isConditional: Boolean
   def targetIndex: Long
   def relocate(target: MachBBlock[A]): Unit
   def relocatedTarget: Option[MachBBlock[A]]

@@ -116,6 +116,6 @@ abstract class MachProcedure[A <: MachArch](machEntries: Seq[MachEntry[A]]) exte
   
   def mach: Machine[A]
   override val cfg = MachProcedure.buildCFG[A](this, machEntries)
-  def liftCFGToIR(ctx: Context) = mach.liftToIR(ctx, cfg)
+  def liftCFGToIR(ctx: Context[A]) = mach.liftToIR(ctx, cfg)
   
 }

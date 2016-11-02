@@ -2,9 +2,10 @@ package edu.psu.ist.plato.kaiming.ir.dataflow
 
 import edu.psu.ist.plato.kaiming._
 import edu.psu.ist.plato.kaiming.Arch.KaiMing
+import edu.psu.ist.plato.kaiming.MachArch
 import edu.psu.ist.plato.kaiming.ir._
 
-abstract class FlowInsensitiveProblem[T](ctx: Context) {
+abstract class FlowInsensitiveProblem[T, A <: MachArch](ctx: Context[A]) {
   
   protected def getInitialState: T
   protected def process(e: Stmt, in: T): T
@@ -17,7 +18,7 @@ sealed trait Direction
 case object Forward extends Direction
 case object Backward extends Direction
 
-abstract class PathInsensitiveProblem[T](ctx: Context, dir: Direction, maxIterMultiplier: Int) {
+abstract class PathInsensitiveProblem[T, A <: MachArch](ctx: Context[A], dir: Direction, maxIterMultiplier: Int) {
   
   private type BB = BBlock[KaiMing]
   
@@ -68,8 +69,9 @@ abstract class PathInsensitiveProblem[T](ctx: Context, dir: Direction, maxIterMu
 
 import scala.collection.BitSet
 
-abstract class DataFlowProblem(ctx: Context, dir: Direction, maxIterMultiplier: Int)
-    extends PathInsensitiveProblem[BitSet](ctx, dir, maxIterMultiplier) {
+abstract class DataFlowProblem[A <: MachArch](ctx: Context[A],
+    dir: Direction, maxIterMultiplier: Int)
+    extends PathInsensitiveProblem[BitSet, A](ctx, dir, maxIterMultiplier) {
 
   private type BB = BBlock[KaiMing]
   

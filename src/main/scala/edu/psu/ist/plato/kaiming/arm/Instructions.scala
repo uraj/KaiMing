@@ -229,12 +229,12 @@ case class BranchInst(override val addr: Long, override val opcode: Opcode,
   
   def condition = opcode.condition
   val hasLink = opcode.mnemonic == Opcode.Mnemonic.BL
-  def dependentFlags = condition.dependentMachFlags
   
-  override val isReturn = target.isRegister && target.asRegister.id == Register.Id.LR
-  override val isCall = hasLink
-  override val isIndirect = target.isRegister
-  override val isTargetConcrete = target.isMemory
+  override def isConditional = condition != Condition.AL
+  override def isReturn = target.isRegister && target.asRegister.id == Register.Id.LR
+  override def isCall = hasLink
+  override def isIndirect = target.isRegister
+  override def isTargetConcrete = target.isMemory
   override def targetIndex = 
     if (target.isRegister)
       throw new UnsupportedOperationException()

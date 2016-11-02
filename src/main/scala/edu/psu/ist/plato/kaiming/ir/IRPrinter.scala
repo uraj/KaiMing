@@ -5,6 +5,7 @@ import java.io.OutputStream
 
 import edu.psu.ist.plato.kaiming.BBlock
 import edu.psu.ist.plato.kaiming.Arch.KaiMing
+import edu.psu.ist.plato.kaiming.MachArch
 
 object IRPrinter {
   
@@ -204,14 +205,14 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
     bb.foreach { s => { print("\t"); printStmt(s); println() } }
   }
   
-  def printContext(ctx: Context) {
+  def printContext(ctx: Context[_ <: MachArch]) {
     print(ctx.name);
     println(" {")
     ctx.cfg.blocks.foreach { bb => printIndentedBasicBlock(bb) }
     println('}')
   }
   
-  def printContextWithUDInfo(ctx: Context) {
+  def printContextWithUDInfo(ctx: Context[_ <: MachArch]) {
     print(ctx.name)
     println(" {")
     for (bb <- ctx.cfg) {

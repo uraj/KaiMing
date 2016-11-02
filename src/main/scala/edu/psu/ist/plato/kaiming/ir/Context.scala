@@ -13,16 +13,14 @@ import scalax.collection.GraphEdge.DiEdge
 import scalax.collection.edge.LDiEdge
 
 
-class IRCfg(override val parent : Context, override val entryBlock: IRBBlock,
+class IRCfg[A <: MachArch](override val parent: Context[A], override val entryBlock: IRBBlock,
     protected val graph: Graph[IRBBlock, LDiEdge], override val hasIndirectJmp: Boolean,
-    private val _bbmap: Map[IRBBlock, MachBBlock[_]],
+    private val _bbmap: Map[IRBBlock, MachBBlock[A]],
     override val hasDanglingJump: Boolean)
     extends Cfg[KaiMing, IRBBlock] {
   
   def getMachBBlock(irbb: IRBBlock) = _bbmap.get(irbb)
-  
-  def componentTraverse = graph.componentTraverser().view.map { x => ??? }
-  
+
 }
 
 object Context {
@@ -60,8 +58,8 @@ object Context {
     def apply() = Map[Lval, Set[Definition]]()
   }
   
-  private class ReachingDefinition(ctx: Context)
-      extends PathInsensitiveProblem[UseDefChain](ctx, Forward, Int.MaxValue) {
+  private class ReachingDefinition[A <: MachArch](ctx: Context[A])
+      extends PathInsensitiveProblem[UseDefChain, A](ctx, Forward, Int.MaxValue) {
     
     // There is a more functional way to implement this, but
     // that takes too much effort which is not quite worth it
@@ -120,12 +118,12 @@ object Context {
     def anlayze = { val evaluate = solve; _UDMap }
   }
   
-  private def useDefAnalysis(ctx: Context) =
+  private def useDefAnalysis[A <: MachArch](ctx: Context[A]) =
     new Context.ReachingDefinition(ctx).anlayze
     
 }
 
-final class Context (val proc: MachProcedure[_ <: MachArch])
+final class Context[A <: MachArch] (val proc: MachProcedure[A])
     extends Procedure[Arch.KaiMing] {
 
   @inline def mach = proc.mach

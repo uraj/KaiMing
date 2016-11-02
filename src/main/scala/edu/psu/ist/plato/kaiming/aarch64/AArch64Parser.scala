@@ -175,25 +175,32 @@ object AArch64Parser extends RegexParsers with ParserTrait {
   @throws(classOf[edu.psu.ist.plato.kaiming.utils.ParsingException])
   def parseBinaryUnitJava(input: String): java.util.List[Function] = ListBuffer(parseBinaryUnit(input):_*)
   
-  def parseFile(f: File) = 
-    Source.fromFile(f).getLines.foldLeft(
-        List[Function](), None: Option[(Label, List[Instruction])]) {
-    case (prev, line) =>
-      if (prev._2.isDefined || line.contains(':'))
-        parseAll(singleLine, line) match {
-          case Success(value, input) if input.atEnd => value match {
-            case Left(label) => prev._2 match {
-              case None => (prev._1, Some(label, Nil))
-              case Some((oldL, insts)) => (new Function(oldL, insts.reverse)::prev._1, None)
+  def parseFile(f: File) = {
+    val result = 
+      Source.fromFile(f).getLines.foldLeft(
+          List[Function](), None: Option[(Label, List[Instruction])]) {
+      case (prev, line) =>
+        if (prev._2.isDefined || line.contains(':')) {
+          parseAll(singleLine, line) match {
+            case Success(value, input) if input.atEnd => value match {
+              case Left(label) => prev._2 match {
+                case None => (prev._1, Some(label, Nil))
+                case Some((oldL, insts)) => (new Function(oldL, insts.reverse)::prev._1, None)
+              }
+              case Right(inst) => prev._2 match {
+                case None => (prev._1, None)
+                case Some((oldL, insts)) => (prev._1, Some((oldL, inst::insts)))
+              }
             }
-            case Right(inst) => prev._2 match {
-              case None => (prev._1, None)
-              case Some((oldL, insts)) => (prev._1, Some((oldL, inst::insts)))
-            }
+            case _ => (prev._1, None)
           }
-          case _ => (prev._1, None)
         }
-      else
-        prev
-  }._1.reverse
+        else
+          prev
+      }
+    result._2 match {
+      case None => result._1
+      case Some((label, insts)) => (new Function(label, insts.reverse))::result._1
+    }
+  }
 }

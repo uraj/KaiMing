@@ -11,7 +11,7 @@ abstract class Machine[A <: MachArch] {
   val wordSizeInBits: Int
   val registers: Set[MachRegister[A]]
   
-  protected case class IRBuilder(val ctx: Context, private val start: Long, private val content: List[Stmt]) {
+  protected case class IRBuilder(val ctx: Context[A], private val start: Long, private val content: List[Stmt]) {
     
     def get = content.reverse
     def nextIndex = start + content.size
@@ -43,7 +43,7 @@ abstract class Machine[A <: MachArch] {
   
   protected def toIRStatements(inst: MachEntry[A], builder: IRBuilder): IRBuilder
   
-  def liftToIR(ctx: Context, cfg: MachCFG[A]): IRCfg = {
+  def liftToIR(ctx: Context[A], cfg: MachCFG[A]): IRCfg[A] = {
     import scalax.collection.Graph
     import scalax.collection.edge.Implicits._
     import scalax.collection.edge.LDiEdge

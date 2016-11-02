@@ -244,7 +244,7 @@ sealed abstract class Lval extends PrimitiveExpr {
   
 }
 
-case class Var(parent: Context, name: String, override val sizeInBits: Int)
+case class Var(parent: Context[_ <: MachArch], name: String, override val sizeInBits: Int)
     extends Lval {
   
   // Sometimes we want Var instances simply for testing without being binded

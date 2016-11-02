@@ -252,11 +252,11 @@ case class TestBranchInst(addr: Long, mnem: String, toTest: Register,
   
   def subtype = Opcode.OpClass.TestBranch.Mnemonic.withName(mnem)
   
-  override def dependentFlags = Set()
-  override val isReturn = false
-  override val isCall = false
-  override val isIndirect = false
-  override val isTargetConcrete = true
+  override def isReturn = false
+  override def isCall = false
+  override def isIndirect = false
+  override def isTargetConcrete = true
+  override def isConditional = true
   override def targetIndex = 
     target.off match {
       case Some(Left(imm)) => imm.value
@@ -270,11 +270,11 @@ case class CompBranchInst(addr: Long, mnem: String, toCompare: Register,
   
   def subtype = Opcode.OpClass.CompBranch.Mnemonic.withName(mnem)
   
-  override def dependentFlags = Set()
-  override val isReturn = false
-  override val isCall = false
-  override val isIndirect = false
-  override val isTargetConcrete = true
+  override def isConditional = true
+  override def isReturn = false
+  override def isCall = false
+  override def isIndirect = false
+  override def isTargetConcrete = true
   override def targetIndex = 
     target.off match {
       case Some(Left(imm)) => imm.value
@@ -305,7 +305,7 @@ case class BranchInst(addr: Long, mnem: String, target: Operand)
     case B | RET | BR => false
   }
   
-  override def dependentFlags = condition.dependentMachFlags
+  override def isConditional = condition != Condition.AL
   override val isReturn = target.isRegister && target.asRegister.id == Register.Id.X30
   override val isCall = hasLink
   override val isIndirect = target.isRegister

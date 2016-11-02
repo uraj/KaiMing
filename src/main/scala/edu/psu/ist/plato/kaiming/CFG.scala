@@ -41,6 +41,13 @@ abstract class Cfg[A <: Arch, B <: BBlock[A]] extends Iterable[B] {
   def labeledSuccessors(bb: B): Set[(B, Boolean)] = 
     (graph.get(bb) ~>) map { x => (x.to.value, x: Boolean) }
 
+  def toDot = {
+    val builder = new StringBuilder()
+    builder.append("digraph {\n")
+    graph.edges.foldLeft(builder) {
+      (b, inner) => builder.append(s"""\t"${inner._1.value}"->"${inner._2.value}";\n""")
+    }.append("}").toString
+  }
 }
 
 class MachCFG[A <: MachArch] (val parent: MachProcedure[A], val entryBlock: MachBBlock[A],

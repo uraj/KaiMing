@@ -11,6 +11,7 @@ import org.scalatest.time.SpanSugar._
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.junit.JUnitRunner
 
+import edu.psu.ist.plato.kaiming.Arch.ARM
 import edu.psu.ist.plato.kaiming.ir.Loop
 import edu.psu.ist.plato.kaiming.arm.Function
 import edu.psu.ist.plato.kaiming.arm.ARMParser
@@ -64,7 +65,7 @@ class TestARM extends FunSuite with BeforeAndAfter {
     }
   }
   
-  var ctxList = Vector[Context]()
+  var ctxList = Vector[Context[ARM]]()
   test("Testing ARM IR lifting and UD analysis") {
     import edu.psu.ist.plato.kaiming.ir.IRPrinter
     
