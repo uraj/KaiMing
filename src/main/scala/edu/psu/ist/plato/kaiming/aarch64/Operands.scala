@@ -12,28 +12,16 @@ sealed trait Operand {
   final def isRegister = this.isInstanceOf[Register]
   final def isMemory = this.isInstanceOf[Memory]
   final def isImmediate = this.isInstanceOf[Immediate]
-  final def isShiftedRegister = this.isInstanceOf[ShiftedRegister]
+  final def isShiftedRegister = this.isInstanceOf[ModifiedRegister]
   final def isRegisterOrShifted = isRegister || isShiftedRegister
   
-  def asImmediate: Immediate = 
-    throw new UnsupportedOperationException(this + "is not an immediate operand") 
+  @inline final def asImmediate: Immediate = this.asInstanceOf[Immediate]
+  @inline final def asMemory: Memory = this.asInstanceOf[Memory]
+  @inline final def asRegister: Register = this.asInstanceOf[Register] 
+  @inline final def asShiftedRegister: ModifiedRegister = this.asInstanceOf[ModifiedRegister]
 
-  def asMemory: Memory = 
-    throw new UnsupportedOperationException(this + "is not a memory operand") 
   
-  def asRegister: Register = 
-    throw new UnsupportedOperationException(this + "is not a register operand")
-  
-  def asShiftedRegister: ShiftedRegister =
-    throw new UnsupportedOperationException(this + "is not a shifted register operand")
-  
-  def sizeInBits: Int
 }
-
-sealed abstract class Shift { val value: Int }
-case class Asr(override val value: Int) extends Shift
-case class Lsl(override val value: Int) extends Shift
-case class Ror(override val value: Int) extends Shift
 
 object Register {
   
@@ -145,42 +133,47 @@ case class Register private (id: Register.Id)
     else
       Set[MachRegister[AArch64]]()
   
-  override def asRegister = this
-  
 }
 
-object ShiftedRegister {
+sealed trait RegModifier
+
+sealed abstract class Shift extends RegModifier { val value: Int }
+case class Asr(value: Int) extends Shift
+case class Lsl(value: Int) extends Shift
+case class Lsr(value: Int) extends Shift
+case class Ror(value: Int) extends Shift
+
+object ModifiedRegister {
   
-    def get(id: Register.Id, sh: Option[Shift]) = ShiftedRegister(Register.get(id), sh)
-    def get(name: String, sh: Shift) = ShiftedRegister(Register.get(Register.Id.withName(name)), Some(sh))
+    def get(id: Register.Id, sh: Shift) = ModifiedRegister(Register.get(id), sh)
+    def get(name: String, sh: Shift) = ModifiedRegister(Register.get(Register.Id.withName(name)), sh)
 
 }
 
-case class ShiftedRegister(reg: Register, shift: Option[Shift]) extends Operand {
-  
-  def isShifted = shift.isDefined
-  override def asShiftedRegister = this
-  
-  override def sizeInBits = reg.sizeInBits 
-  
-}
+sealed abstract class RegExtension(val truncate: Int, val isSigned: Boolean)
+    extends RegModifier { val lsl: Int }
+case class Uxtb(lsl: Int) extends RegExtension(8, false)
+case class Uxth(lsl: Int) extends RegExtension(16, false)
+case class Uxtw(lsl: Int) extends RegExtension(32, false)
+case class Uxtx(lsl: Int) extends RegExtension(64, false)
+case class Sxtb(lsl: Int) extends RegExtension(8, true)
+case class Sxth(lsl: Int) extends RegExtension(16, true)
+case class Sxtw(lsl: Int) extends RegExtension(32, true)
+case class Sxtx(lsl: Int) extends RegExtension(64, true)
+
+case class ModifiedRegister(reg: Register, modifier: RegModifier) extends Operand
 
 object Memory {
     
   def get(base: Register) = Memory(Some(base), None)
   def get(imm: Immediate) = Memory(None, Some(Left(imm)))
   def get(base: Register, imm: Immediate) = Memory(Some(base), Some(Left(imm)))
-  def get(base: Register, off: ShiftedRegister) = Memory(Some(base), Some(Right(off)))
+  def get(base: Register, off: ModifiedRegister) = Memory(Some(base), Some(Right(off)))
   
 }
 
-case class Memory(base: Option[Register], off: Option[Either[Immediate, ShiftedRegister]])
-  extends Operand {
-  
-  override def asMemory = this
-  override def sizeInBits = AArch64Machine.wordSizeInBits
-  
-}
+case class Memory(base: Option[Register], off: Option[Either[Immediate, ModifiedRegister]])
+  extends Operand
 
 object Immediate {
   
@@ -188,11 +181,5 @@ object Immediate {
 
 }
 
-// AArch64 immediate numbers do not have a unified format like A32 did.  
-case class Immediate(val value: Long, lShift: Int) extends Operand {
-  
-  override def asImmediate = this
-  override def sizeInBits = Exception.unsupported("cannot take the size of an Immediate")
-
-}
+case class Immediate(val value: Long, lShift: Int) extends Operand
 

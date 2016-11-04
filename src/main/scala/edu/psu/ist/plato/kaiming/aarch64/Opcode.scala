@@ -314,32 +314,31 @@ object Opcode {
       }
     }
     
-    case object Unsupported extends OpClass
+//    case object Unsupported extends OpClass
   }
   
   import OpClass._
   private val classOfMnem = OpClass.values.foldLeft(Map[String, OpClass]()) {
     (map, mnem) => map ++ (mnem match {
-      case Unsupported =>
+      /*case Unsupported =>
         List("SCVTF", "MVN", "FMOV", "FCMP", "FCVT", "FMUL", "MOVI",
              "FADD", "FSUB", "UCVTF", "FCSEL", "FDIV", "FABS", "FCCMP", "FCVTZS",
              "FNEG", "FCVTZU", "FRINTX", "FRINTP", "FRINTM", "FRINTA", "FRINTI", "EXT", "FSQRT",
-             "BIF", "BIT", "DUP", "INS", "FNMUL")
+             "BIF", "BIT", "DUP", "INS", "FNMUL")*/
       case _ => mnem.Mnemonic.values.map(_.variants).flatten
     }).map((_ -> mnem))
   }
-
-}
-
-case class Opcode(rawcode: String) {
   
-  val mnemonic: Opcode.OpClass = {
+  def get(rawcode: String) = {
     val lookup = rawcode.split("\\.")(0)
-    if (Opcode.classOfMnem.contains(lookup))
-      Opcode.classOfMnem(lookup)
+    val mnem = classOfMnem.get(lookup)
+    if (mnem.isDefined)
+      Left(Opcode(mnem.get, rawcode))
     else {
-      Opcode.OpClass.Unsupported
+      Right(rawcode)
     }
   }
-  
+
 }
+
+case class Opcode(mnemonic: Opcode.OpClass, rawcode: String)

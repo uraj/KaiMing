@@ -44,7 +44,9 @@ object Instruction {
       case Load | Store => {
         require(oplist.length == 2 || oplist.length == 3)
         val rd = oplist(0).asRegister
-        val m = oplist(1).asMemory
+        val m =
+          if (oplist(1).isImmediate) Memory.get(oplist(1).asImmediate)
+          else oplist(1).asMemory
         val (mem, mode) = 
         if (oplist.length == 3) {
           require(!preidx && oplist(2).isImmediate)
@@ -121,21 +123,28 @@ object Instruction {
       case Branch =>
         require(oplist.length <= 1)
         if (oplist.length == 1) {
-            require(!oplist(0).isImmediate, addr.toHexString)
-            BranchInst(addr, opcode.rawcode, oplist(0))
+            if (oplist(0).isImmediate)
+              BranchInst(addr, opcode.rawcode, Memory.get(oplist(0).asImmediate))
+            else
+              BranchInst(addr, opcode.rawcode, oplist(0))
         } else {
           BranchInst(addr, opcode.rawcode, Register.get(Register.Id.X30))
         }
       case CompBranch =>
         require(oplist.length == 2)
-        CompBranchInst(addr, opcode.rawcode, oplist(0).asRegister, oplist(1).asMemory)
+        val label = 
+          if (oplist(1).isImmediate) Memory.get(oplist(1).asImmediate)
+          else oplist(1).asMemory
+        CompBranchInst(addr, opcode.rawcode, oplist(0).asRegister, label)
       case TestBranch =>
         require(oplist.length == 3)
+        val label = 
+          if (oplist(2).isImmediate) Memory.get(oplist(2).asImmediate)
+          else oplist(2).asMemory
         val r = oplist(0).asRegister
-        TestBranchInst(addr, opcode.rawcode, r, oplist(1).asImmediate, oplist(2).asMemory)
+        TestBranchInst(addr, opcode.rawcode, r, oplist(1).asImmediate, label)
       case System => SystemInst(addr, opcode.rawcode, oplist)
       case Nop => NopInst(addr)
-      case Unsupported => Exception.unreachable()
     }
     
   }
@@ -293,7 +302,6 @@ case class BranchInst(addr: Long, mnem: String, target: Operand)
     val parts = mnem.split("\\.")
     assert(parts.length <= 2)
     if (parts.length == 2) {
-      assert(parts(0).equals("B"))
       Condition.withName(parts(1))
     } else {
       Condition.AL

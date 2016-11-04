@@ -11,31 +11,39 @@ import edu.psu.ist.plato.kaiming.utils.Exception
 object AArch64Machine extends Machine[AArch64] {
   
   override val returnRegister = Register.get(Register.Id.X0)
-  override val wordSizeInBits = 64
+  @inline override val wordSizeInBits = 64
   override val registers = 
     Register.Id.values.map(rid => Register.get(rid))
     .toSet[MachRegister[AArch64]]
   
   import scala.language.implicitConversions
   
-  @inline
-  private implicit def toExpr(i: Int): Const = Const(i, wordSizeInBits)
+  @inline private implicit def toExpr(i: Int): Const = Const(i, wordSizeInBits)
   
-  @inline
-  private implicit def toExpr(i: Long): Const = Const(i, wordSizeInBits)
+  @inline private implicit def toExpr(i: Long): Const = Const(i, wordSizeInBits)
   
-  @inline
-  private implicit def toExpr(f: Flag): Flg = Flg(f)
+  @inline private implicit def toExpr(f: Flag): Flg = Flg(f)
   
-  private implicit def toExpr(sreg: ShiftedRegister): Expr = {
-    val ret = Reg(sreg.reg)
-    sreg.shift match {
-      case None => ret
-      case Some(shift) => shift match {
-        case Asr(v) => ret >>> v
-        case Lsl(v) => ret << v
-        case Ror(v) => ret >< v
-      }
+  private def mregToExpr(oracle: Int)(mreg: ModifiedRegister): Expr = {
+    val reg = Reg(mreg.reg)
+    mreg.modifier match {
+      case Asr(v) => reg >>> v
+      case Lsl(v) => reg << v
+      case Ror(v) => reg >< v
+      case Lsr(v) => reg >> v
+      case ext: RegExtension =>
+        val truncated = if (ext.truncate == reg.sizeInBits) {
+          reg
+        } else {
+          reg |> ext.truncate
+        }
+        val extended = if (ext.isSigned) {
+          truncated sext oracle
+        } else {
+          truncated uext oracle
+        }
+        if (ext.lsl == 0) extended
+        else extended << ext.lsl
     }
   }
   
@@ -49,7 +57,7 @@ object AArch64Machine extends Machine[AArch64] {
       case Some(off) => {
         val oe: Expr = off match {
           case Left(imm) => Const(imm.value, wordSizeInBits)
-          case Right(reg) => reg
+          case Right(reg) => mregToExpr(wordSizeInBits)(reg)
         }
         ret match {
           case Some(expr) => expr + oe
@@ -58,13 +66,13 @@ object AArch64Machine extends Machine[AArch64] {
       }
     }
   }
-  
-  private implicit def operandToExpr(op : Operand) = {
+
+  private def operandToExpr(oracle: Int, op : Operand) = {
     val ret: Expr = op match {
-      case imm: Immediate => Exception.unreachable()
+      case imm: Immediate => Const(imm.value, oracle)
       case reg: Register => reg
       case mem: Memory => mem
-      case sreg: ShiftedRegister => sreg
+      case sreg: ModifiedRegister => mregToExpr(oracle)(sreg)
     }
     ret
   }
@@ -102,10 +110,7 @@ object AArch64Machine extends Machine[AArch64] {
     val lval = Reg(inst.dest.asRegister)
     import Opcode.OpClass.BinArith.Mnemonic._
     
-    val right: Expr = inst.srcRight match {
-      case i: Immediate => Const(i.value, inst.srcLeft.sizeInBits)
-      case o => o
-    }
+    val right = operandToExpr(inst.srcLeft.sizeInBits, inst.srcRight)
     
     val rval = inst.subtype match {
       case ADD | ADDS => inst.srcLeft + right
@@ -117,7 +122,7 @@ object AArch64Machine extends Machine[AArch64] {
       case SMULL => (inst.srcLeft sext 64) * (right sext 64)
       case UMULH => ((inst.srcLeft uext 128) * (right uext 128)) |< 64
       case SMULH => ((inst.srcLeft sext 128) * (right sext 128)) |< 64
-      case MNEG => -(inst.srcLeft * inst.srcRight)
+      case MNEG => -(inst.srcLeft * right)
       case SMNEGL => -((inst.srcLeft sext 64) * (right sext 64))
       case UMNEGL => -((inst.srcLeft uext 64) * (right uext 64))
       case SDIV | SDIVS => inst.srcLeft -/ right
@@ -211,10 +216,7 @@ object AArch64Machine extends Machine[AArch64] {
   private def toIR(inst: CompareInst, builder: IRBuilder) = {
     import Opcode.OpClass.Compare.Mnemonic._
     
-    val right: Expr = inst.right match {
-      case i: Immediate => Const(i.value, inst.left.sizeInBits)
-      case o => o
-    }
+    val right = operandToExpr(inst.left.sizeInBits, inst.right)
     
     val cmp = inst.subtype match {
       case TST => inst.left & right
@@ -225,12 +227,13 @@ object AArch64Machine extends Machine[AArch64] {
   }
   
   private def toIR(inst: BranchInst, builder: IRBuilder) = {
+    val target = operandToExpr(wordSizeInBits, inst.target)
     if (inst.isReturn)
-      builder.ret(inst, inst.target)
+      builder.ret(inst, target)
     else if (inst.isCall)
-      builder.call(inst, inst.target)
+      builder.call(inst, target)
     else
-      builder.jump(inst, inst.condition, inst.target)
+      builder.jump(inst, inst.condition, target)
   }
   
   private def toIR(inst: LoadStoreInst, builder: IRBuilder) = {
@@ -298,11 +301,12 @@ object AArch64Machine extends Machine[AArch64] {
   
   private def toIR(inst: UnaryArithInst, builder: IRBuilder) = {
     val lv = Reg(inst.dest)
+    val src = operandToExpr(lv.sizeInBits, inst.src)
     import Opcode.OpClass.UnArith.Mnemonic._
     val rv = inst.subtype match {
-      case NEG => Const(0, inst.src.sizeInBits) - inst.src
-      case NGC => Const(0, inst.src.sizeInBits) - inst.src - 1 + Flag.C
-      case MVN => ~inst.src
+      case NEG => Const(0, inst.dest.sizeInBits) - src
+      case NGC => Const(0, inst.dest.sizeInBits) - src - 1 + Flag.C
+      case MVN => ~src
     }
     builder.assign(inst, lv, rv)
   }
@@ -392,10 +396,7 @@ object AArch64Machine extends Machine[AArch64] {
   
   private def toIR(inst: CondCompareInst, builder: IRBuilder) = {
     import Opcode.OpClass.CondCompare.Mnemonic._
-    val right: Expr = inst.right match {
-      case i: Immediate => Const(i.value, inst.left.sizeInBits)
-      case o => o
-    }
+    val right = operandToExpr(inst.left.sizeInBits, inst.right)
     val cmp = inst.subtype match {
       case CCMP => inst.left - right
       case CCMN => inst.left + right

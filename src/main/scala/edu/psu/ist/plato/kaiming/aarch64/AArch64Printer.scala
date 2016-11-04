@@ -37,15 +37,21 @@ final class AArch64Printer(ps: OutputStream) extends PrintStream(ps) {
     print(reg.name)
   }
   
-  def printOpShiftedRegister(sreg: ShiftedRegister) {
+  def printOpShiftedRegister(sreg: ModifiedRegister) {
+    val mod = sreg.modifier
     printOpRegister(sreg.reg)
-    sreg.shift match {
-      case Some(shift) =>
-        print(", ")
-        print(shift.getClass.getSimpleName.toUpperCase)
-        print(", ")
+    print(", ")
+    print(mod.getClass.getSimpleName.toUpperCase)
+    print(", ")
+    mod match {
+      case shift: Shift =>
+        print('#')
         print(shift.value)
-      case None => 
+      case ext: RegExtension =>
+        if (ext.lsl != 0) {
+          print('#')
+          print(ext.lsl)
+        }
     }
   }
   
@@ -70,7 +76,7 @@ final class AArch64Printer(ps: OutputStream) extends PrintStream(ps) {
   def printOperand(o: Operand) = {
     o match {
       case r: Register => printOpRegister(r)
-      case s: ShiftedRegister => printOpShiftedRegister(s)
+      case s: ModifiedRegister => printOpShiftedRegister(s)
       case i: Immediate => printOpImmediate(i)
       case m: Memory => printOpMemory(m)
     }

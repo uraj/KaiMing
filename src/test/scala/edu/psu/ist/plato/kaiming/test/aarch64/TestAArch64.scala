@@ -52,31 +52,24 @@ class TestAArch64 extends FunSuite {
   }
   
   test("Test large-scale parsing and IR lifting [OK]") {
-    val name = "/test/aarch64/test-04.s"
+    val name = "/test/aarch64/test-05.s"
     val file = new File(getClass.getResource(name).toURI) 
     val funcs = AArch64Parser.parseFile(file)
-    val ctxes = funcs.map(new Context(_))
+    val ctxes = funcs.map { x => new Context(x._1) }
     var flaCount = 0
     val threshold = .8
     for (c <- ctxes) {
       val cfg = c.cfg
       val bloops = Loop.detectOuterLoops(cfg)
-      if (cfg.isConnected) {
-        for (bloop <- bloops if bloop.body.size > 2) {
-          if (bloop.body.size >= cfg.size * threshold) {
-            flaCount += 1
-            println(c.name, c.proc.index.toHexString)
+      flaCount += (
+          if (cfg.isConnected) {
+            bloops.count { x => x.body.size > 2 && x.body.size >= cfg.size * threshold }
+          } else {
+            bloops.count { x => 
+            val subcfg = cfg.belongingComponent(x.header).get
+            x.body.size > 2 && x.body.size >= subcfg.nodes.size * threshold
           }
-        }
-      }
-      else {
-        for (bloop <- bloops if bloop.body.size > 2) {
-          val subcfg = cfg.belongingComponent(bloop.header).get
-          if (bloop.body.size >= subcfg.nodes.size * threshold) {
-            flaCount += 1
-          }
-        }
-      }
+        })
     }
     println(s"${funcs.length} functions successfully parsed, $flaCount flattened")
   }
