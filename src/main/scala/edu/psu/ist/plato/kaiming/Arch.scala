@@ -12,5 +12,5 @@ object Arch {
   object ARM extends ARM
   
   final abstract class KaiMing extends Arch
-  
+
 }

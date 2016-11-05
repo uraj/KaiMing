@@ -1,5 +1,14 @@
 package edu.psu.ist.plato.kaiming.utils
 
+
+trait Indexed extends Ordered[Indexed] {
+  
+  val index: Long
+  final override def compare(that: Indexed) = 
+    Math.signum(index - that.index).toInt
+  
+}
+
 final class RefWrapper[T](private val stuffing: AnyRef) {
   override final def hashCode = stuffing.hashCode
   override def equals(that: Any) = that match {

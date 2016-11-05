@@ -78,14 +78,14 @@ object ARMMachine extends Machine[ARM] {
   }
     
   private def updateFlags(inst: Instruction, be: BExpr,
-      builder: IRBuilder) = {
+      builder: IRBuilder[ARM]) = {
     builder.assign(inst, Flg(Flag.C), be @!)
     .assign(inst, Flg(Flag.N), be @-)
     .assign(inst, Flg(Flag.Z), be @*)
     .assign(inst, Flg(Flag.V), be @^)
   }
   
-  private def toIR(inst: BinaryArithInst, builder: IRBuilder) = {
+  private def toIR(inst: BinaryArithInst, builder: IRBuilder[ARM]) = {
     val lval = Reg(inst.dest.asRegister)
     import edu.psu.ist.plato.kaiming.arm.Opcode.Mnemonic._
     val rval = inst.opcode.mnemonic match {
@@ -126,7 +126,7 @@ object ARMMachine extends Machine[ARM] {
       nbuilder
   }
   
-  private def toIR(inst: ExtensionInst, builder: IRBuilder) = {
+  private def toIR(inst: ExtensionInst, builder: IRBuilder[ARM]) = {
     val lv = Reg(inst.dest)
     val e = inst.extension match {
       case Extension.Signed => lv sext lv.sizeInBits
@@ -135,7 +135,7 @@ object ARMMachine extends Machine[ARM] {
     builder.assign(inst, lv, e)
   }
   
-  private def toIR(inst: ExtractInst, builder: IRBuilder) = {
+  private def toIR(inst: ExtractInst, builder: IRBuilder[ARM]) = {
     val lv = Reg(inst.dest)
     val shift = inst.lsb.value.toInt
     val mask = 1 << inst.width.value.toInt - 1
@@ -148,7 +148,7 @@ object ARMMachine extends Machine[ARM] {
     builder.assign(inst, lv, assigned2)
   }
   
-  private def toIR(inst: MoveInst, builder: IRBuilder) = {
+  private def toIR(inst: MoveInst, builder: IRBuilder[ARM]) = {
     val lv = Reg(inst.dest)
     if (inst.isConditional) {
       builder.select(inst, lv, inst.condition, inst.src, lv)
@@ -161,7 +161,7 @@ object ARMMachine extends Machine[ARM] {
     }
   }
   
-  private def toIR(inst: CompareInst, builder: IRBuilder) = {
+  private def toIR(inst: CompareInst, builder: IRBuilder[ARM]) = {
     val cmp = inst.code match {
       case CompareCode.Test => inst.left ^ inst.right
       case CompareCode.Compare => inst.left - inst.right
@@ -171,7 +171,7 @@ object ARMMachine extends Machine[ARM] {
     updateFlags(inst, cmp, builder)
   }
   
-  private def toIR(inst: BranchInst, builder: IRBuilder) = {
+  private def toIR(inst: BranchInst, builder: IRBuilder[ARM]) = {
     if (inst.isReturn)
       builder.ret(inst, inst.target)
     else if (inst.isCall)
@@ -180,7 +180,7 @@ object ARMMachine extends Machine[ARM] {
       builder.jump(inst, inst.condition, inst.target)
   }
   
-  private def toIR(inst: LoadStoreInst, builder: IRBuilder) = {
+  private def toIR(inst: LoadStoreInst, builder: IRBuilder[ARM]) = {
     inst match {
       case l: LoadInst => processLoadStore(l, builder)
       case l: LoadMultipleInst => processLoadStore(l, builder)
@@ -189,7 +189,7 @@ object ARMMachine extends Machine[ARM] {
     }
   }
   
-  private def processLoadStore(inst: LoadInst, builder: IRBuilder) = {
+  private def processLoadStore(inst: LoadInst, builder: IRBuilder[ARM]) = {
     import AddressingMode._
     val (addr, b) = inst.addressingMode match {
       case PostIndex => (inst.indexingOperand.base.get: Expr, builder)
@@ -207,7 +207,7 @@ object ARMMachine extends Machine[ARM] {
     }
   }
   
-  private def processLoadStore(inst: LoadMultipleInst, builder: IRBuilder) = {
+  private def processLoadStore(inst: LoadMultipleInst, builder: IRBuilder[ARM]) = {
     // ARM usually uses POP PC as return 
     val sizeInBytes = wordSizeInBits / 8
     val base: Reg = Reg(inst.base.base.get)
@@ -226,7 +226,7 @@ object ARMMachine extends Machine[ARM] {
       load
   }
   
-  private def processLoadStore(inst: StoreInst, builder: IRBuilder) = {
+  private def processLoadStore(inst: StoreInst, builder: IRBuilder[ARM]) = {
     import AddressingMode._
     val (addr, b) = inst.addressingMode match {
       case PostIndex => (inst.indexingOperand.base.get: Expr, builder)
@@ -244,7 +244,7 @@ object ARMMachine extends Machine[ARM] {
     }
   }
   
-  private def processLoadStore(inst: StoreMultipleInst, builder: IRBuilder) = {
+  private def processLoadStore(inst: StoreMultipleInst, builder: IRBuilder[ARM]) = {
     val sizeInBytes = wordSizeInBits / 8
     val base = Reg(inst.base.base.get)
     inst.srcList.foldLeft(builder) {
@@ -258,7 +258,7 @@ object ARMMachine extends Machine[ARM] {
     }
   }
   
-  private def toIR(inst: UnaryArithInst, builder: IRBuilder) = {
+  private def toIR(inst: UnaryArithInst, builder: IRBuilder[ARM]) = {
     val lv = Reg(inst.dest)
     import edu.psu.ist.plato.kaiming.arm.Opcode.Mnemonic._
     inst.opcode.mnemonic match {
@@ -268,21 +268,21 @@ object ARMMachine extends Machine[ARM] {
     }
   }
   
-  private def toIR(inst: LongMulInst, builder: IRBuilder) = {
+  private def toIR(inst: LongMulInst, builder: IRBuilder[ARM]) = {
     val tmpVar = builder.ctx.getNewTempVar(64)
     builder.assign(inst, tmpVar, inst.srcLeft * inst.srcRight)
     .assign(inst, Reg(inst.destHi), tmpVar |< 31)
     .assign(inst, Reg(inst.destLow), tmpVar |> 31)
   }
   
-  private def toIR(inst: BitfieldClearInst, builder: IRBuilder) = {
+  private def toIR(inst: BitfieldClearInst, builder: IRBuilder[ARM]) = {
     val lv = Reg(inst.dest)
     val low = inst.lsb.value
     val high = (inst.lsb.value + inst.width.value)
     builder.assign(inst, lv, ((lv |> low) uext high) :+ (lv |<  high))
   }
   
-  private def toIR(inst: BitfieldInsertInst, builder: IRBuilder) = {
+  private def toIR(inst: BitfieldInsertInst, builder: IRBuilder[ARM]) = {
     val low = inst.lsb.value
     val width = inst.width.value
     val high = inst.width.value + inst.lsb.value
@@ -290,8 +290,8 @@ object ARMMachine extends Machine[ARM] {
     builder.assign(inst, lv, (lv |> low) :+ (inst.src |> width) :+ (lv |< high))
   }
   
-  override protected def toIRStatements(inst: MachEntry[ARM],
-      builder: IRBuilder) = {
+  override def toIRStatements(inst: MachEntry[ARM],
+      builder: IRBuilder[ARM]) = {
     inst.asInstanceOf[Instruction] match {
       case i: BinaryArithInst => toIR(i, builder)
       case i: UnaryArithInst => toIR(i, builder)

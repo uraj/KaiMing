@@ -32,7 +32,7 @@ object AArch64Machine extends Machine[AArch64] {
       case Ror(v) => reg >< v
       case Lsr(v) => reg >> v
       case ext: RegExtension =>
-        val truncated = if (ext.truncate == reg.sizeInBits) {
+        val truncated = if (ext.truncate >= reg.sizeInBits) {
           reg
         } else {
           reg |> ext.truncate
@@ -100,13 +100,13 @@ object AArch64Machine extends Machine[AArch64] {
   }
     
   private def updateFlags(inst: Instruction, be: BExpr,
-      builder: IRBuilder) = {
+      builder: IRBuilder[AArch64]) = {
     import Flag._
     builder.assign(inst, C, be @!).assign(inst, N, be @-)
     .assign(inst, Z, be @*).assign(inst, V, be @^)
   }
   
-  private def toIR(inst: BinaryArithInst, builder: IRBuilder) = {
+  private def toIR(inst: BinaryArithInst, builder: IRBuilder[AArch64]) = {
     val lval = Reg(inst.dest.asRegister)
     import Opcode.OpClass.BinArith.Mnemonic._
     
@@ -144,7 +144,7 @@ object AArch64Machine extends Machine[AArch64] {
       nbuilder
   }
   
-  private def toIR(inst: ExtendInst, builder: IRBuilder) = {
+  private def toIR(inst: ExtendInst, builder: IRBuilder[AArch64]) = {
     val lv = Reg(inst.dest)
     val rv: Expr = if (inst.width == inst.src.sizeInBits) inst.src else inst.src |> inst.width 
     val e = inst.extension match {
@@ -154,7 +154,7 @@ object AArch64Machine extends Machine[AArch64] {
     builder.assign(inst, lv, e)
   }
   
-  private def toIR(inst: BitfieldMoveInst, builder: IRBuilder) = {
+  private def toIR(inst: BitfieldMoveInst, builder: IRBuilder[AArch64]) = {
     import Opcode.OpClass.BFMove.Mnemonic._
     
     val lv = Reg(inst.dest)
@@ -186,7 +186,7 @@ object AArch64Machine extends Machine[AArch64] {
     builder.assign(inst, lv, assigned2)
   }
   
-  private def toIR(inst: MoveInst, builder: IRBuilder) = {
+  private def toIR(inst: MoveInst, builder: IRBuilder[AArch64]) = {
     val lv = Reg(inst.dest)
     import Opcode.OpClass.Move.Mnemonic._
     val rv: Expr = inst.subtype match {
@@ -213,7 +213,7 @@ object AArch64Machine extends Machine[AArch64] {
     builder.assign(inst, lv, rv)
   }
   
-  private def toIR(inst: CompareInst, builder: IRBuilder) = {
+  private def toIR(inst: CompareInst, builder: IRBuilder[AArch64]) = {
     import Opcode.OpClass.Compare.Mnemonic._
     
     val right = operandToExpr(inst.left.sizeInBits, inst.right)
@@ -226,7 +226,7 @@ object AArch64Machine extends Machine[AArch64] {
     updateFlags(inst, cmp, builder)
   }
   
-  private def toIR(inst: BranchInst, builder: IRBuilder) = {
+  private def toIR(inst: BranchInst, builder: IRBuilder[AArch64]) = {
     val target = operandToExpr(wordSizeInBits, inst.target)
     if (inst.isReturn)
       builder.ret(inst, target)
@@ -236,7 +236,7 @@ object AArch64Machine extends Machine[AArch64] {
       builder.jump(inst, inst.condition, target)
   }
   
-  private def toIR(inst: LoadStoreInst, builder: IRBuilder) = {
+  private def toIR(inst: LoadStoreInst, builder: IRBuilder[AArch64]) = {
     import AddressingMode._
     val addr: Expr = inst.addressingMode match {
       case PreIndex | PostIndex => inst.indexingOperand.base.get
@@ -263,34 +263,34 @@ object AArch64Machine extends Machine[AArch64] {
     }
   }
   
-  private def processLoad(inst: LoadInst, addr: Expr, builder: IRBuilder) = {
+  private def processLoad(inst: LoadInst, addr: Expr, builder: IRBuilder[AArch64]) = {
     builder.load(inst, Reg(inst.dest), addr)
   }
   
-  private def processLoadPair(inst: LoadPairInst, addr: Expr, builder: IRBuilder) = {
+  private def processLoadPair(inst: LoadPairInst, addr: Expr, builder: IRBuilder[AArch64]) = {
     val first = Reg(inst.destLeft)
     val second = Reg(inst.destRight)
     val sizeInBytes = first.sizeInBits / 8
     builder.load(inst, first, addr).load(inst, second, addr + Const(sizeInBytes, wordSizeInBits))
   }
   
-  private def processStore(inst: StoreInst, addr: Expr, builder: IRBuilder) = {
+  private def processStore(inst: StoreInst, addr: Expr, builder: IRBuilder[AArch64]) = {
     builder.store(inst, addr, inst.src)
   }
   
-  private def processStorePair(inst: StorePairInst, addr: Expr, builder: IRBuilder) = {
+  private def processStorePair(inst: StorePairInst, addr: Expr, builder: IRBuilder[AArch64]) = {
     val first = Reg(inst.srcLeft)
     val second = Reg(inst.srcRight)
     val sizeInBytes = first.sizeInBits / 8
     builder.store(inst, first, addr).store(inst, second, addr + Const(sizeInBytes, wordSizeInBits))
   }
   
-  private def processStoreEx(inst: StoreExclusiveInst, addr: Expr, builder: IRBuilder) = {
+  private def processStoreEx(inst: StoreExclusiveInst, addr: Expr, builder: IRBuilder[AArch64]) = {
     builder.load(inst, Reg(inst.src), addr)
     .assign(inst, Reg(inst.result), Const(0, 32))
   }
   
-  private def processStorePairEx(inst: StorePairExclusiveInst, addr: Expr, builder: IRBuilder) = {
+  private def processStorePairEx(inst: StorePairExclusiveInst, addr: Expr, builder: IRBuilder[AArch64]) = {
     val first = Reg(inst.srcLeft)
     val second = Reg(inst.srcRight)
     val sizeInBytes = first.sizeInBits / 8
@@ -299,7 +299,7 @@ object AArch64Machine extends Machine[AArch64] {
     .assign(inst, Reg(inst.result), Const(0, 32))
   }
   
-  private def toIR(inst: UnaryArithInst, builder: IRBuilder) = {
+  private def toIR(inst: UnaryArithInst, builder: IRBuilder[AArch64]) = {
     val lv = Reg(inst.dest)
     val src = operandToExpr(lv.sizeInBits, inst.src)
     import Opcode.OpClass.UnArith.Mnemonic._
@@ -311,7 +311,7 @@ object AArch64Machine extends Machine[AArch64] {
     builder.assign(inst, lv, rv)
   }
   
-  private def toIR(inst: SelectInst, builder: IRBuilder) = {
+  private def toIR(inst: SelectInst, builder: IRBuilder[AArch64]) = {
     import Opcode.OpClass._
     val size = inst.dest.sizeInBits
     val (tv, fv): (Expr, Expr) = inst match {
@@ -345,7 +345,7 @@ object AArch64Machine extends Machine[AArch64] {
     
   }
   
-  private def toIR(inst: CompBranchInst, builder: IRBuilder) = {
+  private def toIR(inst: CompBranchInst, builder: IRBuilder[AArch64]) = {
     import Opcode.OpClass.CompBranch.Mnemonic._
     val cond: Expr = inst.subtype match {
       case CBNZ => !inst.toCompare
@@ -354,7 +354,7 @@ object AArch64Machine extends Machine[AArch64] {
     builder.jump(inst, cond, inst.target)
   }
   
-  private def toIR(inst: TestBranchInst, builder: IRBuilder) = {
+  private def toIR(inst: TestBranchInst, builder: IRBuilder[AArch64]) = {
     import Opcode.OpClass.TestBranch.Mnemonic._
     val c = Const(inst.imm.value, inst.toTest.sizeInBits)
     val cond: Expr = inst.subtype match {
@@ -364,20 +364,20 @@ object AArch64Machine extends Machine[AArch64] {
     builder.jump(inst, cond, inst.target)
   }
   
-  private def toIR(inst: DataProcessInst, builder: IRBuilder) = {
+  private def toIR(inst: DataProcessInst, builder: IRBuilder[AArch64]) = {
     import Opcode.OpClass.DataProcess.Mnemonic._
     val lv = Reg(inst.dest)
     inst.subtype match {
       case REV => builder.assign(inst, lv, inst.src bswap)
-      case CLS => builder.assign(inst, lv, (~inst.src) clz)
-      case CLZ => builder.assign(inst, lv, inst.src clz)
+      case CLS => builder.assign(inst, lv, ((~inst.src) clz) uext inst.dest.sizeInBits)
+      case CLZ => builder.assign(inst, lv, (inst.src clz) uext inst.dest.sizeInBits)
       case RBIT => Exception.unsupported()
       case REV16 => Exception.unsupported()
       case REV32 => Exception.unsupported()
     }
   }
   
-  private def toIR(inst: TrinaryArithInst, builder: IRBuilder) = {
+  private def toIR(inst: TrinaryArithInst, builder: IRBuilder[AArch64]) = {
     val lv = Reg(inst.dest)
     import Opcode.OpClass.TriArith.Mnemonic._
     
@@ -394,7 +394,7 @@ object AArch64Machine extends Machine[AArch64] {
     
   }
   
-  private def toIR(inst: CondCompareInst, builder: IRBuilder) = {
+  private def toIR(inst: CondCompareInst, builder: IRBuilder[AArch64]) = {
     import Opcode.OpClass.CondCompare.Mnemonic._
     val right = operandToExpr(inst.left.sizeInBits, inst.right)
     val cmp = inst.subtype match {
@@ -409,12 +409,12 @@ object AArch64Machine extends Machine[AArch64] {
     .select(inst, Flag.N, cond, cmp @-, Const(inst.nzcv.value & (1 << 3), 1))
   }
   
-  private def toIR(inst: PCRelativeInst, builder: IRBuilder) = {
+  private def toIR(inst: PCRelativeInst, builder: IRBuilder[AArch64]) = {
     builder.assign(inst, Reg(inst.dest), Const(inst.ptr.value, wordSizeInBits))
   }
   
-  override protected def toIRStatements(inst: MachEntry[AArch64],
-      builder: IRBuilder) = {
+  override def toIRStatements(inst: MachEntry[AArch64],
+      builder: IRBuilder[AArch64]): IRBuilder[AArch64] = {
     inst.asInstanceOf[Instruction] match {
       case i: UnaryArithInst => toIR(i, builder)
       case i: TrinaryArithInst => toIR(i, builder)

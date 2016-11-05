@@ -1,5 +1,7 @@
 package edu.psu.ist.plato.kaiming
 
+import utils.Indexed
+
 object Entry {
   
   def search[A <: Arch](entries: Seq[Entry[A]], idx: Long) =
@@ -10,17 +12,11 @@ object Entry {
 
 }
 
-abstract class Entry[A <: Arch] extends Ordered[Entry[A]] {
+abstract class Entry[A <: Arch] extends Indexed {
   
-  def index: Long
-    
   override final def hashCode = index.hashCode()
   override final def equals(that: Any) = 
     that.isInstanceOf[AnyRef] && (this eq that.asInstanceOf[AnyRef])
-  
-  // Ordered
-  override final def compare(that: Entry[A]) =
-    Math.signum(index - that.index).toInt
   
 }
 

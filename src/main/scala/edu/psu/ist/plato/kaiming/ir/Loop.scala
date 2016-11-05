@@ -3,6 +3,7 @@ package edu.psu.ist.plato.kaiming.ir
 import edu.psu.ist.plato.kaiming.BBlock
 import edu.psu.ist.plato.kaiming.Arch.KaiMing
 import edu.psu.ist.plato.kaiming.MachArch
+import edu.psu.ist.plato.kaiming.utils.Indexed
 
 case class Loop private (header: IRBBlock, body: Set[IRBBlock], cfg: IRCfg[_ <: MachArch]) {
   
@@ -17,7 +18,7 @@ case class Loop private (header: IRBBlock, body: Set[IRBBlock], cfg: IRCfg[_ <: 
     b.append("(");
     bbToStr(header)
     b.append("<" + body.size + ">: { ");
-    for (bb <- body.toVector.sorted[BBlock[KaiMing]]) {
+    for (bb <- body.toVector.sorted[Indexed]) {
       bbToStr(bb)
       b.append(" ")
     }
@@ -61,6 +62,16 @@ object Loop {
     val backEdges = dominators.foldLeft(Set[(IRBBlock, IRBBlock)]()) {
       case (l, (k, v)) => l ++ (cfg.successors(k) & v).map { x => (k, x) }
     }
+    val n = allBBs.size
+    val reach = Array.ofDim[Boolean](n, n)
+    def computeReachability() = {
+      
+    }
+    /*
+    for (be <- backEdges) {
+      Console.err.println(cfg.getMachBBlock(be._1).get.index.toHexString,
+          cfg.getMachBBlock(be._2).get.index.toHexString)
+    }*/
     backEdges.foldLeft(List[Loop]()) { 
       (s, x) => 
         findLoopNodes(cfg, x, 

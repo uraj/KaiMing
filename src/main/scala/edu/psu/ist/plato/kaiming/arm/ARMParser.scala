@@ -176,7 +176,7 @@ object ARMParser extends RegexParsers with ParserTrait {
   }
   
   private val function: Parser[Function] = funlabel ~ ((inst | poppush | lsm | ldrAsMove) +) ^^ {
-    case label ~ insts => new Function(label, insts)
+    case label ~ insts => new Function(label, insts.toVector)
   }
    
   val binaryunit: Parser[List[Function]] = rep(function)

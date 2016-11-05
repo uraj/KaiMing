@@ -169,7 +169,7 @@ object AArch64Parser extends RegexParsers with ParserTrait {
   }
   
   private val function: Parser[Function] = funlabel ~ (inst *) ^^ {
-    case label ~ insts => new Function(label, insts)
+    case label ~ insts => new Function(label, insts.toVector)
   }
   
   @inline
@@ -207,7 +207,7 @@ object AArch64Parser extends RegexParsers with ParserTrait {
             case Left(label) => insts match {
               case None => (funcs, Some(label, Nil), true)
               case Some((oldL, insts)) =>
-                ((new Function(oldL, insts.reverse), complete)::funcs, None, true)
+                ((new Function(oldL, insts.reverse.toVector), complete)::funcs, None, true)
             }
             case Right(inst) => insts match {
               case None => (funcs, None, complete)
@@ -219,7 +219,7 @@ object AArch64Parser extends RegexParsers with ParserTrait {
       }
     result._2 match {
       case None => result._1
-      case Some((label, insts)) => (new Function(label, insts.reverse), result._3)::result._1
+      case Some((label, insts)) => (new Function(label, insts.reverse.toVector), result._3)::result._1
     }
   }
 }

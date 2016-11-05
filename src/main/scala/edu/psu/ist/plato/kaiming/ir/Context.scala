@@ -12,15 +12,85 @@ import scalax.collection.Graph
 import scalax.collection.GraphEdge.DiEdge
 import scalax.collection.edge.LDiEdge
 
-
-class IRCfg[A <: MachArch](override val parent: Context[A], override val entryBlock: IRBBlock,
-    protected val graph: Graph[IRBBlock, LDiEdge], override val hasIndirectJmp: Boolean,
-    private val _bbmap: Map[IRBBlock, MachBBlock[A]],
-    override val hasDanglingJump: Boolean)
-    extends Cfg[KaiMing, IRBBlock] {
+class IRCfg[A <: MachArch](override val parent: Context[A]) extends Cfg[KaiMing, IRBBlock] {
   
-  def getMachBBlock(irbb: IRBBlock) = _bbmap.get(irbb)
+  private def liftToIR[A <: MachArch](ctx: Context[A]) = {
+    import scalax.collection.Graph
+    import scalax.collection.edge.Implicits._
+    import scalax.collection.edge.LDiEdge
+    import edu.psu.ist.plato.kaiming.ir.JmpStmt
+    import edu.psu.ist.plato.kaiming.ir.JmpStmt
+    
+    val cfg = ctx.proc.cfg
+    val (bbs, bbmap, nStmts) = cfg.blocks.foldLeft(
+      (Vector[IRBBlock](), Map[MachBBlock[A], IRBBlock](), 0L)) {
+        case ((bblist, map, start), bb) =>
+          val builder = bb.foldLeft(IRBuilder(ctx, start, Nil)) {
+            (b, inst) => ctx.proc.mach.toIRStatements(inst, b)
+          }
+          val irlist = builder.get
+          val irbb = new IRBBlock(ctx, irlist, Label("L_" + bblist.size))
+          (bblist :+ irbb, map + (bb -> irbb), builder.nextIndex)
+        }
+  
+    /*
+    val graph = (0 until cfg.blocks.size).foldLeft(Graph[IRBBlock, LDiEdge]()) {
+      (g, id) => {
+        val bb = cfg.blocks(id)
+        val irbb = bbmap.get(bb).get
+        val edges = cfg.labeledPredecessors(bb).map { 
+          case (pred, fallthrough) => {
+            val irbbPred = bbmap.get(pred).get
+            if (!fallthrough) {
+              irbbPred.lastEntry.asInstanceOf[JmpStmt].relocate(irbb)
+            }
+            (irbbPred ~+> irbb)(fallthrough)
+          }
+        }
+        if (edges.isEmpty) g + irbb else g ++ edges 
+      }*/
+    object LEdgeImplicit extends scalax.collection.edge.LBase.LEdgeImplicits[Boolean]
+    import LEdgeImplicit._
+    cfg.graph.edges.foreach {
+      x => if (!x) bbs(x.from.value).lastEntry.asInstanceOf[JmpStmt].relocate(bbs(x.to.value))  
+    }
+    (cfg.graph, bbmap.toList.map { case (a, b) => (b, a) }.toMap, bbs, bbs.zipWithIndex.toMap)
+  }
+  
+  val (graph, bbmap, blocks, blockIdMap) = liftToIR(parent)
+  
+  def getMachBBlock(irbb: IRBBlock) = bbmap.get(irbb)
+}
 
+case class IRBuilder[A <: MachArch](val ctx: Context[A], private val start: Long,
+    private val content: List[Stmt]) {
+    
+  def get = content.reverse
+  def nextIndex = start + content.size
+    
+  def assign(host: MachEntry[A], definedLval: Lval, usedRval: Expr) =
+    IRBuilder(ctx, start, AssignStmt(nextIndex, host, definedLval, usedRval)::content)
+    
+  def store(host: MachEntry[A], storeTo: Expr, storedExpr: Expr) =
+    IRBuilder(ctx, start, StStmt(nextIndex, host, storeTo, storedExpr)::content)
+      
+  def jump(host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
+      cond: Expr, target: Expr) = 
+    IRBuilder(ctx, start, JmpStmt(nextIndex, host, cond, target)::content)
+      
+  def call(host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
+      target: Expr) =
+    IRBuilder(ctx, start, CallStmt(nextIndex, host, target)::content)
+      
+  def load(host: MachEntry[A], definedLval: Lval, loadFrom: Expr) =
+    IRBuilder(ctx, start, LdStmt(nextIndex, host, definedLval, loadFrom)::content)
+      
+  def select(host: MachEntry[A], definedLval: Lval, condition: Expr,
+      trueValue: Expr, falseValue: Expr) =
+    IRBuilder(ctx, start, SelStmt(nextIndex, host, definedLval, condition, trueValue, falseValue)::content)
+      
+  def ret(host: MachEntry[A], target: Expr) =
+    IRBuilder(ctx, start, RetStmt(nextIndex, host, target)::content)
 }
 
 object Context {
@@ -132,7 +202,9 @@ final class Context[A <: MachArch] (val proc: MachProcedure[A])
   private val _varMap = scala.collection.mutable.Map[String, Var]()
 
   override def label = proc.label
-  override val cfg = proc.liftCFGToIR(this)
+  override val cfg = new IRCfg(this)
+  @inline override def entries = cfg.entries 
+  
   override def deriveLabelForIndex(index: Long) = {
     Label("_sub_" + index.toHexString)
   }

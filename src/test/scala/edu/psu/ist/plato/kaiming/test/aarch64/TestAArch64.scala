@@ -65,11 +65,12 @@ class TestAArch64 extends FunSuite {
           if (cfg.isConnected) {
             bloops.count { x => x.body.size > 2 && x.body.size >= cfg.size * threshold }
           } else {
-            bloops.count { x => 
-            val subcfg = cfg.belongingComponent(x.header).get
-            x.body.size > 2 && x.body.size >= subcfg.nodes.size * threshold
-          }
-        })
+            bloops.count {
+              x =>
+                val subcfg = cfg.belongingComponent(x.header).get
+                x.body.size > 2 && x.body.size >= subcfg.nodes.size * threshold
+            }
+          })
     }
     println(s"${funcs.length} functions successfully parsed, $flaCount flattened")
   }
