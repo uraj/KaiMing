@@ -2,17 +2,13 @@ package edu.psu.ist.plato.kaiming.test.aarch64
 
 import scala.io.Source
 
-import java.io.File
-import java.io.ByteArrayOutputStream
+import java.io.{File, ByteArrayOutputStream}
 
 import org.scalatest.FunSuite
 
-import edu.psu.ist.plato.kaiming.aarch64.Function
-import edu.psu.ist.plato.kaiming.aarch64.AArch64Parser
-import edu.psu.ist.plato.kaiming.aarch64.AArch64Printer
+import edu.psu.ist.plato.kaiming.aarch64.{Function, AArch64Parser, AArch64Printer}
 
-import edu.psu.ist.plato.kaiming.ir.Context
-import edu.psu.ist.plato.kaiming.ir.Loop
+import edu.psu.ist.plato.kaiming.ir.{Context, Loop}
 
 class TestAArch64 extends FunSuite {
   
@@ -52,16 +48,17 @@ class TestAArch64 extends FunSuite {
   }
   
   test("Test large-scale parsing and IR lifting [OK]") {
-    val name = "/test/aarch64/test-05.s"
+    val name = "/test/aarch64/test-04.s"
     val file = new File(getClass.getResource(name).toURI) 
     val funcs = AArch64Parser.parseFile(file)
     val ctxes = funcs.map { x => new Context(x._1) }
     var flaCount = 0
     val threshold = .8
-    for (c <- ctxes) {
+    for (c <- ctxes if c.cfg.size > 2) {
       val cfg = c.cfg
       val bloops = Loop.detectOuterLoops(cfg)
-      flaCount += (
+      for (l <- bloops) {
+        flaCount += (
           if (cfg.isConnected) {
             bloops.count { x => x.body.size > 2 && x.body.size >= cfg.size * threshold }
           } else {
@@ -71,6 +68,7 @@ class TestAArch64 extends FunSuite {
                 x.body.size > 2 && x.body.size >= subcfg.nodes.size * threshold
             }
           })
+      }
     }
     println(s"${funcs.length} functions successfully parsed, $flaCount flattened")
   }

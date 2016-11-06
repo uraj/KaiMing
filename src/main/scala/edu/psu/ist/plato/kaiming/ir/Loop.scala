@@ -5,11 +5,11 @@ import edu.psu.ist.plato.kaiming.Arch.KaiMing
 import edu.psu.ist.plato.kaiming.MachArch
 import edu.psu.ist.plato.kaiming.utils.Indexed
 
-case class Loop private (header: IRBBlock, body: Set[IRBBlock], cfg: IRCfg[_ <: MachArch]) {
+case class Loop[A <: MachArch] private (header: IRBBlock[A], body: Set[IRBBlock[A]], cfg: IRCfg[A]) {
   
   override def toString = {
     val b = new StringBuilder
-    def bbToStr(bb: IRBBlock) = {
+    def bbToStr(bb: IRBBlock[A]) = {
       b.append(bb.label.name)
       b.append("[")
       b.append(bb.firstEntry.host.index.toHexString)
@@ -30,23 +30,24 @@ case class Loop private (header: IRBBlock, body: Set[IRBBlock], cfg: IRCfg[_ <: 
 
 object Loop {
   
-  def detectOuterLoops(cfg: IRCfg[_ <: MachArch]): List[Loop] = {
+  def detectOuterLoops[A <: MachArch](cfg: IRCfg[A]): List[Loop[A]] = {
     val loops = detectLoops(cfg)
-    loops.groupBy(_.header).foldLeft(List[Loop]()) {
+    loops.groupBy(_.header).foldLeft(List[Loop[A]]()) {
       case (list, (header, group)) =>
-        Loop(header, group.foldLeft(Set[IRBBlock]())(_ | _.body), cfg)::list
+        Loop(header, group.foldLeft(Set[IRBBlock[A]]())(_ | _.body), cfg)::list
     }
   }
   
-  def detectLoops(cfg: IRCfg[_ <: MachArch]): List[Loop] = {
-    val allBBs = cfg.blocks.toSet
+  def detectLoops[A <: MachArch](cfg: IRCfg[A]): List[Loop[A]] = {
+    val indices = (0 until cfg.size)
+    val allBBs = indices.toSet
     val initDominators =
-      allBBs.foldLeft(Map[IRBBlock, Set[IRBBlock]]()) {
+      allBBs.foldLeft(Map[Int, Set[Int]]()) {
         (map, bb) => map + (bb -> allBBs)
       }
     val singletons = allBBs.map { x => (x, Set(x)) }
-    def computeDoms(input: (Boolean, Map[IRBBlock, Set[IRBBlock]]))
-     : Map[IRBBlock, Set[IRBBlock]] = input match {
+    def computeDoms(input: (Boolean, Map[Int, Set[Int]]))
+     : Map[Int, Set[Int]] = input match {
       case (stop, in) =>
         if (stop) in
         else
@@ -59,61 +60,22 @@ object Loop {
           })
       }
     val dominators = computeDoms((false, initDominators))
-    val backEdges = dominators.foldLeft(Set[(IRBBlock, IRBBlock)]()) {
+    val backEdges = dominators.foldLeft(Set[(Int, Int)]()) {
       case (l, (k, v)) => l ++ (cfg.successors(k) & v).map { x => (k, x) }
     }
     val n = allBBs.size
     val reach = Array.ofDim[Boolean](n, n)
-    def computeReachability() = {
-      
+    cfg.graph.edges.foreach { x => reach(x.from.value)(x.to.value) = true }
+    
+    for (i <- indices; j <- indices; k <- indices) {
+      if (reach(i)(k) && reach(k)(j)) reach(i)(j) = true
     }
-    /*
-    for (be <- backEdges) {
-      Console.err.println(cfg.getMachBBlock(be._1).get.index.toHexString,
-          cfg.getMachBBlock(be._2).get.index.toHexString)
-    }*/
-    backEdges.foldLeft(List[Loop]()) { 
-      (s, x) => 
-        findLoopNodes(cfg, x, 
-            allBBs.filter(dominators.get(_).get.contains(x._2)))::s
-    }
-  }
-  
-  private def findLoopNodes(cfg: IRCfg[_ <: MachArch], backEdge: (IRBBlock, IRBBlock),
-      candidates: Set[IRBBlock]): Loop = {
-    val visited = Set[IRBBlock](backEdge._2)
-    new Loop(
-        backEdge._2,
-        candidates.foldLeft(Set[IRBBlock](backEdge._1, backEdge._2)) {
-          (set, bb) =>
-            if (set.contains(bb))
-              set
-            else
-              reachable(cfg, bb, backEdge._1, candidates, set, visited)._2 
-    }, cfg)
-  }
-  
-  private def reachable(cfg: IRCfg[_ <: MachArch], start: IRBBlock, end: IRBBlock,
-      candidates: Set[IRBBlock], reached: Set[IRBBlock],
-      visited: Set[IRBBlock]): (Boolean, Set[IRBBlock]) = {
-    if (start == end)
-      (true, reached)
-    else if (visited.contains(start)) {
-      (false, reached)
-    }
-    else {
-      val (c, s) = cfg.successors(start).foldLeft((false, reached)) {
-        case ((canReach, reached), bb) =>
-          if (canReach)
-            (true, reached)
-          else if (!candidates.contains(bb))
-            (canReach, reached)
-          else { 
-            val (c, s) = reachable(cfg, bb, end, candidates, reached, visited + start)
-            (canReach || c, s)
-          }
-      }
-      (c, if (c) s + start else s)
+    
+    backEdges.foldLeft(List[Loop[A]]()) {
+      (s, x) =>
+        val candidates = allBBs.filter { dominators.get(_).get.contains(x._2) }
+        (new Loop(cfg.blocks(x._2),
+            candidates.filter(reach(_)(x._2)).map(cfg.blocks(_)), cfg))::s
     }
   }
   

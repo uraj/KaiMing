@@ -12,7 +12,10 @@ import scalax.collection.Graph
 import scalax.collection.GraphEdge.DiEdge
 import scalax.collection.edge.LDiEdge
 
-class IRCfg[A <: MachArch](override val parent: Context[A]) extends Cfg[KaiMing, IRBBlock] {
+class IRBBlock[A <: MachArch](override val parent: Context[A], override val entries: Seq[Stmt],
+    override val label: Label) extends BBlock[KaiMing](parent, entries, label)
+
+class IRCfg[A <: MachArch](override val parent: Context[A]) extends Cfg[KaiMing, IRBBlock[A]] {
   
   private def liftToIR[A <: MachArch](ctx: Context[A]) = {
     import scalax.collection.Graph
@@ -23,7 +26,7 @@ class IRCfg[A <: MachArch](override val parent: Context[A]) extends Cfg[KaiMing,
     
     val cfg = ctx.proc.cfg
     val (bbs, bbmap, nStmts) = cfg.blocks.foldLeft(
-      (Vector[IRBBlock](), Map[MachBBlock[A], IRBBlock](), 0L)) {
+      (Vector[IRBBlock[A]](), Map[MachBBlock[A], IRBBlock[A]](), 0L)) {
         case ((bblist, map, start), bb) =>
           val builder = bb.foldLeft(IRBuilder(ctx, start, Nil)) {
             (b, inst) => ctx.proc.mach.toIRStatements(inst, b)
@@ -33,22 +36,6 @@ class IRCfg[A <: MachArch](override val parent: Context[A]) extends Cfg[KaiMing,
           (bblist :+ irbb, map + (bb -> irbb), builder.nextIndex)
         }
   
-    /*
-    val graph = (0 until cfg.blocks.size).foldLeft(Graph[IRBBlock, LDiEdge]()) {
-      (g, id) => {
-        val bb = cfg.blocks(id)
-        val irbb = bbmap.get(bb).get
-        val edges = cfg.labeledPredecessors(bb).map { 
-          case (pred, fallthrough) => {
-            val irbbPred = bbmap.get(pred).get
-            if (!fallthrough) {
-              irbbPred.lastEntry.asInstanceOf[JmpStmt].relocate(irbb)
-            }
-            (irbbPred ~+> irbb)(fallthrough)
-          }
-        }
-        if (edges.isEmpty) g + irbb else g ++ edges 
-      }*/
     object LEdgeImplicit extends scalax.collection.edge.LBase.LEdgeImplicits[Boolean]
     import LEdgeImplicit._
     cfg.graph.edges.foreach {
@@ -59,7 +46,7 @@ class IRCfg[A <: MachArch](override val parent: Context[A]) extends Cfg[KaiMing,
   
   val (graph, bbmap, blocks, blockIdMap) = liftToIR(parent)
   
-  def getMachBBlock(irbb: IRBBlock) = bbmap.get(irbb)
+  def getMachBBlock(irbb: IRBBlock[A]) = bbmap.get(irbb)
 }
 
 case class IRBuilder[A <: MachArch](val ctx: Context[A], private val start: Long,
@@ -128,14 +115,15 @@ object Context {
     def apply() = Map[Lval, Set[Definition]]()
   }
   
-  private class ReachingDefinition[A <: MachArch](ctx: Context[A])
-      extends PathInsensitiveProblem[UseDefChain, A](ctx, Forward, Int.MaxValue) {
+  private class ReachingDefinition(ctx: Context[_ <: MachArch])
+      extends PathInsensitiveProblem[UseDefChain](ctx, Forward, Int.MaxValue) {
     
     // There is a more functional way to implement this, but
     // that takes too much effort which is not quite worth it
     private[this] var _UDMap = ctx.entries.map { s => (s -> UseDefChain()) }.toMap
     
-    override protected def getInitialEntryState(bb: IRBBlock) = {
+    override protected def getInitialEntryState(bid: Int) = {
+      val bb = ctx.cfg.blocks(bid)
       if (ctx.cfg.entryBlock == bb)
         ctx.mach.registers.map { r => (Reg(r) -> Set[Definition](Init)) }.toMap
       else
@@ -150,7 +138,8 @@ object Context {
       }
     }
     
-    override protected def transfer(bb: IRBBlock, in: UseDefChain) = {
+    override protected def transfer(bid: Int, in: UseDefChain) = {
+      val bb = ctx.cfg.blocks(bid)
       bb.foldLeft(in) {
         (udc, entry) => {
           val stmt: Stmt = entry
