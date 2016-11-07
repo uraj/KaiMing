@@ -48,13 +48,15 @@ class TestAArch64 extends FunSuite {
   }
   
   test("Test large-scale parsing and IR lifting [OK]") {
-    val name = "/test/aarch64/test-04.s"
-    val file = new File(getClass.getResource(name).toURI) 
-    val funcs = AArch64Parser.parseFile(file)
-    val ctxes = funcs.map { x => new Context(x._1) }
+    val name = "/test/aarch64/test-05.s"
+    val file = new File(getClass.getResource(name).toURI)
+    var funCount = 0
     var flaCount = 0
     val threshold = .8
-    for (c <- ctxes if c.cfg.size > 2) {
+
+    for (f <- AArch64Parser.parseFile(file)) {
+      funCount += 1
+      val c = new Context(f._1)
       val cfg = c.cfg
       val bloops = Loop.detectOuterLoops(cfg)
       for (l <- bloops) {
@@ -70,7 +72,7 @@ class TestAArch64 extends FunSuite {
           })
       }
     }
-    println(s"${funcs.length} functions successfully parsed, $flaCount flattened")
+    println(s"${funCount} functions successfully parsed, $flaCount flattened")
   }
 
 }

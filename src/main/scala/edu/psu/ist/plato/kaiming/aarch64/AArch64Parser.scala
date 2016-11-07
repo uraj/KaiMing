@@ -197,29 +197,48 @@ object AArch64Parser extends RegexParsers with ParserTrait {
   @throws(classOf[edu.psu.ist.plato.kaiming.utils.ParsingException])
   def parseBinaryUnitJava(input: String): java.util.List[Function] = ListBuffer(parseBinaryUnit(input):_*)
   
-  def parseFile(f: File): List[(Function, Boolean)] = {
-    val result = 
-      Source.fromFile(f).getLines.foldLeft(
-          List[(Function, Boolean)](), None: Option[(Label, List[Instruction])], true) {
-      case ((funcs, insts, complete), line) =>
-        parseAll(singleLine, line) match {
-          case Success(value, input) if input.atEnd => value match {
-            case Left(label) => insts match {
-              case None => (funcs, Some(label, Nil), true)
-              case Some((oldL, insts)) =>
-                ((new Function(oldL, insts.reverse.toVector), complete)::funcs, None, true)
-            }
-            case Right(inst) => insts match {
-              case None => (funcs, None, complete)
-              case Some((oldL, insts)) => (funcs, Some((oldL, inst::insts)), complete)
-            }
-          }
-          case f: Failure => (funcs, insts, false)
+  def parseFile(f: File) = new Iterator[(Function, Boolean)]() {
+    val lines = Source.fromFile(f).getLines()
+    
+    var _cache: Option[(Function, Boolean)] = None
+    var _label: Option[Label] = None
+    lines.find {
+        x => parseAll(singleLine, x) match {
+          case Success(Left(label), input) => 
+            _label = Some(label); true
+          case _ => false
         }
       }
-    result._2 match {
-      case None => result._1
-      case Some((label, insts)) => (new Function(label, insts.reverse.toVector), result._3)::result._1
+    
+    private def tryNext = {
+      if (_label.isDefined) {
+        val label = _label.get
+        _label = None
+        var complete = true
+        var insts = List[Instruction]()
+        lines.find {
+          x => parseAll(singleLine, x) match {
+            case Success(value, input) => value match {
+              case Left(label) => _label = Some(label); true
+              case Right(inst) => insts = inst::insts; false
+            }
+            case _ => complete = false; false
+          }
+        }
+        _cache = Some(new Function(label, insts.reverse.toVector), complete)
+      }
+    }
+    
+    def hasNext =  _cache.isDefined || { tryNext; _cache.isDefined }
+    
+    def next = {
+      if (hasNext) {
+        val ret = _cache.get
+        _cache = None
+        ret
+      } else {
+        throw new NoSuchElementException("next on empty iterator")
+      }
     }
   }
 }
