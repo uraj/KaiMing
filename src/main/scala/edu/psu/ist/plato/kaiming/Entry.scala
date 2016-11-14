@@ -2,16 +2,6 @@ package edu.psu.ist.plato.kaiming
 
 import utils.Indexed
 
-object Entry {
-  
-  def search[A <: Arch](entries: Seq[Entry[A]], idx: Long) =
-    entries.map(x => x.index).indexOf(idx) match {
-      case -1 => None
-      case i => Some(i)
-    }
-
-}
-
 abstract class Entry[A <: Arch] extends Indexed {
   
   override final def hashCode = index.hashCode()

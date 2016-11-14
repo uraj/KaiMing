@@ -105,7 +105,7 @@ object MachCfg {
             val term = entry.asInstanceOf[Terminator[A]]
             val nvec = if (!term.isCall) vec :+ (i + 1) else vec
             if (term.isIntraprocedural && !term.isIndirect && term.isTargetConcrete) {
-              val targetOpt = Entry.search(sorted, term.targetIndex)
+              val targetOpt = Indexed.binarySearch(sorted, term.targetIndex)
               if (targetOpt.isDefined)
                 nvec :+ targetOpt.get
               else
@@ -130,10 +130,9 @@ object MachCfg {
           val term = in.asTerminator
           if (!term.isCall && !term.isIndirect && term.isTargetConcrete) {
             val targetAddr = term.targetIndex
-            val targetBBOpt =
-              blocksWithId.find { x => x._1.index == targetAddr }
+            val targetBBOpt = Indexed.binarySearch(bbs, targetAddr)
             if (targetBBOpt.isDefined) {
-              val targetBB = targetBBOpt.get._2
+              val targetBB = targetBBOpt.get
               (id ~+> targetBB)(false) :: l
             } else l
           } else l

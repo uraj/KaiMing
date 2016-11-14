@@ -1,5 +1,12 @@
 package edu.psu.ist.plato.kaiming.utils
 
+final class RefWrapper[T](private val stuffing: AnyRef) {
+  override def hashCode = stuffing.hashCode
+  override def equals(that: Any) = that match {
+    case r: RefWrapper[_] => this.stuffing eq r.stuffing
+    case _ => false
+  }
+}
 
 trait Indexed extends Ordered[Indexed] {
   
@@ -9,13 +16,28 @@ trait Indexed extends Ordered[Indexed] {
   
 }
 
-final class RefWrapper[T](private val stuffing: AnyRef) {
-  override final def hashCode = stuffing.hashCode
-  override def equals(that: Any) = that match {
-    case r: RefWrapper[_] => this.stuffing eq r.stuffing
-    case _ => false
+object Indexed {
+  
+  def binarySearch(sorted: IndexedSeq[Indexed], target: Long) = {
+    def impl(left: Int, right: Int): Option[Int] = {
+      if (left > right)
+        None
+      else {
+        val mid = (left + right) / 2
+        val idx = sorted(mid).index
+        if (idx == target)
+          Some(mid)
+        else if (idx > target)
+          impl(left, mid - 1)
+        else
+          impl(mid + 1, right)
+      }
+    }
+    impl(0, sorted.size - 1)
   }
+  
 }
+
 
 class UnreachableCodeException(message: String) extends RuntimeException(message)
 class ParsingException(message: String) extends RuntimeException(message)

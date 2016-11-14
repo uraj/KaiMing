@@ -210,7 +210,7 @@ object AArch64Parser extends RegexParsers with ParserTrait {
         }
       }
     
-    private def tryNext = {
+    private def tryNext: Unit = {
       if (_label.isDefined) {
         val label = _label.get
         _label = None
@@ -225,7 +225,10 @@ object AArch64Parser extends RegexParsers with ParserTrait {
             case _ => complete = false; false
           }
         }
-        _cache = Some(new Function(label, insts.reverse.toVector), complete)
+        if (insts.size > 0)
+          _cache = Some(new Function(label, insts.reverse.toVector), complete)
+        else
+          tryNext
       }
     }
     

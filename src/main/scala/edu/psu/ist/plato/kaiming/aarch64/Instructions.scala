@@ -448,3 +448,7 @@ case class SystemInst(addr: Long, mnem: String,
 case class NopInst(addr: Long) extends Instruction() {
   val mnem = "NOP"
 }
+
+case class UnsupportedInst(addr: Long) extends Instruction() {
+  val mnem = "UD"
+}

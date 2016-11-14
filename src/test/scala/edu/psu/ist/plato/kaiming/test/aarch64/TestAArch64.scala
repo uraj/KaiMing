@@ -48,19 +48,20 @@ class TestAArch64 extends FunSuite {
   }
   
   test("Test large-scale parsing and IR lifting [OK]") {
-    val name = "/test/aarch64/test-05.s"
+    val name = "/test/aarch64/test-03.s"
     val file = new File(getClass.getResource(name).toURI)
     var funCount = 0
     var flaCount = 0
     val threshold = .8
 
-    for (f <- AArch64Parser.parseFile(file)) {
+    for (f <- AArch64Parser.parseFile(file) if f._2) {
       funCount += 1
       val c = new Context(f._1)
       val cfg = c.cfg
       val bloops = Loop.detectOuterLoops(cfg)
+      var flaCountRound = 0
       for (l <- bloops) {
-        flaCount += (
+        flaCountRound += (
           if (cfg.isConnected) {
             bloops.count { x => x.body.size > 2 && x.body.size >= cfg.size * threshold }
           } else {
@@ -71,6 +72,9 @@ class TestAArch64 extends FunSuite {
             }
           })
       }
+      if (flaCountRound > 0)
+        println(s"${f._1.index.toHexString} flattened")
+      flaCount += flaCountRound
     }
     println(s"${funCount} functions successfully parsed, $flaCount flattened")
   }
