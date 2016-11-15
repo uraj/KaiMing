@@ -99,3 +99,5 @@ case class SelStmt(override val index: Long, override val host: MachEntry[_ <: M
   
 case class LdStmt(override val index: Long, override val host: MachEntry[_ <: MachArch],
     override val definedLval: Lval, loadFrom: Expr) extends DefStmt(loadFrom)
+
+case class UnsupportedStmt(val index: Long, val host: MachEntry[_ <: MachArch]) extends Stmt()

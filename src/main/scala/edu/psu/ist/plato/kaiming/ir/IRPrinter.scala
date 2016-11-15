@@ -127,13 +127,11 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
     printLval(s.definedLval)
     print(" = ")
     printExpr(s.usedRval)
-    EOS
   }
   
   def printCallStmt(s: CallStmt) {
     print("call ")
     printExpr(s.target)
-    EOS
   }
   
   def printJmpStmt(s: JmpStmt) {
@@ -148,7 +146,6 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
       case Some(bb) => print(bb.label.name)
       case None => printExpr(s.target)
     }
-    EOS
   }
   
   def printLdStmt(s: LdStmt) {
@@ -156,7 +153,6 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
     print(" <- [ ")
     printExpr(s.loadFrom)
     print(" ]")
-    EOS
   }
   
   def printStStmt(s: StStmt) {
@@ -164,7 +160,6 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
     print(" -> [ ")
     printExpr(s.storeTo)
     print(" ]")
-    EOS
   }
   
   def printSelStmt(s: SelStmt) {
@@ -175,12 +170,10 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
     printExpr(s.trueValue)
     print(" : ")
     printExpr(s.falseValue)
-    EOS
   }
   
   def printRetStmt(s: RetStmt) {
     print("ret")
-    EOS
   }
   
   def printStmt(s: Stmt) {
@@ -192,7 +185,10 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
       case s: StStmt => printStStmt(s)
       case s: SelStmt => printSelStmt(s)
       case s: RetStmt => printRetStmt(s)
+      case s: UnsupportedStmt =>
+        print(s"Unsupported ${s.host.index.toHexString}")
     }
+    EOS
   }
   
   def printBasicBlock(bb: BBlock[KaiMing]) {

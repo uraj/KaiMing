@@ -9,6 +9,8 @@ import scala.math.Ordering
 class BBlock[A <: Arch](val parent: Procedure[A], val entries: Seq[Entry[A]],
     val label: Label) extends Iterable[Entry[A]] with Indexed {
   
+  require(entries.size > 0, parent.label)
+  
   def firstEntry = entries.head
   def lastEntry  = entries.last
   
@@ -17,7 +19,7 @@ class BBlock[A <: Arch](val parent: Procedure[A], val entries: Seq[Entry[A]],
   @inline final val index = firstEntry.index
   
   @inline final override def equals(obj: Any) = obj match {
-    case bb: BBlock[_] => index == bb.index
+    case bb: BBlock[A] => index == bb.index
     case _ => false
   }
   

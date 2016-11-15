@@ -63,7 +63,6 @@ object Symbolic {
     for (lib <- libsToLoad) {
       val name = System.mapLibraryName(lib)
       val to = new File(toDir.getAbsolutePath + DS + name)
-      Console.err.println(LIB_BIN + name)
       val in = getClass.getResourceAsStream(LIB_BIN + name)
       val out = new FileOutputStream(to)
       val buf = Array.fill[Byte](4096)(0)

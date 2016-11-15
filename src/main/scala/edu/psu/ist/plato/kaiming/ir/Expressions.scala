@@ -143,7 +143,7 @@ object Expr {
   
 }
 
-sealed abstract class Expr(sub: Expr*) {
+sealed abstract class Expr {
   
   override def toString = { 
     val baos = new java.io.ByteArrayOutputStream
@@ -151,8 +151,6 @@ sealed abstract class Expr(sub: Expr*) {
     ps.printExpr(this)
     new String(baos.toByteArray)
   }
-  
-  val subExpr = sub.toVector
   
   def hashCode: Int
   
@@ -269,14 +267,14 @@ case class Flg(mflag: MachFlag[_ <: MachArch]) extends Lval {
 
 }
 
-sealed abstract class CompoundExpr(sub: Expr*) extends Expr(sub: _*) {
+sealed abstract class CompoundExpr extends Expr {
 
   override val sizeInBits: Int
 
 }
 
 sealed abstract class BExpr(val leftSub: Expr, val rightSub: Expr)
-  extends CompoundExpr(leftSub, rightSub) {
+  extends CompoundExpr {
 
   override def hashCode =
     31 * (31 * leftSub.hashCode + getClass.hashCode) + rightSub.hashCode
@@ -290,7 +288,7 @@ sealed abstract class BExpr(val leftSub: Expr, val rightSub: Expr)
 
 }
 
-sealed abstract class UExpr(val sub: Expr) extends CompoundExpr(sub) {
+sealed abstract class UExpr(val sub: Expr) extends CompoundExpr {
   
   override def hashCode = sub.hashCode + 31 * getClass.hashCode
   

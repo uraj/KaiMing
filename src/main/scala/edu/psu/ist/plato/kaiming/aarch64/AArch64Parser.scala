@@ -182,7 +182,7 @@ object AArch64Parser extends RegexParsers with ParserTrait {
     case inst => Right(inst)
   }
   
-  private val singleLine = (funlabelLine | instLine)
+  private val singleLine = funlabelLine | instLine | (address ^^ { case int => Right(UnsupportedInst(int)) })
    
   val binaryunit: Parser[List[Function]] = function *
   
@@ -218,7 +218,7 @@ object AArch64Parser extends RegexParsers with ParserTrait {
         var insts = List[Instruction]()
         lines.find {
           x => parseAll(singleLine, x) match {
-            case Success(value, input) => value match {
+            case Success(value, input) if input.atEnd => value match {
               case Left(label) => _label = Some(label); true
               case Right(inst) => insts = inst::insts; false
             }

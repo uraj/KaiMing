@@ -78,6 +78,8 @@ case class IRBuilder[A <: MachArch](val ctx: Context[A], private val start: Long
       
   def ret(host: MachEntry[A], target: Expr) =
     IRBuilder(ctx, start, RetStmt(nextIndex, host, target)::content)
+    
+  def unsupported(host: MachEntry[A]) = IRBuilder(ctx, start, UnsupportedStmt(nextIndex, host)::content)
 }
 
 object Context {
