@@ -197,51 +197,53 @@ object AArch64Parser extends RegexParsers with ParserTrait {
   @throws(classOf[edu.psu.ist.plato.kaiming.utils.ParsingException])
   def parseBinaryUnitJava(input: String): java.util.List[Function] = ListBuffer(parseBinaryUnit(input):_*)
   
-  def parseFile(f: File) = new Iterator[(Function, Boolean)]() {
-    val lines = Source.fromFile(f).getLines()
-    
-    var _cache: Option[(Function, Boolean)] = None
-    var _label: Option[Label] = None
-    lines.find {
-        x => parseAll(singleLine, x) match {
-          case Success(Left(label), input) => 
-            _label = Some(label); true
-          case _ => false
-        }
-      }
-    
-    private def tryNext: Unit = {
-      if (_label.isDefined) {
-        val label = _label.get
-        _label = None
-        var complete = true
-        var insts = List[Instruction]()
-        lines.find {
+  def parseFile(f: File): Iterator[(Function, Boolean)] = parseLines(Source.fromFile(f).getLines)
+  
+  def parseLines(lines: Iterator[String]): Iterator[(Function, Boolean)] = 
+    new Iterator[(Function, Boolean)]() {
+
+      var _cache: Option[(Function, Boolean)] = None
+      var _label: Option[Label] = None
+      lines.find {
           x => parseAll(singleLine, x) match {
-            case Success(value, input) if input.atEnd => value match {
-              case Left(label) => _label = Some(label); true
-              case Right(inst) => insts = inst::insts; false
-            }
-            case _ => complete = false; false
+            case Success(Left(label), input) => 
+              _label = Some(label); true
+            case _ => false
           }
         }
-        if (insts.size > 0)
-          _cache = Some(new Function(label, insts.reverse.toVector), complete)
-        else
-          tryNext
+      
+      private def tryNext: Unit = {
+        if (_label.isDefined) {
+          val label = _label.get
+          _label = None
+          var complete = true
+          var insts = List[Instruction]()
+          lines.find {
+            x => parseAll(singleLine, x) match {
+              case Success(value, input) if input.atEnd => value match {
+                case Left(label) => _label = Some(label); true
+                case Right(inst) => insts = inst::insts; false
+              }
+              case _ => complete = false; false
+            }
+          }
+          if (insts.size > 0)
+            _cache = Some(new Function(label, insts.reverse.toVector), complete)
+          else
+            tryNext
+        }
+      }
+    
+      def hasNext =  _cache.isDefined || { tryNext; _cache.isDefined }
+      
+      def next = {
+        if (hasNext) {
+          val ret = _cache.get
+          _cache = None
+          ret
+        } else {
+          throw new NoSuchElementException("next on empty iterator")
+        }
       }
     }
-    
-    def hasNext =  _cache.isDefined || { tryNext; _cache.isDefined }
-    
-    def next = {
-      if (hasNext) {
-        val ret = _cache.get
-        _cache = None
-        ret
-      } else {
-        throw new NoSuchElementException("next on empty iterator")
-      }
-    }
-  }
 }

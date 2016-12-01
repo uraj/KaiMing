@@ -7,11 +7,11 @@ import edu.psu.ist.plato.kaiming.BBlock
 import edu.psu.ist.plato.kaiming.Arch.KaiMing
 import edu.psu.ist.plato.kaiming.MachArch
 
-sealed abstract class Stmt(val usedExpr: Vector[Expr]) extends Entry[KaiMing] {
+sealed abstract class Stmt[A <: MachArch](val usedExpr: Vector[Expr]) extends Entry[KaiMing] {
   
   final def this(exprs: Expr*) = this(exprs.toVector)
   
-  val host: MachEntry[_ <: MachArch]
+  val host: MachEntry[A]
   
   final def usedLvals = usedExpr.map(_.enumLvals).fold(Set[Lval]())(_|_)
   
@@ -19,8 +19,8 @@ sealed abstract class Stmt(val usedExpr: Vector[Expr]) extends Entry[KaiMing] {
   
 }
 
-case class StStmt(override val index: Long, override val host: MachEntry[_ <: MachArch],
-    storeTo: Expr, storedExpr: Expr) extends Stmt(storeTo, storedExpr)
+case class StStmt[A <: MachArch](index: Long, host: MachEntry[A],
+    storeTo: Expr, storedExpr: Expr) extends Stmt[A](storeTo, storedExpr)
 
 object JmpStmt {
   // FIXME: This is not a really good implementation of target relocation,
@@ -28,18 +28,17 @@ object JmpStmt {
   // in use. It can be a problem for IR because we plan to support IR
   // transformation 
   import scala.collection.mutable.{Map => MMap}
-  private val _relocationTable : MMap[JmpStmt, BBlock[KaiMing]] = MMap()
+  private val _relocationTable : MMap[JmpStmt[_ <: MachArch], BBlock[KaiMing]] = MMap()
     
-  private def relocate(js: JmpStmt, bb: BBlock[KaiMing]) =
+  private def relocate(js: JmpStmt[_ <: MachArch], bb: BBlock[KaiMing]) =
     _relocationTable.put(js, bb)
 
-  private def lookUpRelocation(js: JmpStmt) = _relocationTable.get(js)
+  private def lookUpRelocation(js: JmpStmt[_ <: MachArch]) = _relocationTable.get(js)
 
 }
 
-case class JmpStmt(override val index: Long,
-    override val host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
-    cond: Expr, target: Expr) extends Stmt(cond, target) {
+case class JmpStmt[A <: MachArch](index: Long, host: MachEntry[A] with Terminator[A],
+    cond: Expr, target: Expr) extends Stmt[A](cond, target) {
   
   val dependentLvals = cond.enumLvals
   
@@ -50,19 +49,19 @@ case class JmpStmt(override val index: Long,
   
 }
 
-case class RetStmt(override val index: Long, override val host: MachEntry[_ <: MachArch],
-    target: Expr) extends Stmt(target)
+case class RetStmt[A <: MachArch](index: Long, host: MachEntry[A],
+    target: Expr) extends Stmt[A](target)
 
-sealed abstract class DefStmt(usedExpr: Vector[Expr]) extends Stmt(usedExpr) {
+sealed abstract class DefStmt[A <: MachArch](usedExpr: Vector[Expr])
+    extends Stmt[A](usedExpr) {
   
   def this(exprs: Expr*) = this(exprs.toVector)
-  
   def definedLval: Lval
   
 }
 
-case class AssignStmt(override val index: Long, override val host: MachEntry[_ <: MachArch],
-    override val definedLval: Lval, usedRval: Expr) extends DefStmt(Vector(usedRval)) {
+case class AssignStmt[A <: MachArch](index: Long, host: MachEntry[A],
+    definedLval: Lval, usedRval: Expr) extends DefStmt[A](Vector(usedRval)) {
   
   require(definedLval.sizeInBits == usedRval.sizeInBits)
   
@@ -80,24 +79,25 @@ object Extractor extends enumeratum.Enum[Extractor] {
   
 }
 
-case class CallStmt(override val index: Long,
-    override val host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
-    target: Expr) extends DefStmt(target) {
+case class CallStmt[A <: MachArch](index: Long, host: MachEntry[A] with Terminator[A],
+    target: Expr) extends DefStmt[A](target) {
   
   override def definedLval = Reg(host.mach.returnRegister)
   
 }
 
-case class SelStmt(override val index: Long, override val host: MachEntry[_ <: MachArch],
-    override val definedLval: Lval, condition: Expr, trueValue: Expr, falseValue: Expr)
-    extends DefStmt(condition, trueValue, falseValue) {
+case class SelStmt[A <: MachArch](index: Long, host: MachEntry[A],
+    definedLval: Lval, condition: Expr, trueValue: Expr, falseValue: Expr)
+    extends DefStmt[A](condition, trueValue, falseValue) {
   
   require(definedLval.sizeInBits == trueValue.sizeInBits &&
       definedLval.sizeInBits == falseValue.sizeInBits)
   
 }
   
-case class LdStmt(override val index: Long, override val host: MachEntry[_ <: MachArch],
-    override val definedLval: Lval, loadFrom: Expr) extends DefStmt(loadFrom)
+case class LdStmt[A <: MachArch](index: Long, host: MachEntry[A],
+    definedLval: Lval, loadFrom: Expr) extends DefStmt[A](loadFrom)
 
-case class UnsupportedStmt(val index: Long, val host: MachEntry[_ <: MachArch]) extends Stmt()
+case class NopStmt[A <: MachArch](index: Long, host: MachEntry[A]) extends Stmt[A]()
+
+case class UnsupportedStmt[A <: MachArch](index: Long, host: MachEntry[A]) extends Stmt[A]()

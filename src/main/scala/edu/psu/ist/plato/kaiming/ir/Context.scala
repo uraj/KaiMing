@@ -12,8 +12,13 @@ import scalax.collection.Graph
 import scalax.collection.GraphEdge.DiEdge
 import scalax.collection.edge.LDiEdge
 
-class IRBBlock[A <: MachArch](override val parent: Context[A], override val entries: Seq[Stmt],
-    override val label: Label) extends BBlock[KaiMing](parent, entries, label)
+class IRBBlock[A <: MachArch](override val parent: Context[A], override val entries: Seq[Stmt[A]],
+    override val label: Label) extends BBlock[KaiMing](parent, entries, label) with Iterable[Stmt[A]] {
+  
+  override def iterator = entries.iterator
+  override def firstEntry = entries.head
+  
+}
 
 class IRCfg[A <: MachArch](override val parent: Context[A]) extends Cfg[KaiMing, IRBBlock[A]] {
   
@@ -25,6 +30,7 @@ class IRCfg[A <: MachArch](override val parent: Context[A]) extends Cfg[KaiMing,
     import edu.psu.ist.plato.kaiming.ir.JmpStmt
     
     val cfg = ctx.proc.cfg
+
     val (bbs, bbmap, nStmts) = cfg.blocks.foldLeft(
       (Vector[IRBBlock[A]](), Map[MachBBlock[A], IRBBlock[A]](), 0L)) {
         case ((bblist, map, start), bb) =>
@@ -39,18 +45,20 @@ class IRCfg[A <: MachArch](override val parent: Context[A]) extends Cfg[KaiMing,
     object LEdgeImplicit extends scalax.collection.edge.LBase.LEdgeImplicits[Boolean]
     import LEdgeImplicit._
     cfg.graph.edges.foreach {
-      x => if (!x) bbs(x.from.value).lastEntry.asInstanceOf[JmpStmt].relocate(bbs(x.to.value))  
+      x => if (!x) bbs(x.from.value).lastEntry.asInstanceOf[JmpStmt[A]].relocate(bbs(x.to.value))  
     }
     (cfg.graph, bbmap.toList.map { case (a, b) => (b, a) }.toMap, bbs, bbs.zipWithIndex.toMap)
   }
   
   val (graph, bbmap, blocks, blockIdMap) = liftToIR(parent)
   
+  override def entries: Vector[Stmt[A]] = blocks.flatMap(_.entries)
+  
   def getMachBBlock(irbb: IRBBlock[A]) = bbmap.get(irbb)
 }
 
 case class IRBuilder[A <: MachArch](val ctx: Context[A], private val start: Long,
-    private val content: List[Stmt]) {
+    private val content: List[Stmt[A]]) {
     
   def get = content.reverse
   def nextIndex = start + content.size
@@ -61,12 +69,10 @@ case class IRBuilder[A <: MachArch](val ctx: Context[A], private val start: Long
   def store(host: MachEntry[A], storeTo: Expr, storedExpr: Expr) =
     IRBuilder(ctx, start, StStmt(nextIndex, host, storeTo, storedExpr)::content)
       
-  def jump(host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
-      cond: Expr, target: Expr) = 
-    IRBuilder(ctx, start, JmpStmt(nextIndex, host, cond, target)::content)
+  def jump(host: MachEntry[A] with Terminator[A], cond: Expr, target: Expr) = 
+    IRBuilder(ctx, start, JmpStmt[A](nextIndex, host, cond, target)::content)
       
-  def call(host: MachEntry[A] with Terminator[A] forSome { type A <: MachArch },
-      target: Expr) =
+  def call(host: MachEntry[A] with Terminator[A], target: Expr) =
     IRBuilder(ctx, start, CallStmt(nextIndex, host, target)::content)
       
   def load(host: MachEntry[A], definedLval: Lval, loadFrom: Expr) =
@@ -84,9 +90,12 @@ case class IRBuilder[A <: MachArch](val ctx: Context[A], private val start: Long
 
 object Context {
   
-  sealed trait Definition {
-    
-    final def get = this match {
+  case class Def[A <: MachArch](s: DefStmt[A]) extends Definition[A]
+  case object Init extends Definition[Nothing]
+
+  sealed trait Definition[+A <: MachArch] {
+    /*
+    final def get: DefStmt[A] = this match {
       case Def(s) => s
       case Init => throw new NoSuchElementException
     }
@@ -96,70 +105,67 @@ object Context {
       case Init => None
     } 
 
-    final def flatMap[B](f: DefStmt => Option[B]): Option[B] =
+    final def flatMap[B](f: DefStmt[A] => Option[B]): Option[B] =
       this match {
         case Def(s) => f(s)
         case Init => None
     }
-    
-    final def map[B](f: DefStmt => B): Option[B] =
+    */
+    final def map[B](f: DefStmt[_ <: MachArch] => B): Option[B] =
       this match {
         case Def(s) => Some(f(s))
         case Init => None
       }
     
   }
-  case class Def(s: DefStmt) extends Definition
-  case object Init extends Definition
   
-  type UseDefChain = Map[Lval, Set[Definition]]
+  type UseDefChain[A <: MachArch] = Map[Lval, Set[Definition[A]]]
   object UseDefChain {
-    def apply() = Map[Lval, Set[Definition]]()
+    def apply[A <: MachArch]() = Map[Lval, Set[Definition[A]]]()
   }
   
-  private class ReachingDefinition(ctx: Context[_ <: MachArch])
-      extends PathInsensitiveProblem[UseDefChain](ctx, Forward, Int.MaxValue) {
+  private class ReachingDefinition[A <: MachArch](ctx: Context[A])
+      extends PathInsensitiveProblem[UseDefChain[A]](ctx, Forward, Int.MaxValue) {
     
     // There is a more functional way to implement this, but
     // that takes too much effort which is not quite worth it
-    private[this] var _UDMap = ctx.entries.map { s => (s -> UseDefChain()) }.toMap
+    private[this] var _UDMap = ctx.entries.map { s => (s -> UseDefChain[A]()) }.toMap
     
     override protected def getInitialEntryState(bid: Int) = {
       val bb = ctx.cfg.blocks(bid)
       if (ctx.cfg.entryBlock == bb)
-        ctx.mach.registers.map { r => (Reg(r) -> Set[Definition](Init)) }.toMap
+        ctx.mach.registers.map { r => (Reg(r) -> Set[Definition[A]](Init)) }.toMap
       else
         UseDefChain()
     }
     
-    override protected def confluence(dataSet: Set[UseDefChain]) = {
-      dataSet.foldLeft(UseDefChain()) {
+    override protected def confluence(dataSet: Set[UseDefChain[A]]) = {
+      dataSet.foldLeft(UseDefChain[A]()) {
         (a, b) => (a.keySet | b.keySet).map {
             x => (x -> (a.getOrElse(x, Set()) | b.getOrElse(x, Set())))
         }.toMap
       }
     }
     
-    override protected def transfer(bid: Int, in: UseDefChain) = {
+    override protected def transfer(bid: Int, in: UseDefChain[A]) = {
       val bb = ctx.cfg.blocks(bid)
       bb.foldLeft(in) {
-        (udc, entry) => {
-          val stmt: Stmt = entry
+        (udc, stmt) => {
           val out = stmt.usedLvals.foldLeft(udc) {
             (map, lv) => {
               val key = lv match {
                 case Reg(r) if !map.contains(lv) => Reg(r.containingRegister)
                 case _ => lv
               }
-              val mapp = if (!map.contains(key)) (map + (key -> Set[Definition]())) else map
+              val mapp = if (!map.contains(key)) (map + (key -> Set[Definition[A]]())) else map
               _UDMap += (stmt -> (_UDMap.get(stmt).get + (lv -> mapp.get(key).get)))
               mapp
             }
           }
           val fout = stmt match {
-            case ds: DefStmt => {
+            case ds: DefStmt[A] => {
               val definedLval = ds.definedLval
-              val defSet = Set[Definition](Def(ds))
+              val defSet = Set[Definition[A]](Def(ds))
               val tmp = out + (definedLval -> defSet)
               definedLval match {
                 case Reg(mr) =>
@@ -218,28 +224,28 @@ final class Context[A <: MachArch] (val proc: MachProcedure[A])
   }
   def getNewTempVar: Var = getNewTempVar(mach.wordSizeInBits)
 
-  lazy val useDefMap = Context.useDefAnalysis(this)
-  def definitionFor(s: Stmt) = useDefMap.get(s)
+  lazy val useDefMap = Context.useDefAnalysis[A](this)
+  def definitionFor(s: Stmt[A]) = useDefMap.get(s)
 
-  def definitionFor(s: Stmt, lv: Lval) =
+  def definitionFor(s: Stmt[A], lv: Lval) =
     for {
       udchain <- useDefMap.get(s)
       definition <- udchain.get(lv)
     } yield definition
 
   private lazy val dataDependency =
-    entries.foldLeft(Graph[DefStmt, DiEdge]()) {
-      case (ddg, ds: DefStmt) =>
+    entries.foldLeft(Graph[DefStmt[A], DiEdge]()) {
+      case (ddg, ds: DefStmt[A]) =>
         val df = Context.Def(ds)
         ddg ++ (for {
           lv <- ds.usedLvals
           definition <- definitionFor(ds, lv).get
           dds <- definition
-        } yield { new DiEdge[DefStmt](ds, dds) })
+        } yield { new DiEdge[DefStmt[A]](ds, dds) })
       case (ddg, _) => ddg
     }
     
-  def hasCyclicDefinition(s: Stmt, lv: Lval) =
+  def hasCyclicDefinition(s: Stmt[A], lv: Lval) =
     definitionFor(s, lv) match {
       case None => false
       case Some(s) => s.exists { 
@@ -255,21 +261,21 @@ final class Context[A <: MachArch] (val proc: MachProcedure[A])
       }
     }
 
-  def hasCyclicDefinition(s: Stmt, e: Expr): Boolean = 
+  def hasCyclicDefinition(s: Stmt[A], e: Expr): Boolean = 
     e.enumLvals.exists(hasCyclicDefinition(s, _))
 
-  def flattenExpr(s: Stmt, e: Expr): Option[Expr] = {
-    def flattenExprImpl(s: Stmt, e: Expr): Option[Expr] = {
+  def flattenExpr(s: Stmt[A], e: Expr): Option[Expr] = {
+    def flattenExprImpl(s: Stmt[A], e: Expr): Option[Expr] = {
       e match {
         case c: Const => Some(c)
         case lv: Lval => definitionFor(s, lv) match {
           case None => Exception.unreachable()
           case Some(s) => if (s.size != 1) None else s.head match {
             case Context.Def(ds) => ds match {
-              case call: CallStmt => None
-              case sel: SelStmt => None
-              case ld: LdStmt => None 
-              case assign: AssignStmt => flattenExprImpl(ds, ds.usedExpr(0))
+              case call: CallStmt[A] => None
+              case sel: SelStmt[A] => None
+              case ld: LdStmt[A] => None 
+              case assign: AssignStmt[A] => flattenExprImpl(ds, ds.usedExpr(0))
             }
             case Context.Init => None
           }

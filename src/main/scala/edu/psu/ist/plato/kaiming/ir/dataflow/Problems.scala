@@ -5,10 +5,10 @@ import edu.psu.ist.plato.kaiming.Arch.KaiMing
 import edu.psu.ist.plato.kaiming.MachArch
 import edu.psu.ist.plato.kaiming.ir._
 
-abstract class FlowInsensitiveProblem[T](ctx: Context[_ <: MachArch]) {
+abstract class FlowInsensitiveProblem[A <: MachArch, T](ctx: Context[A]) {
   
   protected def getInitialState: T
-  protected def process(e: Stmt, in: T): T
+  protected def process(e: Stmt[A], in: T): T
   
   protected final lazy val solve =
     ctx.entries.foldLeft(getInitialState){ (state, stmt) => process(stmt, state) }

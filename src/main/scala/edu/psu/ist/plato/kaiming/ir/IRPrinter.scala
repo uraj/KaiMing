@@ -123,18 +123,18 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
     }
   }
   
-  def printAssignStmt(s: AssignStmt) {
+  def printAssignStmt(s: AssignStmt[_ <: MachArch]) {
     printLval(s.definedLval)
     print(" = ")
     printExpr(s.usedRval)
   }
   
-  def printCallStmt(s: CallStmt) {
+  def printCallStmt(s: CallStmt[_ <: MachArch]) {
     print("call ")
     printExpr(s.target)
   }
   
-  def printJmpStmt(s: JmpStmt) {
+  def printJmpStmt(s: JmpStmt[_ <: MachArch]) {
     print("jmp")
     if (s.isConditional) {
       print('[')
@@ -148,21 +148,21 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
     }
   }
   
-  def printLdStmt(s: LdStmt) {
+  def printLdStmt(s: LdStmt[_ <: MachArch]) {
     printLval(s.definedLval)
     print(" <- [ ")
     printExpr(s.loadFrom)
     print(" ]")
   }
   
-  def printStStmt(s: StStmt) {
+  def printStStmt(s: StStmt[_ <: MachArch]) {
     printExpr(s.storedExpr)
     print(" -> [ ")
     printExpr(s.storeTo)
     print(" ]")
   }
   
-  def printSelStmt(s: SelStmt) {
+  def printSelStmt(s: SelStmt[_ <: MachArch]) {
     printLval(s.definedLval)
     print(" = ")
     printExpr(s.condition)
@@ -172,31 +172,32 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
     printExpr(s.falseValue)
   }
   
-  def printRetStmt(s: RetStmt) {
+  def printRetStmt(s: RetStmt[_ <: MachArch]) {
     print("ret")
   }
   
-  def printStmt(s: Stmt) {
+  def printStmt[A <: MachArch](s: Stmt[A]) {
     s match {
-      case s: AssignStmt => printAssignStmt(s)
-      case s: CallStmt => printCallStmt(s)
-      case s: JmpStmt => printJmpStmt(s)
-      case s: LdStmt => printLdStmt(s)
-      case s: StStmt => printStStmt(s)
-      case s: SelStmt => printSelStmt(s)
-      case s: RetStmt => printRetStmt(s)
-      case s: UnsupportedStmt =>
+      case s: AssignStmt[A] => printAssignStmt(s)
+      case s: CallStmt[A] => printCallStmt(s)
+      case s: JmpStmt[A] => printJmpStmt(s)
+      case s: LdStmt[A] => printLdStmt(s)
+      case s: StStmt[A] => printStStmt(s)
+      case s: SelStmt[A] => printSelStmt(s)
+      case s: RetStmt[A] => printRetStmt(s)
+      case s: NopStmt[A] => print("Nop")
+      case s: UnsupportedStmt[A] =>
         print(s"Unsupported ${s.host.index.toHexString}")
     }
     EOS
   }
   
-  def printBasicBlock(bb: BBlock[KaiMing]) {
+  def printBasicBlock[A <: MachArch](bb: IRBBlock[A]) {
     println(bb.label)
     bb.foreach { s => { printStmt(s); println() } }
   }
   
-  def printIndentedBasicBlock(bb: BBlock[KaiMing]) {
+  def printIndentedBasicBlock[A <: MachArch](bb: IRBBlock[A]) {
     println(bb.label)
     bb.foreach { s => { print("\t"); printStmt(s); println() } }
   }
@@ -208,7 +209,7 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
     println('}')
   }
   
-  def printContextWithUDInfo(ctx: Context[_ <: MachArch]) {
+  def printContextWithUDInfo[A <: MachArch](ctx: Context[A]) {
     print(ctx.name)
     println(" {")
     for (bb <- ctx.cfg) {
