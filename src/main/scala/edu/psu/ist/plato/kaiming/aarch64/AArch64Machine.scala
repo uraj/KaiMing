@@ -431,7 +431,7 @@ object AArch64Machine extends Machine[AArch64] {
       case i: LoadStoreInst => toIR(i, builder)
       case i: DataProcessInst => toIR(i, builder)
       case i: PCRelativeInst => toIR(i, builder)
-      case i: NopInst => builder
+      case i: NopInst => builder.nop(i)
       case i: SystemInst => builder.unsupported(i)
       case i: UnsupportedInst => builder.unsupported(i)
     }

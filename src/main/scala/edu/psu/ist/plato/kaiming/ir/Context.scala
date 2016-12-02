@@ -8,6 +8,8 @@ import edu.psu.ist.plato.kaiming.ir.dataflow.Forward
 
 import edu.psu.ist.plato.kaiming.utils.Exception
 
+import scala.annotation.tailrec
+
 import scalax.collection.Graph
 import scalax.collection.GraphEdge.DiEdge
 import scalax.collection.edge.LDiEdge
@@ -85,6 +87,13 @@ case class IRBuilder[A <: MachArch](val ctx: Context[A], private val start: Long
   def ret(host: MachEntry[A], target: Expr) =
     IRBuilder(ctx, start, RetStmt(nextIndex, host, target)::content)
     
+  def nop(host: MachEntry[A]) = {
+    content match {
+      case x::xs if x.isInstanceOf[NopStmt[A]] => this
+      case _ => IRBuilder(ctx, start, NopStmt(nextIndex, host)::content)
+    }
+  }
+    
   def unsupported(host: MachEntry[A]) = IRBuilder(ctx, start, UnsupportedStmt(nextIndex, host)::content)
 }
 
@@ -94,23 +103,13 @@ object Context {
   case object Init extends Definition[Nothing]
 
   sealed trait Definition[+A <: MachArch] {
-    /*
-    final def get: DefStmt[A] = this match {
-      case Def(s) => s
-      case Init => throw new NoSuchElementException
-    }
     
-    final def getOption = this match {
-      case Def(s) => Some(s)
-      case Init => None
-    } 
-
-    final def flatMap[B](f: DefStmt[A] => Option[B]): Option[B] =
+    final def flatMap[B](f: DefStmt[_ <: MachArch] => Option[B]): Option[B] =
       this match {
         case Def(s) => f(s)
         case Init => None
     }
-    */
+    
     final def map[B](f: DefStmt[_ <: MachArch] => B): Option[B] =
       this match {
         case Def(s) => Some(f(s))
@@ -215,6 +214,7 @@ final class Context[A <: MachArch] (val proc: MachProcedure[A])
     }
   }
   def getNewTempVar(sizeInBits: Int) = {
+    @tailrec
     def tryUntilSuccess(number: Int): Var =
       getNewVar(_tempVarPrefix + number, sizeInBits) match {
         case Some(v) => v

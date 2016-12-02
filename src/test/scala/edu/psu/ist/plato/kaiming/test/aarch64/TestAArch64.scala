@@ -8,7 +8,8 @@ import org.scalatest.FunSuite
 
 import edu.psu.ist.plato.kaiming.aarch64.{Function, AArch64Parser, AArch64Printer}
 
-import edu.psu.ist.plato.kaiming.ir.{Context, Loop}
+import edu.psu.ist.plato.kaiming.Cfg.Loop
+import edu.psu.ist.plato.kaiming.ir.Context
 
 class TestAArch64 extends FunSuite {
   
@@ -18,28 +19,23 @@ class TestAArch64 extends FunSuite {
     var funCount = 0
     var flaCount = 0
     val threshold = .8
-    for (f <- AArch64Parser.parseFile(file)) {
-      val time1 = System.currentTimeMillis
+    for ((f, c) <- AArch64Parser.parseFile(file)) {
       funCount += 1
-      val c = new Context(f._1)
-      val cfg = c.cfg
-      val bloops = Loop.detectLoops(cfg, true)
+      val bloops = Loop.detectLoops(f.cfg, true)
       var flaCountRound = 0
-      val connected = cfg.isConnected
+      val connected = f.cfg.isConnected
       flaCountRound += (
         if (connected) {
-          bloops.count { x => x.body.size > 2 && x.body.size >= cfg.size * threshold }
+          bloops.count { x => x.body.size > 2 && x.body.size >= f.cfg.size * threshold }
         } else {
           bloops.count {
             x =>
               x.body.size > 2 && x.body.size >= x.component.nodes.size * threshold
           }
         })
-      val time2 = System.currentTimeMillis
       if (flaCountRound > 0)
-        println(s"${f._1.index.toHexString} flattened")
+        println(s"${f.index.toHexString} flattened")
       flaCount += flaCountRound
-      println(s"$funCount function processed in ${time2 - time1}ms")
     }
     println(s"${funCount} functions successfully parsed, $flaCount flattened")
   }
