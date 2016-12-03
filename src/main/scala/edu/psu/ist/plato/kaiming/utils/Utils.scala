@@ -99,3 +99,30 @@ trait ParserTrait { self: scala.util.parsing.combinator.RegexParsers =>
     ("(?i)(" + enum.values.map(_.entryName).sorted(Ordering[String].reverse).mkString("|")+")").r
   
 }
+
+trait FastParserTrait {
+  
+  protected def parseInteger(input: String, radix: Long): Long = {
+    val lower = input.toLowerCase
+    (0 until lower.length).foldLeft(0L) {
+      case (sum, x) =>
+        val c = lower.charAt(x)
+        val digit = if (c.isDigit) c - '0' else (c - 'a') + 10
+        sum * radix + digit
+    }
+  }
+  
+  import fastparse.noApi._
+  
+  protected val alpha = CharIn('a' to 'z')
+  protected val ALPHA = CharIn('A' to 'Z')
+  protected val Alpha = CharIn('a' to 'z', 'A' to 'z')
+  protected val digit = CharIn('0' to '9')
+  protected val aldigit = CharIn('a' to 'z', '0' to '9')
+  protected val ALDIGIT = CharIn('A' to 'Z', '0' to '9')
+  protected val Aldigit = CharIn('a' to 'z', 'A' to 'Z', '0' to '9')
+  
+  protected def enum(e: enumeratum.Enum[_ <: enumeratum.EnumEntry]) = 
+    StringInIgnoreCase(e.values.map(_.entryName).sorted(Ordering[String].reverse):_*)
+  
+}

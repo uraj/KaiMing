@@ -6,7 +6,7 @@ import java.io.{File, ByteArrayOutputStream}
 
 import org.scalatest.FunSuite
 
-import edu.psu.ist.plato.kaiming.aarch64.{Function, AArch64Parser, AArch64Printer}
+import edu.psu.ist.plato.kaiming.aarch64.{Function, AArch64Parser => Parser, AArch64Printer}
 
 import edu.psu.ist.plato.kaiming.Cfg.Loop
 import edu.psu.ist.plato.kaiming.ir.Context
@@ -19,7 +19,7 @@ class TestAArch64 extends FunSuite {
     var funCount = 0
     var flaCount = 0
     val threshold = .8
-    for ((f, c) <- AArch64Parser.parseFile(file)) {
+    for ((f, c) <- Parser.parseFile(file)) {
       funCount += 1
       val bloops = Loop.detectLoops(f.cfg, true)
       var flaCountRound = 0

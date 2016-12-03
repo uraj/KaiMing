@@ -33,6 +33,7 @@ abstract class PathInsensitiveProblem[T](ctx: Context[_ <: MachArch], dir: Direc
           (m._1 + (b -> init), m._2 + (b -> transfer(b, init)))
         }
       }
+    @scala.annotation.tailrec
     def solveImpl(round: Long, entryMap: Map[Int, T], exitMap: Map[Int, T]): Map[Int, T] = {
       require(round <= stop, "Problem cannot be solved with in limited time: " + round + "/" + stop)
       val (updated, entryMapNew, exitMapNew) =
