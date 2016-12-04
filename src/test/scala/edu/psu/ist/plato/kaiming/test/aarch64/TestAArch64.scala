@@ -6,7 +6,7 @@ import java.io.{File, ByteArrayOutputStream}
 
 import org.scalatest.FunSuite
 
-import edu.psu.ist.plato.kaiming.aarch64.{Function, AArch64Parser => Parser, AArch64Printer}
+import edu.psu.ist.plato.kaiming.aarch64.{Function, AArch64Parser => Parser}
 
 import edu.psu.ist.plato.kaiming.Cfg.Loop
 import edu.psu.ist.plato.kaiming.ir.Context

@@ -40,11 +40,10 @@ class TestARM extends FunSuite with BeforeAndAfter {
       val source = Source.fromFile(file, "UTF-8")
       val input = source.mkString
       print("Parsing " + file.getName + " : ")
-      val result: (Option[List[Function]], String) = 
-        ARMParser.parseAll(ARMParser.binaryunit, input) match {
-          case ARMParser.Success(value, _) => (Some(value), "")
-          case ARMParser.NoSuccess(msg, next) =>
-            (None, msg + " " +  next.offset + " " + next.pos)
+      val result: (Option[Seq[Function]], String) = 
+        ARMParser.binaryunit.parse(input) match {
+          case fastparse.all.Parsed.Success(value, _) => (Some(value), "")
+          case f: fastparse.all.Parsed.Failure => (None, f.msg)
         }
       result match {
         case (None, msg) =>

@@ -53,17 +53,17 @@ class TestZ3 extends FunSuite with BeforeAndAfter {
     0x002c mov X8, X7
     """
     
-    val result: (Option[List[Function]], String) = 
-        AArch64Parser.parseAll(AArch64Parser.binaryunit, program) match {
-          case AArch64Parser.Success(value, _) => (Some(value), "")
-          case AArch64Parser.NoSuccess(msg, next) =>
-            Console.err.println(msg + " " +  next.offset + " " + next.pos)
-            (None, msg + " " +  next.offset + " " + next.pos)
+    val result: (Option[Seq[Function]], String) = 
+        AArch64Parser.binaryunit.parse(program) match {
+          case fastparse.all.Parsed.Success(value, _) => (Some(value), "")
+          case f: fastparse.all.Parsed.Failure =>
+            Console.err.println(f.msg)
+            (None, f.msg)
         }
     
     val ctx = result match {
-      case (Some(func::xs), _) =>
-        new Context(func)
+      case (Some(funcs), _) if funcs.length == 1 =>
+        new Context(funcs(0))
       case _ => Exception.unreachable()
     }
     

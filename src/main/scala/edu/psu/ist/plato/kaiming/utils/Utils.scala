@@ -56,63 +56,20 @@ object Exception {
   
 }
 
-trait ParserTrait { self: scala.util.parsing.combinator.RegexParsers =>
-
-  private def escape(raw: String): String = {
-    import scala.reflect.runtime.universe._
-    val escaped = Literal(Constant(raw)).toString
-    escaped.substring(1, escaped.size - 1)
-  }
+trait ParserTrait {
   
-  protected val newline = """((\r\n)|\n|\r)+""".r
-  
-  protected val whitespaceWithoutNewline = 
-    escape("[" + (Set('\t', ' ', '\r', '\n') &~ System.getProperty("line.separator").toSet).mkString + "]+").r
-    
-  protected val EOI: Parser[Any] =
-    new Parser[Any] {
-      def apply(in: Input) = {
-        if (self.skipWhitespace) {
-          val offset = in.offset
-          val start = self.handleWhiteSpace(in.source, offset)
-          if (in.source.length == start)
-            Success("EOI", in)
-          else Failure("end of input expected", in)
-        } else {
-          if (in.atEnd) Success("EOI", in)
-          else Failure("end of input expected", in)
-        }
-      }
+  protected def parseInteger(input: String, radix: Long): Long =
+    input.toLowerCase.foldLeft(0L) {
+      (sum, c) => sum * radix + (if (c.isDigit) c - '0' else (c - 'a') + 10)
     }
   
-  protected def parseInteger(input: String, radix: Long): Long = {
-    val lower = input.toLowerCase
-    (0 until lower.length).foldLeft(0L) {
-      case (sum, x) =>
-        val c = lower.charAt(x)
-        val digit = if (c.isDigit) c - '0' else (c - 'a') + 10
-        sum * radix + digit
-    }
-  }
-  
-  protected def regexFromEnum(enum: enumeratum.Enum[_ <: enumeratum.EnumEntry]) = 
-    ("(?i)(" + enum.values.map(_.entryName).sorted(Ordering[String].reverse).mkString("|")+")").r
-  
-}
-
-trait FastParserTrait {
-  
-  protected def parseInteger(input: String, radix: Long): Long = {
-    val lower = input.toLowerCase
-    (0 until lower.length).foldLeft(0L) {
-      case (sum, x) =>
-        val c = lower.charAt(x)
-        val digit = if (c.isDigit) c - '0' else (c - 'a') + 10
-        sum * radix + digit
-    }
+  val White = fastparse.WhitespaceApi.Wrapper{
+    import fastparse.all._
+    NoTrace(CharIn(" \t\r").rep)
   }
   
   import fastparse.noApi._
+  import White._
   
   protected val alpha = CharIn('a' to 'z')
   protected val ALPHA = CharIn('A' to 'Z')
@@ -121,6 +78,29 @@ trait FastParserTrait {
   protected val aldigit = CharIn('a' to 'z', '0' to '9')
   protected val ALDIGIT = CharIn('A' to 'Z', '0' to '9')
   protected val Aldigit = CharIn('a' to 'z', 'A' to 'Z', '0' to '9')
+  
+  protected val newline: P[Unit] = P("\n".rep(1))
+  
+  protected val end: P[Unit] = P(newline | End)
+  
+  protected val dec: P[Long] = P(digit.repX(1).!).map(parseInteger(_, 10))
+  
+  protected val hex: P[Long] =
+    P("0" ~~ CharIn("xX") ~~ CharIn('0' to '9', 'a' to 'f', 'A' to 'F').repX(1).!).map(parseInteger(_, 16))
+  
+  protected val positive: P[Long] = P(hex | dec)
+  
+  protected val integer: P[Long] = P("-".?.! ~ positive) map { 
+    case ("", positive) => positive
+    case (_, positive) => -positive
+  }
+  
+  protected val plainLabel: P[String] = P((Alpha ~~
+        CharIn("_-@.", 'a' to 'z', 'A' to 'Z', '0' to '9').repX).! ~~ ":")
+  
+  protected val quotedLabel: P[String] = P("\"" ~~ (!"\"" ~~ AnyChar).repX(1).! ~~ "\":")
+  
+  protected val label = P(plainLabel | quotedLabel)
   
   protected def enum(e: enumeratum.Enum[_ <: enumeratum.EnumEntry]) = 
     StringInIgnoreCase(e.values.map(_.entryName).sorted(Ordering[String].reverse):_*)

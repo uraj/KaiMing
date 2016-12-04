@@ -1,72 +1,33 @@
 package edu.psu.ist.plato.kaiming.aarch64
 
-import scala.util.parsing.combinator.RegexParsers
-
-import scala.collection.mutable.ListBuffer
-import scala.collection.JavaConversions.bufferAsJavaList
-
-import scala.language.postfixOps
-
-import edu.psu.ist.plato.kaiming.Label
-
-import edu.psu.ist.plato.kaiming.utils.Exception
-import edu.psu.ist.plato.kaiming.utils.ParserTrait
-
 import java.io.File
 import scala.io.Source
 
-import scala.Ordering
-import scala.Vector
+import edu.psu.ist.plato.kaiming.utils.ParserTrait
+import edu.psu.ist.plato.kaiming.utils.Exception
 
-object AArch64Parser extends RegexParsers with ParserTrait {
-  
-  override val whiteSpace = whitespaceWithoutNewline
+import edu.psu.ist.plato.kaiming.Label
 
-  private val end: Parser[Any] = EOI | newline
+object AArch64Parser extends ParserTrait {
+
+  import fastparse.noApi._
+  import White._
   
-  private val dec: Parser[Long] = """\d+""".r ^^ 
-    { s => java.lang.Long.parseLong(s, 10) }
+  private val plainImm: P[Immediate] = P("#" ~~ integer).map(Immediate(_))
   
-  private val hex: Parser[Long] = """0[xX][\da-fA-F]+""".r ^^ 
-    { s => parseInteger(s.substring(2), 16) }
-  
-  private val positive: Parser[Long] = hex | dec
-  
-  private val address = positive
-  
-  private val integer: Parser[Long] = ("-" ?) ~ positive ^^ {
-    case Some(_) ~ positive => -positive
-    case None ~ positive => positive
-  }
-  
-  private val plainImm: Parser[Immediate] = "#" ~> integer ^^ { Immediate(_) }
-  
-  private val shiftedImm: Parser[Immediate] = ("#" ~> integer <~ ",") ~ ("""(?i)lsl""".r ~> ("#" ~> integer)) ^^ {
-    case base ~ shift =>
-      if(shift % 16 == 0)
-        Immediate(base, shift.toInt)
-      else
-        Immediate(base, shift.toInt)
-  }
-  
-  private val imm: Parser[Immediate] = shiftedImm | plainImm 
-  
-  private val plainLabel: Parser[String] =
-    """[a-zA-Z_]([_\-@\.a-zA-Z0-9])*:""".r ^^ { 
-      x => x.substring(0, x.length - 1)
+  private val shiftedImm: P[Immediate] =
+    P("#" ~ integer ~ "," ~ IgnoreCase("lsl") ~ "#" ~ integer) map {
+      case (base, shift) =>
+        if(shift % 16 == 0) Immediate(base, shift.toInt)
+        else Immediate(base, shift.toInt)
     }
   
-  private val quotedLabel: Parser[String] =
-    """\".+\":""".r ^^ {
-      x => x.substring(1, x.length - 2)
+  private val imm: P[Immediate] = P(shiftedImm | plainImm)
+  
+  private val reg: P[Register] = P(enum(Register.Id).!) map {
+      x => Register.get(x.toUpperCase)
     }
   
-  private val label = plainLabel | quotedLabel
-  
-  private val reg: Parser[Register] = regexFromEnum(Register.Id) ^^ {
-    case string => Register.get(string.toUpperCase)
-  }
-
   private object RegExtension {
     
     import enumeratum._
@@ -92,13 +53,13 @@ object AArch64Parser extends RegexParsers with ParserTrait {
     }
     
   }
-
-  private val regMod: Parser[RegModifier] = {
+  
+  private val regMod: P[RegModifier] = {
     import RegExtension.Type._
-    (regexFromEnum(RegExtension.Type) ^^ {
+    P(((enum(RegExtension.Type) !) map {
       x => RegExtension.Type.withName(x.toUpperCase)
-    }) ~ (("#" ~> integer)?) ^^ {
-      case ext ~ int => ext match {
+    }) ~ (("#" ~~ integer) ?)) map {
+      case (ext, int) => ext match {
         case ASR => Asr(int.get.toInt)
         case LSL => Lsl(int.get.toInt)
         case LSR => Lsr(int.get.toInt)
@@ -115,12 +76,12 @@ object AArch64Parser extends RegexParsers with ParserTrait {
     }
   }
     
-  private val mreg: Parser[ModifiedRegister] = (reg <~ ",") ~ regMod ^^ {
-    case reg ~ st => ModifiedRegister(reg, st)
+  private val mreg: P[ModifiedRegister] = P(reg ~ "," ~ regMod) map {
+    case (reg, st) => ModifiedRegister(reg, st)
   }
   
-  private val mem: Parser[Memory] = (("[" ~> reg ~ (("," ~> (mreg | reg | plainImm)?) <~ "]")) | address) ^^ {
-    case (reg: Register) ~ someInt => someInt match {
+  private val mem: P[Memory] = P(("[" ~ reg ~ (("," ~ (mreg | reg | plainImm)?) ~ "]")) | positive) map {
+    case (reg: Register, someInt) => someInt match {
       case None => Memory.get(reg)
       case Some(int: Immediate) => Memory.get(reg, int)
       case Some(off: ModifiedRegister) => Memory.get(reg, off)
@@ -130,73 +91,65 @@ object AArch64Parser extends RegexParsers with ParserTrait {
     case addr: Long => Memory.get(Immediate(addr))
   }
   
-  private val cond: Parser[Condition] =
-    ("(?i)" + "(" + Condition.values.map(_.entryName).mkString("|") + ")").r ^^ { 
+  private val cond: P[Condition] = P(enum(Condition).!) map {
       x => Condition.withName(x.toUpperCase)
     }
   
-  private val operand: Parser[(Operand, Boolean)] = (((mreg | reg | mem) ~ ("!" ?)) | imm) ^^ {
+  private val operand: P[(Operand, Boolean)] = P(((mreg | reg | mem) ~ ("!".! ?)) | imm) map {
     case imm: Immediate => (imm, false)
-    case (op: Operand) ~ (preidx: Option[_]) => (op, preidx.isDefined)
+    case (op: Operand, preidx: Option[_]) => (op, preidx.isDefined)
   }
   
-  private val operands: Parser[(List[Operand], Boolean)] = operand ~ (("," ~> operand)*) ^^ {
-    case head ~ tail => (head::tail).foldRight((List[Operand](), false)){ 
-      case (x, (l, preidx)) => (x._1:: l, x._2 || preidx) 
+  private val operands: P[(Vector[Operand], Boolean)] = P(operand ~ (("," ~ operand).rep)) map {
+    case (fop, fbool, list) => list.foldLeft((Vector[Operand](fop), fbool)) { 
+      case ((l, preidx), (nop, nbool)) => (l :+ nop, nbool || preidx) 
     }
   }
+
+  private val mnemonic: P[String] = P((Alpha.repX(1) ~~ Aldigit.repX ~~ ("." ~~ enum(Condition)).?).!)
   
-  private val mnemonic: Parser[String] = 
-    ("""(?i)[a-z]+([a-z\d])*((\.(""" + Condition.values.map(_.entryName).mkString("|") + "))?)").r
-  
-  private val opcode: Parser[Opcode] = mnemonic ^^ {
+  private val opcode: P[Opcode] = (mnemonic.map {
     case opcode => Opcode.get(opcode.toUpperCase)
-  } ^? (
-    { case Left(opcode) => opcode },
-    s => s"Unsupported opcode: ${s.right.get}"
-  )
+  }) flatMap {
+    case Left(opcode) => &(AnyChar ?).map(_ => opcode)
+    case Right(s) => (!(AnyChar ?)).map(_ => null).opaque(s"Unsupported opcode: $s}")
+  }
   
-  private val inst: Parser[Instruction] = (address ~ opcode ~ (operands ?) ~ (("," ~> cond) ?)) <~ end ^^ {
-    case addr ~ code ~ oplist ~ cond => oplist match {
+  val inst: P[Instruction] = P((hex ~ opcode ~ (operands ?) ~ (("," ~ cond) ?)) ~ end) map {
+    case (addr, code, oplist, cond) => oplist match {
       case None => Instruction.create(addr, code, Vector[Operand](), cond, false)
       case Some(operands) => 
         Instruction.create(addr, code, operands._1.toVector, cond, operands._2)
     }
   }
   
-  private val funlabel: Parser[Label] = address ~> label <~ end ^^ { 
-    case label => Label(label)
+  private val funlabel: P[Label] = P(hex ~ label ~ end) map {
+    x => Label(x._2)
   }
   
-  private val function: Parser[Function] = funlabel ~ (inst *) ^^ {
-    case label ~ insts => new Function(label, insts.toVector)
+  private val function: P[Function] = P(funlabel ~ inst.rep) map {
+    case (label, insts) => new Function(label, insts.toVector)
   }
   
-  @inline
-  private val funlabelLine: Parser[Either[Label, Instruction]] = funlabel ^^ { 
+  private val funlabelLine: P[Either[Label, Instruction]] = funlabel map { 
     case label => Left[Label, Instruction](label)
   }
   
-  @inline
-  private val instLine: Parser[Either[Label, Instruction]] = inst ^^ {
+  private val instLine: P[Either[Label, Instruction]] = inst map {
     case inst => Right(inst)
   }
   
-  private val singleLine = funlabelLine | instLine | (address ^^ { case int => Right(UnsupportedInst(int)) })
+  val singleLine = P(funlabelLine | instLine | (hex map { case int => Right(UnsupportedInst(int)) }))
    
-  val binaryunit: Parser[List[Function]] = function *
+  val binaryunit: P[Seq[Function]] = P(function.rep ~ End)
   
   @throws(classOf[edu.psu.ist.plato.kaiming.utils.ParsingException])
-  def parseBinaryUnit(input: String): List[Function] = 
-    parseAll(binaryunit, input) match {
-      case Success(value, _) => value
-      case failure: NoSuccess =>
-        Exception.parseError(failure.msg + "\n" + failure.next.offset + " " + failure.next.pos)
+  def parseBinaryUnit(input: String): Seq[Function] = 
+    binaryunit.parse(input) match {
+      case Parsed.Success(value, _) => value
+      case failure: Parsed.Failure => Exception.parseError(failure.msg)
     }
 
-  @throws(classOf[edu.psu.ist.plato.kaiming.utils.ParsingException])
-  def parseBinaryUnitJava(input: String): java.util.List[Function] = ListBuffer(parseBinaryUnit(input):_*)
-  
   def parseFile(f: File): Iterator[(Function, Boolean)] = parseLines(Source.fromFile(f).getLines)
   
   def parseLines(lines: Iterator[String]): Iterator[(Function, Boolean)] = 
@@ -205,8 +158,9 @@ object AArch64Parser extends RegexParsers with ParserTrait {
       var _cache: Option[(Function, Boolean)] = None
       var _label: Option[Label] = None
       lines.find {
-          x => parseAll(singleLine, x) match {
-            case Success(Left(label), input) => 
+          x =>
+            singleLine.parse(x) match {
+            case Parsed.Success(Left(label), _) =>
               _label = Some(label); true
             case _ => false
           }
@@ -219,8 +173,8 @@ object AArch64Parser extends RegexParsers with ParserTrait {
           var complete = true
           var insts = List[Instruction]()
           lines.find {
-            x => parseAll(singleLine, x) match {
-              case Success(value, input) if input.atEnd => value match {
+            x => singleLine.parse(x) match {
+              case Parsed.Success(value, input) if input == x.length => value match {
                 case Left(label) => _label = Some(label); true
                 case Right(inst) => insts = inst::insts; false
               }
@@ -246,4 +200,5 @@ object AArch64Parser extends RegexParsers with ParserTrait {
         }
       }
     }
+
 }
