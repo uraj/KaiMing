@@ -242,10 +242,27 @@ object Cfg {
             val n = subg.nodes.size
             val reach = Array.ofDim[Int](n, n)
             subg.edges.foreach { x => reach(nodeMap(x.from.value))(nodeMap(x.to.value)) = 1 }
+
+            // This is an ugly implementation of matrix mul, but forsome reason
+            // it is the fastest I can come up with
+            val size = subg.nodes.size
+            @scala.annotation.tailrec def loop1(i: Int): Unit = {
+              @scala.annotation.tailrec def loop2(j: Int): Unit = {
+                @scala.annotation.tailrec def loop3(k: Int): Unit = {
+                  if (k < size) { reach(i)(j) |= (reach(i)(k) & reach(k)(j)); loop3(k + 1) }
+                }
+                if (j < size) { loop3(0); loop2(j + 1) }
+              }
+              if (i < size) { loop2(0); loop1(i + 1) }
+            }
+            loop1(0)
+            /*
             val indices = 0 until subg.nodes.size
             for (i <- indices; j <- indices; k <- indices) {
               reach(i)(j) |= (reach(i)(k) & reach(k)(j))
             }
+            */
+
             l ++ {
               if (merge)
                 backEdges.groupBy(_._2).foldLeft(List[Loop[A, B]]()) { (s, group) =>
