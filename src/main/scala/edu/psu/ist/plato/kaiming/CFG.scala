@@ -172,6 +172,7 @@ object Cfg {
   sealed abstract class Loop[A <: Arch, B <: BBlock[A]] private (val header: Int,
       val body: Set[Int], val cfg: Cfg[A, B] ) {
     
+    // We need this trait because Graph.Component is protected
     protected sealed trait Component {
       def nodes: Set[_ <: g.NodeT forSome {val g: Graph[Int, LDiEdge]}]
       def edges: Set[_ <: g.EdgeT forSome {val g: Graph[Int, LDiEdge]}]
@@ -226,76 +227,48 @@ object Cfg {
         }
       computeDomImpl((false, initDominators))
     }
-    
-    def detectLoops[A <: Arch, B <: BBlock[A]](cfg: Cfg[A, B], merge: Boolean = false): Vector[Loop[A, B]] = {
-      lazy val dominators = computeDominators(cfg)
-      cfg.graph.componentTraverser().foldLeft(Vector[Loop[A, B]]()) {
+
+    def detectLoops[A <: Arch, B <: BBlock[A]](cfg: Cfg[A, B], merge: Boolean = false): List[Loop[A, B]] = {
+      val dominators = computeDominators(cfg)
+      cfg.graph.componentTraverser().foldLeft(List[Loop[A, B]]()) {
         (l, subg) => {
           if (subg.nodes.size < 2) l else {
-            val nodeMap = subg.nodes.map(_.value).zipWithIndex.toMap
-            val backEdges = dominators.filterKeys { nodeMap.contains(_) }.foldLeft(Set[(Int, Int)]()) {
-              case (l, (k, v)) =>
-                if (nodeMap.contains(k))
-                  l ++ (cfg.successors(k) & v).map { x => (k, x) }
-                else l
+            val nodes = subg.nodes.map(_.value)
+            val backEdges = dominators.filterKeys { nodes.contains(_) }.foldLeft(Set[(Int, Int)]()) {
+              case (s, (k, v)) =>
+                if (nodes.contains(k))
+                  s ++ (cfg.successors(k) & v).map { x => (k, x) }
+                else s
             }
-            val n = subg.nodes.size
-            val reach = Array.ofDim[Int](n, n)
-            subg.edges.foreach { x => reach(nodeMap(x.from.value))(nodeMap(x.to.value)) = 1 }
-
-            // This is an ugly implementation of matrix mul, but forsome reason
-            // it is the fastest I can come up with
-            val size = subg.nodes.size
-            @scala.annotation.tailrec def loop1(i: Int): Unit = {
-              @scala.annotation.tailrec def loop2(j: Int): Unit = {
-                @scala.annotation.tailrec def loop3(k: Int): Unit = {
-                  if (k < size) { reach(i)(j) |= (reach(i)(k) & reach(k)(j)); loop3(k + 1) }
-                }
-                if (j < size) { loop3(0); loop2(j + 1) }
+            if (merge)
+              backEdges.groupBy(_._2).foldLeft(l) { (s, group) =>
+                val candidates = subg.nodes.filter(dominators.get(_).get.contains(group._1))
+                (new Loop(group._1,
+                  candidates.filter(_.pathTo(cfg.graph get group._1).isDefined).map(_.value),
+                  cfg) {
+                    val component = new Component {
+                      def nodes = subg.nodes
+                      def edges = subg.edges
+                    }
+                  })::s
               }
-              if (i < size) { loop2(0); loop1(i + 1) }
-            }
-            loop1(0)
-            /*
-            val indices = 0 until subg.nodes.size
-            for (i <- indices; j <- indices; k <- indices) {
-              reach(i)(j) |= (reach(i)(k) & reach(k)(j))
-            }
-            */
-
-            l ++ {
-              if (merge)
-                backEdges.groupBy(_._2).foldLeft(List[Loop[A, B]]()) { (s, group) =>
-                  val candidates = subg.nodes.filter(dominators.get(_).get.contains(group._1))
-                  (new Loop(group._1,
-                    candidates.filter {
-                      y => reach(nodeMap(y))(nodeMap(group._1)) != 0
-                    }.map(_.value), cfg) {
-                      val component = new Component {
-                        def nodes = subg.nodes
-                        def edges = subg.edges
-                      }
-                    })::s
-                }
-              else
-                backEdges.foldLeft(List[Loop[A, B]]()) { (s, x) =>
-                  val candidates = subg.nodes.filter(dominators.get(_).get.contains(x._2))
-                  (new Loop(x._2,
-                    candidates.filter {
-                      y => reach(nodeMap(y))(nodeMap(x._1)) != 0
-                    }.map(_.value), cfg) {
-                      val component = new Component {
-                        def nodes = subg.nodes
-                        def edges = subg.edges
-                      }
-                    })::s
-                }.toVector
-            }
+            else
+              backEdges.foldLeft(l) { (s, x) =>
+                val candidates = subg.nodes.filter(dominators.get(_).get.contains(x._2))
+                (new Loop(x._2,
+                  candidates.filter(_.pathTo(cfg.graph get x._2).isDefined).map(_.value),
+                  cfg) {
+                    val component = new Component {
+                      def nodes = subg.nodes
+                      def edges = subg.edges
+                    }
+                  })::s
+              }
           }
         }
       }
     }
-    
+
   }
 }
 

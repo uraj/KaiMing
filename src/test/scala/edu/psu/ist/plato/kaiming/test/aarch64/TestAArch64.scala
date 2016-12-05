@@ -30,7 +30,7 @@ class TestAArch64 extends FunSuite {
         } else {
           bloops.count {
             x =>
-              x.body.size > 2 && x.body.size >= x.component.nodes.size * threshold
+              x.body.size > 2 && x.body.size >= f.cfg.graph.nodes.size * threshold
           }
         })
       if (flaCountRound > 0)
