@@ -95,17 +95,8 @@ object AArch64Parser extends ParserTrait {
       x => Condition.withName(x.toUpperCase)
     }
   
-  private val operand: P[(Operand, Boolean)] = P(((mreg | reg | mem) ~ ("!".! ?)) | imm) map {
-    case imm: Immediate => (imm, false)
-    case (op: Operand, preidx: Option[_]) => (op, preidx.isDefined)
-  }
+  private val operand: P[Operand] = P(mreg | reg | mem | imm)
   
-  private val operands: P[(Vector[Operand], Boolean)] = P(operand ~ (("," ~ operand).rep)) map {
-    case (fop, fbool, list) => list.foldLeft((Vector[Operand](fop), fbool)) { 
-      case ((l, preidx), (nop, nbool)) => (l :+ nop, nbool || preidx) 
-    }
-  }
-
   private val mnemonic: P[String] = P((Alpha.repX(1) ~~ Aldigit.repX ~~ ("." ~~ enum(Condition)).?).!)
   
   private val opcode: P[Opcode] = (mnemonic.map {
@@ -115,11 +106,11 @@ object AArch64Parser extends ParserTrait {
     case Right(s) => (!(AnyChar ?)).map(_ => null).opaque(s"Unsupported opcode: $s}")
   }
   
-  val inst: P[Instruction] = P((hex ~ opcode ~ (operands ?) ~ (("," ~ cond) ?)) ~ end) map {
-    case (addr, code, oplist, cond) => oplist match {
-      case None => Instruction.create(addr, code, Vector[Operand](), cond, false)
-      case Some(operands) => 
-        Instruction.create(addr, code, operands._1.toVector, cond, operands._2)
+  val inst: P[Instruction] = P(hex ~ opcode ~ operand.rep(sep=",") ~ ("!".! | ("," ~ cond)).? ~ end) map {
+    case (addr, code, oplist, trail) => trail match {
+      case Some("!") => Instruction.create(addr, code, oplist, Condition.AL, true)
+      case Some(cond: Condition) => Instruction.create(addr, code, oplist, cond, false)
+      case _ => Instruction.create(addr, code, oplist, Condition.AL, false)
     }
   }
   
@@ -151,6 +142,8 @@ object AArch64Parser extends ParserTrait {
     }
 
   def parseFile(f: File): Iterator[(Function, Boolean)] = parseLines(Source.fromFile(f).getLines)
+  
+  def parseStream(s: java.io.InputStream) = parseLines(Source.fromInputStream(s).getLines())
   
   def parseLines(lines: Iterator[String]): Iterator[(Function, Boolean)] = 
     new Iterator[(Function, Boolean)]() {

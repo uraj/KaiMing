@@ -12,7 +12,7 @@ abstract class Entry[A <: Arch] extends Indexed {
 
 abstract class MachEntry[A <: MachArch] extends Entry[A] {
   
-  val mach: Machine[A]
+  def mach: Machine[A]
   
   final def isTerminator: Boolean = this.isInstanceOf[Terminator[A]]
   final def asTerminator = this.asInstanceOf[Terminator[A]]

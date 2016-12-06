@@ -228,7 +228,7 @@ object Opcode {
     case object Branch extends OpClass {
       override object Mnemonic extends Enum[Mnemonic] {
         val values = findValues
-        case object B extends Mnemonic
+        case object B extends Mnemonic((Condition.values.map { x => "B." + x.entryName }):_*)
         case object BR extends Mnemonic
         case object RET extends Mnemonic
         case object BL extends Mnemonic
@@ -314,11 +314,10 @@ object Opcode {
       }
     }
     
-//    case object Unsupported extends OpClass
   }
   
   import OpClass._
-  private val classOfMnem = OpClass.values.foldLeft(Map[String, OpClass]()) {
+  private val classOfMnem = OpClass.values.foldLeft(Map[String, (OpClass, String)]()) {
     (map, mnem) => map ++ (mnem match {
       /*case Unsupported =>
         List("SCVTF", "MVN", "FMOV", "FCMP", "FCVT", "FMUL", "MOVI",
@@ -326,14 +325,15 @@ object Opcode {
              "FNEG", "FCVTZU", "FRINTX", "FRINTP", "FRINTM", "FRINTA", "FRINTI", "EXT", "FSQRT",
              "BIF", "BIT", "DUP", "INS", "FNMUL")*/
       case _ => mnem.Mnemonic.values.map(_.variants).flatten
-    }).map((_ -> mnem))
+    }).map { x=> (x -> (mnem, x)) }
   }
   
   def get(rawcode: String) = {
-    val lookup = rawcode.split("\\.")(0)
-    val mnem = classOfMnem.get(lookup)
-    if (mnem.isDefined)
-      Left(Opcode(mnem.get, rawcode))
+    val ret = classOfMnem.get(rawcode)
+    if (ret.isDefined) {
+      val mnem = ret.get
+      Left(Opcode(mnem._1, mnem._2))
+    }
     else {
       Right(rawcode)
     }

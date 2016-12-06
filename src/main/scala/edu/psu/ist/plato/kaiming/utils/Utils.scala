@@ -10,7 +10,7 @@ final class RefWrapper[T](private val stuffing: AnyRef) {
 
 trait Indexed extends Ordered[Indexed] {
   
-  val index: Long
+  def index: Long
   final override def compare(that: Indexed) = 
     Math.signum(index - that.index).toInt
   

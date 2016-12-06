@@ -15,6 +15,7 @@ class TestAArch64 extends FunSuite {
   
   test("Test large-scale parsing and IR lifting [OK]") {
     val name = "/test/aarch64/test-03.s"
+    //val file = new File("/home/pxw172/Downloads/decrypted/ERROR/ERROR/YKB.app/YKB.decrypted.s")
     val file = new File(getClass.getResource(name).toURI)
     var funCount = 0
     var flaCount = 0
@@ -26,11 +27,11 @@ class TestAArch64 extends FunSuite {
       val connected = f.cfg.isConnected
       flaCountRound += (
         if (connected) {
-          bloops.count { x => x.body.size > 2 && x.body.size >= f.cfg.size * threshold }
+          bloops.count { x => x.body.size > 10 && x.body.size >= f.cfg.size * threshold }
         } else {
           bloops.count {
             x =>
-              x.body.size > 2 && x.body.size >= f.cfg.graph.nodes.size * threshold
+              x.body.size > 10 && x.body.size >= f.cfg.graph.nodes.size * threshold
           }
         })
       if (flaCountRound > 0)

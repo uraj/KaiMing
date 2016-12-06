@@ -177,7 +177,14 @@ case class Memory(base: Option[Register], off: Option[Either[Immediate, Modified
 
 object Immediate {
   
-    def apply(value: Long) = new Immediate(value, 0)
+  private val poolSize = 32
+  private val pool = (0 until poolSize * 2 + 1).map(x => new Immediate(x - poolSize, 0)).toVector 
+  
+  def apply(value: Long) = {
+    if (value <= poolSize && value >= -poolSize)
+      pool(value.toInt + poolSize)
+    else new Immediate(value, 0)
+  }
 
 }
 
