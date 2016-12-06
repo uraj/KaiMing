@@ -67,14 +67,6 @@ abstract class Cfg[A <: Arch, B <: BBlock[A]] extends Iterable[B] {
     }.append("}").toString
   }
   
-  import edu.psu.ist.plato.kaiming.utils.RefWrapper
-  
-  private val _belongs = scala.collection.mutable.Map[RefWrapper[Terminator[A]], BBlock[A]]()
-  def loopUpRelocation(b: Terminator[A]) = _belongs.get(new RefWrapper(b))
-  def relocateTarget(b: Terminator[A], bb: BBlock[A]) =
-    _belongs += (new RefWrapper(b) -> bb)
-  
-  
 }
 
 object MachCfg {
