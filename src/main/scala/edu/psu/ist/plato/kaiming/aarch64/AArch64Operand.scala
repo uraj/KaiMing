@@ -1,8 +1,6 @@
 package edu.psu.ist.plato.kaiming.aarch64
 
 import edu.psu.ist.plato.kaiming.MachRegister
-import edu.psu.ist.plato.kaiming.Arch.AArch64
-
 import edu.psu.ist.plato.kaiming.utils.Exception
 
 import enumeratum._

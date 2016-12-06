@@ -1,7 +1,6 @@
 package edu.psu.ist.plato.kaiming.ir
 
 import edu.psu.ist.plato.kaiming._
-import edu.psu.ist.plato.kaiming.Arch.KaiMing
 
 import edu.psu.ist.plato.kaiming.ir.dataflow.PathInsensitiveProblem
 import edu.psu.ist.plato.kaiming.ir.dataflow.Forward
@@ -14,7 +13,7 @@ import scalax.collection.Graph
 import scalax.collection.GraphEdge.DiEdge
 import scalax.collection.edge.LDiEdge
 
-class IRBBlock[A <: MachArch](override val parent: Context[A], override val entries: Seq[Stmt[A]],
+class IRBBlock[A <: Arch](override val parent: Context[A], override val entries: Seq[Stmt[A]],
     override val label: Label) extends BBlock[KaiMing](parent, entries, label) with Iterable[Stmt[A]] {
   
   override def iterator = entries.iterator
@@ -22,9 +21,9 @@ class IRBBlock[A <: MachArch](override val parent: Context[A], override val entr
   
 }
 
-class IRCfg[A <: MachArch](override val parent: Context[A]) extends Cfg[KaiMing, IRBBlock[A]] {
+class IRCfg[A <: Arch](override val parent: Context[A]) extends Cfg[KaiMing, IRBBlock[A]] {
   
-  private def liftToIR[A <: MachArch](ctx: Context[A]) = {
+  private def liftToIR[A <: Arch](ctx: Context[A]) = {
     import scalax.collection.Graph
     import scalax.collection.edge.Implicits._
     import scalax.collection.edge.LDiEdge
@@ -59,7 +58,7 @@ class IRCfg[A <: MachArch](override val parent: Context[A]) extends Cfg[KaiMing,
   def getMachBBlock(irbb: IRBBlock[A]) = bbmap.get(irbb)
 }
 
-case class IRBuilder[A <: MachArch](val ctx: Context[A], private val start: Long,
+case class IRBuilder[A <: Arch](val ctx: Context[A], private val start: Long,
     private val content: List[Stmt[A]]) {
     
   def get = content.reverse
@@ -99,18 +98,18 @@ case class IRBuilder[A <: MachArch](val ctx: Context[A], private val start: Long
 
 object Context {
   
-  case class Def[A <: MachArch](s: DefStmt[A]) extends Definition[A]
+  case class Def[A <: Arch](s: DefStmt[A]) extends Definition[A]
   case object Init extends Definition[Nothing]
 
-  sealed trait Definition[+A <: MachArch] {
+  sealed trait Definition[+A <: Arch] {
     
-    final def flatMap[B](f: DefStmt[_ <: MachArch] => Option[B]): Option[B] =
+    final def flatMap[B](f: DefStmt[_ <: Arch] => Option[B]): Option[B] =
       this match {
         case Def(s) => f(s)
         case Init => None
     }
     
-    final def map[B](f: DefStmt[_ <: MachArch] => B): Option[B] =
+    final def map[B](f: DefStmt[_ <: Arch] => B): Option[B] =
       this match {
         case Def(s) => Some(f(s))
         case Init => None
@@ -118,12 +117,12 @@ object Context {
     
   }
   
-  type UseDefChain[A <: MachArch] = Map[Lval, Set[Definition[A]]]
+  type UseDefChain[A <: Arch] = Map[Lval, Set[Definition[A]]]
   object UseDefChain {
-    def apply[A <: MachArch]() = Map[Lval, Set[Definition[A]]]()
+    def apply[A <: Arch]() = Map[Lval, Set[Definition[A]]]()
   }
   
-  private class ReachingDefinition[A <: MachArch](ctx: Context[A])
+  private class ReachingDefinition[A <: Arch](ctx: Context[A])
       extends PathInsensitiveProblem[UseDefChain[A]](ctx, Forward, Int.MaxValue) {
     
     // There is a more functional way to implement this, but
@@ -184,13 +183,13 @@ object Context {
     def anlayze = { val evaluate = solve; _UDMap }
   }
   
-  private def useDefAnalysis[A <: MachArch](ctx: Context[A]) =
+  private def useDefAnalysis[A <: Arch](ctx: Context[A]) =
     new Context.ReachingDefinition(ctx).anlayze
     
 }
 
-final class Context[A <: MachArch] (val proc: MachProcedure[A])
-    extends Procedure[Arch.KaiMing] {
+final class Context[A <: Arch] (val proc: MachProcedure[A])
+    extends Procedure[KaiMing] {
 
   @inline def mach = proc.mach
   

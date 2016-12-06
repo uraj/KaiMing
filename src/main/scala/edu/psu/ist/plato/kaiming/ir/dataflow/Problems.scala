@@ -1,11 +1,10 @@
 package edu.psu.ist.plato.kaiming.ir.dataflow
 
 import edu.psu.ist.plato.kaiming._
-import edu.psu.ist.plato.kaiming.Arch.KaiMing
-import edu.psu.ist.plato.kaiming.MachArch
+import edu.psu.ist.plato.kaiming.Arch
 import edu.psu.ist.plato.kaiming.ir._
 
-abstract class FlowInsensitiveProblem[A <: MachArch, T](ctx: Context[A]) {
+abstract class FlowInsensitiveProblem[A <: Arch, T](ctx: Context[A]) {
   
   protected def getInitialState: T
   protected def process(e: Stmt[A], in: T): T
@@ -18,7 +17,7 @@ sealed trait Direction
 case object Forward extends Direction
 case object Backward extends Direction
 
-abstract class PathInsensitiveProblem[T](ctx: Context[_ <: MachArch], dir: Direction, maxIterMultiplier: Int) {
+abstract class PathInsensitiveProblem[T](ctx: Context[_ <: Arch], dir: Direction, maxIterMultiplier: Int) {
   
   protected def getInitialEntryState(bid: Int): T
   protected def transfer(bid: Int, in: T): T
@@ -68,11 +67,11 @@ abstract class PathInsensitiveProblem[T](ctx: Context[_ <: MachArch], dir: Direc
 
 import scala.collection.BitSet
 
-abstract class DataFlowProblem(ctx: Context[_ <: MachArch],
+abstract class DataFlowProblem[A <: Arch](ctx: Context[A],
     dir: Direction, maxIterMultiplier: Int)
     extends PathInsensitiveProblem[BitSet](ctx, dir, maxIterMultiplier) {
 
-  private type BB = BBlock[KaiMing]
+  private type BB = IRBBlock[A]
   
   protected def gen(bid: Int): BitSet
   protected def kill(bid: Int): BitSet

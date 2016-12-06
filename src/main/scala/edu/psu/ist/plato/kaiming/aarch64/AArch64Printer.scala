@@ -6,7 +6,6 @@ import java.io.OutputStream
 import edu.psu.ist.plato.kaiming.Label
 import edu.psu.ist.plato.kaiming.MachBBlock
 import edu.psu.ist.plato.kaiming.Cfg
-import edu.psu.ist.plato.kaiming.Arch.AArch64
 
 import edu.psu.ist.plato.kaiming.utils.Exception
 

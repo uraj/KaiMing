@@ -5,7 +5,7 @@ import edu.psu.ist.plato.kaiming.Machine
 import edu.psu.ist.plato.kaiming.Arch
 
 sealed abstract class Flag(val name: String, val index: Int)
-    extends MachFlag[Arch.ARM]
+    extends MachFlag[ARM]
 
 object Flag {
   case object C extends Flag("C", 0)

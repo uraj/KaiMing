@@ -1,6 +1,6 @@
 package edu.psu.ist.plato.kaiming.ir
 
-import edu.psu.ist.plato.kaiming.MachArch
+import edu.psu.ist.plato.kaiming.Arch
 import edu.psu.ist.plato.kaiming.MachRegister
 import edu.psu.ist.plato.kaiming.MachFlag
 
@@ -242,7 +242,7 @@ sealed abstract class Lval extends PrimitiveExpr {
   
 }
 
-case class Var(parent: Context[_ <: MachArch], name: String, override val sizeInBits: Int)
+case class Var(parent: Context[_ <: Arch], name: String, override val sizeInBits: Int)
     extends Lval {
   
   // Sometimes we want Var instances simply for testing without being binded
@@ -251,7 +251,7 @@ case class Var(parent: Context[_ <: MachArch], name: String, override val sizeIn
   
 }
 
-case class Reg(mreg: MachRegister[_ <: MachArch]) extends Lval {
+case class Reg(mreg: MachRegister[_ <: Arch]) extends Lval {
   
   override def hashCode = mreg.hashCode
   override def name = mreg.name
@@ -259,7 +259,7 @@ case class Reg(mreg: MachRegister[_ <: MachArch]) extends Lval {
   
 }
 
-case class Flg(mflag: MachFlag[_ <: MachArch]) extends Lval {
+case class Flg(mflag: MachFlag[_ <: Arch]) extends Lval {
 
   override def hashCode = mflag.hashCode
   override def name = mflag.name

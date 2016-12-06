@@ -1,11 +1,10 @@
 package edu.psu.ist.plato.kaiming.ir
 
 import edu.psu.ist.plato.kaiming._
-import Arch.KaiMing
 
 import edu.psu.ist.plato.kaiming.utils.Exception
 
-sealed abstract class Stmt[A <: MachArch](val usedExpr: Vector[Expr]) extends Entry[KaiMing] {
+sealed abstract class Stmt[A <: Arch](val usedExpr: Vector[Expr]) extends Entry[KaiMing] {
   
   final def this(exprs: Expr*) = this(exprs.toVector)
   
@@ -17,10 +16,10 @@ sealed abstract class Stmt[A <: MachArch](val usedExpr: Vector[Expr]) extends En
   
 }
 
-case class StStmt[A <: MachArch](index: Long, host: MachEntry[A],
+case class StStmt[A <: Arch](index: Long, host: MachEntry[A],
     storeTo: Expr, storedExpr: Expr) extends Stmt[A](storeTo, storedExpr)
 
-case class JmpStmt[A <: MachArch](index: Long, host: MachEntry[A] with Terminator[A],
+case class JmpStmt[A <: Arch](index: Long, host: MachEntry[A] with Terminator[A],
     cond: Expr, target: Expr) extends Stmt[A](cond, target) with Terminator[KaiMing] {
   
   def dependentLvals = cond.enumLvals
@@ -34,7 +33,7 @@ case class JmpStmt[A <: MachArch](index: Long, host: MachEntry[A] with Terminato
   
 }
 
-case class RetStmt[A <: MachArch](index: Long, host: MachEntry[A],
+case class RetStmt[A <: Arch](index: Long, host: MachEntry[A],
     target: Expr) extends Stmt[A](target) with Terminator[KaiMing] {
   
   override def isConditional = false
@@ -46,7 +45,7 @@ case class RetStmt[A <: MachArch](index: Long, host: MachEntry[A],
   
 }
 
-sealed abstract class DefStmt[A <: MachArch](usedExpr: Vector[Expr])
+sealed abstract class DefStmt[A <: Arch](usedExpr: Vector[Expr])
     extends Stmt[A](usedExpr) {
   
   def this(exprs: Expr*) = this(exprs.toVector)
@@ -54,7 +53,7 @@ sealed abstract class DefStmt[A <: MachArch](usedExpr: Vector[Expr])
   
 }
 
-case class AssignStmt[A <: MachArch](index: Long, host: MachEntry[A],
+case class AssignStmt[A <: Arch](index: Long, host: MachEntry[A],
     definedLval: Lval, usedRval: Expr) extends DefStmt[A](Vector(usedRval)) {
   
   require(definedLval.sizeInBits == usedRval.sizeInBits)
@@ -73,14 +72,14 @@ object Extractor extends enumeratum.Enum[Extractor] {
   
 }
 
-case class CallStmt[A <: MachArch](index: Long, host: MachEntry[A] with Terminator[A],
+case class CallStmt[A <: Arch](index: Long, host: MachEntry[A] with Terminator[A],
     target: Expr) extends DefStmt[A](target) {
   
   override def definedLval = Reg(host.mach.returnRegister)
   
 }
 
-case class SelStmt[A <: MachArch](index: Long, host: MachEntry[A],
+case class SelStmt[A <: Arch](index: Long, host: MachEntry[A],
     definedLval: Lval, condition: Expr, trueValue: Expr, falseValue: Expr)
     extends DefStmt[A](condition, trueValue, falseValue) {
   
@@ -89,9 +88,9 @@ case class SelStmt[A <: MachArch](index: Long, host: MachEntry[A],
   
 }
   
-case class LdStmt[A <: MachArch](index: Long, host: MachEntry[A],
+case class LdStmt[A <: Arch](index: Long, host: MachEntry[A],
     definedLval: Lval, loadFrom: Expr) extends DefStmt[A](loadFrom)
 
-case class NopStmt[A <: MachArch](index: Long, host: MachEntry[A]) extends Stmt[A]()
+case class NopStmt[A <: Arch](index: Long, host: MachEntry[A]) extends Stmt[A]()
 
-case class UnsupportedStmt[A <: MachArch](index: Long, host: MachEntry[A]) extends Stmt[A]()
+case class UnsupportedStmt[A <: Arch](index: Long, host: MachEntry[A]) extends Stmt[A]()

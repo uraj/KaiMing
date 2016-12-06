@@ -1,7 +1,6 @@
 package edu.psu.ist.plato.kaiming.arm
 
 import edu.psu.ist.plato.kaiming.MachRegister
-import edu.psu.ist.plato.kaiming.Arch.ARM
 
 import enumeratum._
 

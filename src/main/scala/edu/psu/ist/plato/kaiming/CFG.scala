@@ -5,7 +5,6 @@ import scala.collection.immutable.{SortedSet, TreeSet}
 import scalax.collection.Graph
 import scalax.collection.edge.LDiEdge
 
-import Arch.KaiMing
 import ir.{Context, IRBBlock, IRBuilder}
 import utils.Indexed
 
@@ -77,7 +76,7 @@ object MachCfg {
   import scalax.collection.edge.LDiEdge
   import scalax.collection.edge.Implicits._
   
-  private def split[A <: MachArch](unit : MachProcedure[A],
+  private def split[A <: Arch](unit : MachProcedure[A],
       entries : Vector[MachEntry[A]], pivots : Seq[Int]) = {
     val sortedPivots = (TreeSet[Int]() ++ pivots + 0 + entries.length).toVector
     require(sortedPivots.head == 0 && sortedPivots.last <= entries.length)
@@ -90,11 +89,11 @@ object MachCfg {
     }
   }
   
-  private def containingBlock[A <: MachArch](
+  private def containingBlock[A <: Arch](
       bbs : Traversable[MachBBlock[A]], index : Long) =
     bbs.find { bb => bb.lastEntry.index >= index && bb.firstEntry.index <= index }
   
-  def apply[A <: MachArch](parent : MachProcedure[A]) = {
+  def apply[A <: Arch](parent : MachProcedure[A]) = {
     val entries = parent.entries
     val sorted = entries.toVector.sorted[Indexed]
     val pivots =
@@ -160,7 +159,7 @@ object MachCfg {
   
 }
 
-class MachCfg[A <: MachArch] protected (val parent: MachProcedure[A],
+class MachCfg[A <: Arch] protected (val parent: MachProcedure[A],
     val graph: Graph[Int, LDiEdge], val blocks: Vector[MachBBlock[A]],
     protected val blockIdMap: Map[MachBBlock[A], Int]) extends Cfg[A, MachBBlock[A]]
 

@@ -11,8 +11,8 @@ import org.scalatest.time.SpanSugar._
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.junit.JUnitRunner
 
-import edu.psu.ist.plato.kaiming.Arch.ARM
 import edu.psu.ist.plato.kaiming.Cfg.Loop
+import edu.psu.ist.plato.kaiming.arm.ARM
 import edu.psu.ist.plato.kaiming.arm.Function
 import edu.psu.ist.plato.kaiming.arm.ARMParser
 import edu.psu.ist.plato.kaiming.ir.Context

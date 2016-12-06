@@ -1,10 +1,7 @@
 package edu.psu.ist.plato.kaiming.arm
 
 import edu.psu.ist.plato.kaiming._
-import edu.psu.ist.plato.kaiming.Arch.ARM
-
 import edu.psu.ist.plato.kaiming.ir._
-
 import edu.psu.ist.plato.kaiming.utils.Exception
 
 object ARMMachine extends Machine[ARM] {

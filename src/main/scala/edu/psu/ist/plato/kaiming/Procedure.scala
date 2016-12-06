@@ -13,7 +13,7 @@ abstract class Procedure[A <: Arch] {
 
 }
 
-abstract class MachProcedure[A <: MachArch](val entries: Vector[MachEntry[A]],
+abstract class MachProcedure[A <: Arch](val entries: Vector[MachEntry[A]],
     trimIsolated: Boolean = false) extends Procedure[A] {
   
   def mach: Machine[A]

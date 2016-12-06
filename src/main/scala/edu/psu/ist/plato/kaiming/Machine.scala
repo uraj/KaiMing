@@ -1,10 +1,9 @@
 package edu.psu.ist.plato.kaiming
 
-import Arch._
 import ir._
 import aarch64.AArch64Machine
 
-abstract class Machine[A <: MachArch] {
+abstract class Machine[A <: Arch] {
 
   val returnRegister: MachRegister[A]
   val wordSizeInBits: Int
@@ -14,14 +13,14 @@ abstract class Machine[A <: MachArch] {
 
 }
 
-trait MachFlag[A <: MachArch] extends enumeratum.EnumEntry {
+trait MachFlag[A <: Arch] extends enumeratum.EnumEntry {
   
   def name: String
   def index: Int
   
 }
 
-abstract class MachRegister[A <: MachArch] {
+abstract class MachRegister[A <: Arch] {
   
   def name: String
   def sizeInBits: Int

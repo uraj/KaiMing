@@ -1,8 +1,6 @@
 package edu.psu.ist.plato.kaiming.aarch64
 
 import edu.psu.ist.plato.kaiming._
-import edu.psu.ist.plato.kaiming.Arch.AArch64
-import edu.psu.ist.plato.kaiming.Arch.KaiMing
 
 import edu.psu.ist.plato.kaiming.ir._
 

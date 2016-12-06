@@ -4,8 +4,7 @@ import java.io.PrintStream
 import java.io.OutputStream
 
 import edu.psu.ist.plato.kaiming.BBlock
-import edu.psu.ist.plato.kaiming.Arch.KaiMing
-import edu.psu.ist.plato.kaiming.MachArch
+import edu.psu.ist.plato.kaiming.Arch
 
 object IRPrinter {
   
@@ -123,18 +122,18 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
     }
   }
   
-  def printAssignStmt(s: AssignStmt[_ <: MachArch]) {
+  def printAssignStmt(s: AssignStmt[_ <: Arch]) {
     printLval(s.definedLval)
     print(" = ")
     printExpr(s.usedRval)
   }
   
-  def printCallStmt(s: CallStmt[_ <: MachArch]) {
+  def printCallStmt(s: CallStmt[_ <: Arch]) {
     print("call ")
     printExpr(s.target)
   }
   
-  def printJmpStmt(s: JmpStmt[_ <: MachArch]) {
+  def printJmpStmt(s: JmpStmt[_ <: Arch]) {
     print("jmp")
     if (s.isConditional) {
       print('[')
@@ -148,21 +147,21 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
     }
   }
   
-  def printLdStmt(s: LdStmt[_ <: MachArch]) {
+  def printLdStmt(s: LdStmt[_ <: Arch]) {
     printLval(s.definedLval)
     print(" <- [ ")
     printExpr(s.loadFrom)
     print(" ]")
   }
   
-  def printStStmt(s: StStmt[_ <: MachArch]) {
+  def printStStmt(s: StStmt[_ <: Arch]) {
     printExpr(s.storedExpr)
     print(" -> [ ")
     printExpr(s.storeTo)
     print(" ]")
   }
   
-  def printSelStmt(s: SelStmt[_ <: MachArch]) {
+  def printSelStmt(s: SelStmt[_ <: Arch]) {
     printLval(s.definedLval)
     print(" = ")
     printExpr(s.condition)
@@ -172,11 +171,11 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
     printExpr(s.falseValue)
   }
   
-  def printRetStmt(s: RetStmt[_ <: MachArch]) {
+  def printRetStmt(s: RetStmt[_ <: Arch]) {
     print("ret")
   }
   
-  def printStmt[A <: MachArch](s: Stmt[A]) {
+  def printStmt[A <: Arch](s: Stmt[A]) {
     s match {
       case s: AssignStmt[A] => printAssignStmt(s)
       case s: CallStmt[A] => printCallStmt(s)
@@ -192,24 +191,24 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
     EOS
   }
   
-  def printBasicBlock[A <: MachArch](bb: IRBBlock[A]) {
+  def printBasicBlock[A <: Arch](bb: IRBBlock[A]) {
     println(bb.label)
     bb.foreach { s => { printStmt(s); println() } }
   }
   
-  def printIndentedBasicBlock[A <: MachArch](bb: IRBBlock[A]) {
+  def printIndentedBasicBlock[A <: Arch](bb: IRBBlock[A]) {
     println(bb.label)
     bb.foreach { s => { print("\t"); printStmt(s); println() } }
   }
   
-  def printContext(ctx: Context[_ <: MachArch]) {
+  def printContext(ctx: Context[_ <: Arch]) {
     print(ctx.name);
     println(" {")
     ctx.cfg.blocks.foreach { bb => printIndentedBasicBlock(bb) }
     println('}')
   }
   
-  def printContextWithUDInfo[A <: MachArch](ctx: Context[A]) {
+  def printContextWithUDInfo[A <: Arch](ctx: Context[A]) {
     print(ctx.name)
     println(" {")
     for (bb <- ctx.cfg) {
