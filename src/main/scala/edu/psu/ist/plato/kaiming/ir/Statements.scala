@@ -1,11 +1,9 @@
 package edu.psu.ist.plato.kaiming.ir
 
-import edu.psu.ist.plato.kaiming.Entry
-import edu.psu.ist.plato.kaiming.Terminator
-import edu.psu.ist.plato.kaiming.MachEntry
-import edu.psu.ist.plato.kaiming.BBlock
-import edu.psu.ist.plato.kaiming.Arch.KaiMing
-import edu.psu.ist.plato.kaiming.MachArch
+import edu.psu.ist.plato.kaiming._
+import Arch.KaiMing
+
+import edu.psu.ist.plato.kaiming.utils.Exception
 
 sealed abstract class Stmt[A <: MachArch](val usedExpr: Vector[Expr]) extends Entry[KaiMing] {
   
@@ -22,35 +20,31 @@ sealed abstract class Stmt[A <: MachArch](val usedExpr: Vector[Expr]) extends En
 case class StStmt[A <: MachArch](index: Long, host: MachEntry[A],
     storeTo: Expr, storedExpr: Expr) extends Stmt[A](storeTo, storedExpr)
 
-object JmpStmt {
-  // FIXME: This is not a really good implementation of target relocation,
-  // for it hinders garbage collection when a JmpStmt is not longer actually
-  // in use. It can be a problem for IR because we plan to support IR
-  // transformation 
-  import scala.collection.mutable.{Map => MMap}
-  private val _relocationTable : MMap[JmpStmt[_ <: MachArch], BBlock[KaiMing]] = MMap()
-    
-  private def relocate(js: JmpStmt[_ <: MachArch], bb: BBlock[KaiMing]) =
-    _relocationTable.put(js, bb)
-
-  private def lookUpRelocation(js: JmpStmt[_ <: MachArch]) = _relocationTable.get(js)
-
-}
-
 case class JmpStmt[A <: MachArch](index: Long, host: MachEntry[A] with Terminator[A],
-    cond: Expr, target: Expr) extends Stmt[A](cond, target) {
+    cond: Expr, target: Expr) extends Stmt[A](cond, target) with Terminator[KaiMing] {
   
-  val dependentLvals = cond.enumLvals
+  def dependentLvals = cond.enumLvals
   
-  def isConditional = !dependentLvals.isEmpty
-  
-  def relocate(bb: BBlock[KaiMing]) = JmpStmt.relocate(this, bb)
-  def relocatedTarget = JmpStmt.lookUpRelocation(this)
+  override def isConditional = !dependentLvals.isEmpty
+  override def isCall = false
+  override def isReturn = false
+  override def isIndirect = target.isInstanceOf[Reg]
+  override def isTargetConcrete = target.isInstanceOf[Const]
+  override def targetIndex = Exception.unsupported()
   
 }
 
 case class RetStmt[A <: MachArch](index: Long, host: MachEntry[A],
-    target: Expr) extends Stmt[A](target)
+    target: Expr) extends Stmt[A](target) with Terminator[KaiMing] {
+  
+  override def isConditional = false
+  override def isCall = false
+  override def isReturn = true
+  override def isIndirect = target.isInstanceOf[Reg]
+  override def isTargetConcrete = target.isInstanceOf[Const]
+  override def targetIndex = Exception.unsupported()
+  
+}
 
 sealed abstract class DefStmt[A <: MachArch](usedExpr: Vector[Expr])
     extends Stmt[A](usedExpr) {

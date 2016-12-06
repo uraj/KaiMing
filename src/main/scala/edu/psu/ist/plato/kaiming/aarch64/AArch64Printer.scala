@@ -89,7 +89,7 @@ final class AArch64Printer(ps: OutputStream) extends PrintStream(ps) {
       case b: BranchInst =>
         if (!b.isReturn) {
           b.relocatedTarget match {
-            case Some(b) => print(b.label.name)
+            case Some(t) => print(t.label.name)
             case None => 
               b.target match {
                 case r: Register => printOpRegister(r)

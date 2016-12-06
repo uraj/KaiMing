@@ -108,9 +108,9 @@ object AArch64Parser extends ParserTrait {
   
   val inst: P[Instruction] = P(hex ~ opcode ~ operand.rep(sep=",") ~ ("!".! | ("," ~ cond)).? ~ end) map {
     case (addr, code, oplist, trail) => trail match {
-      case Some("!") => Instruction.create(addr, code, oplist, Condition.AL, true)
-      case Some(cond: Condition) => Instruction.create(addr, code, oplist, cond, false)
-      case _ => Instruction.create(addr, code, oplist, Condition.AL, false)
+      case Some("!") => Instruction.create(addr, code, oplist.toVector, Condition.AL, true)
+      case Some(cond: Condition) => Instruction.create(addr, code, oplist.toVector, cond, false)
+      case _ => Instruction.create(addr, code, oplist.toVector, Condition.AL, false)
     }
   }
   
@@ -130,7 +130,7 @@ object AArch64Parser extends ParserTrait {
     case inst => Right(inst)
   }
   
-  val singleLine = P(funlabelLine | instLine | (hex map { case int => Right(UnsupportedInst(int)) }))
+  val singleLine = P(funlabelLine | instLine | (hex map { case int => Right(new UnsupportedInst(int)) }))
    
   val binaryunit: P[Seq[Function]] = P(function.rep ~ End)
   

@@ -214,16 +214,6 @@ case class BitfieldClearInst(override val addr: Long, override val opcode: Opcod
     dest: Register, lsb: Immediate, width: Immediate)
     extends Instruction(dest, lsb, width)
 
-object BranchInst {
-  import scala.collection.mutable.Map
-  import edu.psu.ist.plato.kaiming.utils.RefWrapper
-
-  private val _belongs = Map[RefWrapper[BranchInst], MachBBlock[ARM]]()
-  private def loopUpRelocation(b: BranchInst) = _belongs.get(new RefWrapper(b))
-  private def relocateTarget(b: BranchInst, bb: MachBBlock[ARM]) =
-    _belongs += (new RefWrapper(b) -> bb)
-}
-
 case class BranchInst(override val addr: Long, override val opcode: Opcode,
     target: Operand) extends Instruction(target) with Terminator[ARM] {
   
@@ -243,10 +233,6 @@ case class BranchInst(override val addr: Long, override val opcode: Opcode,
         case Left(imm) => imm
         case _ => throw new UnsupportedOperationException()
     }
-  override def relocate(target: MachBBlock[ARM]) = 
-    BranchInst.relocateTarget(this, target)
-
-  override def relocatedTarget = BranchInst.loopUpRelocation(this)
 }
 
 case class MoveInst(override val addr: Long, override val opcode: Opcode,

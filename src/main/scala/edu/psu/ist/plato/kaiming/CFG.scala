@@ -15,7 +15,7 @@ abstract class Cfg[A <: Arch, B <: BBlock[A]] extends Iterable[B] {
   
   val graph: Graph[Int, LDiEdge]
   
-  val blockIdMap: Map[B, Int]
+  protected val blockIdMap: Map[B, Int]
   def blocks: Vector[B]
   
   def entryBlock = blocks(0)
@@ -67,6 +67,14 @@ abstract class Cfg[A <: Arch, B <: BBlock[A]] extends Iterable[B] {
     }.append("}").toString
   }
   
+  import edu.psu.ist.plato.kaiming.utils.RefWrapper
+  
+  private val _belongs = scala.collection.mutable.Map[RefWrapper[Terminator[A]], BBlock[A]]()
+  def loopUpRelocation(b: Terminator[A]) = _belongs.get(new RefWrapper(b))
+  def relocateTarget(b: Terminator[A], bb: BBlock[A]) =
+    _belongs += (new RefWrapper(b) -> bb)
+  
+  
 }
 
 object MachCfg {
@@ -94,7 +102,7 @@ object MachCfg {
       bbs : Traversable[MachBBlock[A]], index : Long) =
     bbs.find { bb => bb.lastEntry.index >= index && bb.firstEntry.index <= index }
   
-  private def buildCFG[A <: MachArch](parent : MachProcedure[A]) = {
+  def apply[A <: MachArch](parent : MachProcedure[A]) = {
     val entries = parent.entries
     val sorted = entries.toVector.sorted[Indexed]
     val pivots =
@@ -139,7 +147,9 @@ object MachCfg {
         } else l
       }
     }
+    
     edges.foreach { e => bbs(e._1).lastEntry.asTerminator.relocate(bbs(e._2)) }
+    
     val edgesWithFallThrough = blocksWithId.tail.foldLeft((edges, blocksWithId.head))({
       case ((l, prev), next) => {
         if (prev._1.lastEntry.isTerminator) {
@@ -152,17 +162,15 @@ object MachCfg {
     })._1
     
     val graph = Graph.from(0 until bbs.size, edgesWithFallThrough)
+    new MachCfg(parent, graph, bbs, blockIdMap)
     
-    (graph, bbs, blockIdMap)
   }
   
 }
 
-class MachCfg[A <: MachArch] (val parent: MachProcedure[A]) extends Cfg[A, MachBBlock[A]] {
-  
-  val (graph, blocks, blockIdMap) = MachCfg.buildCFG(parent)
-  
-}
+class MachCfg[A <: MachArch] protected (val parent: MachProcedure[A],
+    val graph: Graph[Int, LDiEdge], val blocks: Vector[MachBBlock[A]],
+    protected val blockIdMap: Map[MachBBlock[A], Int]) extends Cfg[A, MachBBlock[A]]
 
 object Cfg {
 

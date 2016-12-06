@@ -10,13 +10,13 @@ abstract class Procedure[A <: Arch] {
   def entries: Vector[Entry[A]]
   def index = cfg.entryBlock.index
   def deriveLabelForIndex(index: Long): Label = Label("_sub_" + index.toHexString)
-  
+
 }
 
 abstract class MachProcedure[A <: MachArch](val entries: Vector[MachEntry[A]],
     trimIsolated: Boolean = false) extends Procedure[A] {
   
   def mach: Machine[A]
-  override val cfg = new MachCfg(this)
+  override val cfg = MachCfg(this)
   
 }

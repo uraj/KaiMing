@@ -234,25 +234,8 @@ case class BitfieldMoveInst(addr: Long, mnem: String, dest: Register,
   
 }
 
-object AbstractBranch {
-  import scala.collection.mutable.Map
-  import edu.psu.ist.plato.kaiming.utils.RefWrapper
-  
-  private val _belongs = Map[RefWrapper[BranchInst], MachBBlock[AArch64]]()
-  private def loopUpRelocation(b: AbstractBranch) = _belongs.get(new RefWrapper(b))
-  private def relocateTarget(b: AbstractBranch, bb: MachBBlock[AArch64]) =
-    _belongs += (new RefWrapper(b) -> bb)
-}
-
 sealed abstract class AbstractBranch(ops: Operand*)
-    extends Instruction(ops: _*) with Terminator[AArch64] {
-  
-  override def relocate(target: MachBBlock[AArch64]) = 
-    AbstractBranch.relocateTarget(this, target)
-
-  override def relocatedTarget = AbstractBranch.loopUpRelocation(this)
-  
-}
+    extends Instruction(ops: _*) with Terminator[AArch64] 
 
 case class TestBranchInst(addr: Long, mnem: String, toTest: Register,
     imm: Immediate, target: Memory) extends AbstractBranch(toTest, imm, target) {

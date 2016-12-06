@@ -16,7 +16,7 @@ class BBlock[A <: Arch](val parent: Procedure[A], val entries: Seq[Entry[A]],
   
   override def iterator = entries.iterator
   
-  @inline final val index = firstEntry.index
+  @inline final def index = firstEntry.index
   
   @inline final override def equals(obj: Any) = obj match {
     case bb: BBlock[A] => index == bb.index
