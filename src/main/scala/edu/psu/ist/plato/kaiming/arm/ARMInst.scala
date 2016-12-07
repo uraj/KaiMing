@@ -132,7 +132,7 @@ object Instruction {
 }
 
 sealed abstract class Instruction(oplist: Operand*)
-  extends MachEntry[ARM] with Iterable[Operand] {
+  extends Entry[ARM] with Iterable[Operand] {
   
   val mach = ARMMachine
   

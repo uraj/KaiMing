@@ -6,7 +6,7 @@ package object arm {
   sealed trait ARM extends Arch
   
   import scala.language.implicitConversions
-  implicit def toARMInstruction(e: MachEntry[ARM]) = e.asInstanceOf[Instruction]
+  implicit def toARMInstruction(e: Entry[ARM]) = e.asInstanceOf[Instruction]
   
   sealed abstract class Flag(val name: String, val index: Int) extends MachFlag[ARM]
 
@@ -17,11 +17,13 @@ package object arm {
     case object V extends Flag("V", 3)
   }
   
-  class Function(override val label: Label, insts: Vector[Instruction])
-      extends MachProcedure[ARM](insts) {
+  class Function(val label: Label, val entries: Vector[Instruction])
+      extends Procedure[ARM] {
   
-    val mach = ARMMachine
+    val cfg = MachCfg(this)
   
   }
+  
+  implicit val armMachine: Machine[ARM] = ARMMachine 
   
 }

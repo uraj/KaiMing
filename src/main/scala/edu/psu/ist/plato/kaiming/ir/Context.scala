@@ -13,7 +13,7 @@ import scalax.collection.Graph
 import scalax.collection.GraphEdge.DiEdge
 import scalax.collection.edge.LDiEdge
 
-class IRBBlock[A <: Arch](override val parent: Context[A], override val entries: Seq[Stmt[A]],
+class IRBBlock[A <: Arch](override val parent: Context[A], override val entries: Vector[Stmt[A]],
     override val label: Label) extends BBlock[KaiMing](parent, entries, label) with Iterable[Stmt[A]] {
   
   override def iterator = entries.iterator
@@ -21,7 +21,9 @@ class IRBBlock[A <: Arch](override val parent: Context[A], override val entries:
   
 }
 
-class IRCfg[A <: Arch](override val parent: Context[A]) extends Cfg[KaiMing, IRBBlock[A]] {
+class IRCfg[A <: Arch](override val parent: Context[A]) extends Cfg[KaiMing] with Iterable[IRBBlock[A]] {
+  
+  type BlockT = IRBBlock[A]
   
   private def liftToIR[A <: Arch](ctx: Context[A]) = {
     import scalax.collection.Graph
@@ -33,10 +35,10 @@ class IRCfg[A <: Arch](override val parent: Context[A]) extends Cfg[KaiMing, IRB
     val cfg = ctx.proc.cfg
 
     val (bbs, bbmap, nStmts) = cfg.blocks.foldLeft(
-      (Vector[IRBBlock[A]](), Map[MachBBlock[A], IRBBlock[A]](), 0L)) {
+      (Vector[IRBBlock[A]](), Map[BBlock[A], IRBBlock[A]](), 0L)) {
         case ((bblist, map, start), bb) =>
           val builder = bb.foldLeft(IRBuilder(ctx, start, Nil)) {
-            (b, inst) => ctx.proc.mach.toIRStatements(inst, b)
+            (b, inst) => ctx.mach.toIRStatements(inst, b)
           }
           val irlist = builder.get
           val irbb = new IRBBlock(ctx, irlist, Label("L_" + bblist.size))
@@ -61,39 +63,39 @@ class IRCfg[A <: Arch](override val parent: Context[A]) extends Cfg[KaiMing, IRB
 case class IRBuilder[A <: Arch](val ctx: Context[A], private val start: Long,
     private val content: List[Stmt[A]]) {
     
-  def get = content.reverse
+  def get = content.reverse.toVector
   def nextIndex = start + content.size
     
-  def assign(host: MachEntry[A], definedLval: Lval, usedRval: Expr) =
+  def assign(host: Entry[A], definedLval: Lval, usedRval: Expr) =
     IRBuilder(ctx, start, AssignStmt(nextIndex, host, definedLval, usedRval)::content)
     
-  def store(host: MachEntry[A], storeTo: Expr, storedExpr: Expr) =
+  def store(host: Entry[A], storeTo: Expr, storedExpr: Expr) =
     IRBuilder(ctx, start, StStmt(nextIndex, host, storeTo, storedExpr)::content)
       
-  def jump(host: MachEntry[A] with Terminator[A], cond: Expr, target: Expr) = 
+  def jump(host: Entry[A] with Terminator[A], cond: Expr, target: Expr) = 
     IRBuilder(ctx, start, JmpStmt[A](nextIndex, host, cond, target)::content)
       
-  def call(host: MachEntry[A] with Terminator[A], target: Expr) =
-    IRBuilder(ctx, start, CallStmt(nextIndex, host, target)::content)
+  def call(host: Entry[A] with Terminator[A], target: Expr)(implicit mach: Machine[A]) =
+    IRBuilder(ctx, start, CallStmt(nextIndex, host, target, Reg(mach.returnRegister))::content)
       
-  def load(host: MachEntry[A], definedLval: Lval, loadFrom: Expr) =
+  def load(host: Entry[A], definedLval: Lval, loadFrom: Expr) =
     IRBuilder(ctx, start, LdStmt(nextIndex, host, definedLval, loadFrom)::content)
       
-  def select(host: MachEntry[A], definedLval: Lval, condition: Expr,
+  def select(host: Entry[A], definedLval: Lval, condition: Expr,
       trueValue: Expr, falseValue: Expr) =
     IRBuilder(ctx, start, SelStmt(nextIndex, host, definedLval, condition, trueValue, falseValue)::content)
       
-  def ret(host: MachEntry[A], target: Expr) =
+  def ret(host: Entry[A], target: Expr) =
     IRBuilder(ctx, start, RetStmt(nextIndex, host, target)::content)
     
-  def nop(host: MachEntry[A]) = {
+  def nop(host: Entry[A]) = {
     content match {
       case x::xs if x.isInstanceOf[NopStmt[A]] => this
       case _ => IRBuilder(ctx, start, NopStmt(nextIndex, host)::content)
     }
   }
     
-  def unsupported(host: MachEntry[A]) = IRBuilder(ctx, start, UnsupportedStmt(nextIndex, host)::content)
+  def unsupported(host: Entry[A]) = IRBuilder(ctx, start, UnsupportedStmt(nextIndex, host)::content)
 }
 
 object Context {
@@ -188,11 +190,9 @@ object Context {
     
 }
 
-final class Context[A <: Arch] (val proc: MachProcedure[A])
-    extends Procedure[KaiMing] {
+final class Context[A <: Arch] (val proc: Procedure[A])
+    (implicit val mach: Machine[A]) extends Procedure[KaiMing] {
 
-  @inline def mach = proc.mach
-  
   private val _tempVarPrefix = "__tmp_"
   private val _varMap = scala.collection.mutable.Map[String, Var]()
 

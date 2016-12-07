@@ -8,7 +8,7 @@ sealed abstract class Stmt[A <: Arch](val usedExpr: Vector[Expr]) extends Entry[
   
   final def this(exprs: Expr*) = this(exprs.toVector)
   
-  val host: MachEntry[A]
+  val host: Entry[A]
   
   final def usedLvals = usedExpr.map(_.enumLvals).fold(Set[Lval]())(_|_)
   
@@ -16,10 +16,10 @@ sealed abstract class Stmt[A <: Arch](val usedExpr: Vector[Expr]) extends Entry[
   
 }
 
-case class StStmt[A <: Arch](index: Long, host: MachEntry[A],
+case class StStmt[A <: Arch](index: Long, host: Entry[A],
     storeTo: Expr, storedExpr: Expr) extends Stmt[A](storeTo, storedExpr)
 
-case class JmpStmt[A <: Arch](index: Long, host: MachEntry[A] with Terminator[A],
+case class JmpStmt[A <: Arch](index: Long, host: Entry[A] with Terminator[A],
     cond: Expr, target: Expr) extends Stmt[A](cond, target) with Terminator[KaiMing] {
   
   def dependentLvals = cond.enumLvals
@@ -33,7 +33,7 @@ case class JmpStmt[A <: Arch](index: Long, host: MachEntry[A] with Terminator[A]
   
 }
 
-case class RetStmt[A <: Arch](index: Long, host: MachEntry[A],
+case class RetStmt[A <: Arch](index: Long, host: Entry[A],
     target: Expr) extends Stmt[A](target) with Terminator[KaiMing] {
   
   override def isConditional = false
@@ -53,7 +53,7 @@ sealed abstract class DefStmt[A <: Arch](usedExpr: Vector[Expr])
   
 }
 
-case class AssignStmt[A <: Arch](index: Long, host: MachEntry[A],
+case class AssignStmt[A <: Arch](index: Long, host: Entry[A],
     definedLval: Lval, usedRval: Expr) extends DefStmt[A](Vector(usedRval)) {
   
   require(definedLval.sizeInBits == usedRval.sizeInBits)
@@ -72,14 +72,10 @@ object Extractor extends enumeratum.Enum[Extractor] {
   
 }
 
-case class CallStmt[A <: Arch](index: Long, host: MachEntry[A] with Terminator[A],
-    target: Expr) extends DefStmt[A](target) {
-  
-  override def definedLval = Reg(host.mach.returnRegister)
-  
-}
+case class CallStmt[A <: Arch](index: Long, host: Entry[A] with Terminator[A],
+    target: Expr, definedLval: Reg) extends DefStmt[A](target)
 
-case class SelStmt[A <: Arch](index: Long, host: MachEntry[A],
+case class SelStmt[A <: Arch](index: Long, host: Entry[A],
     definedLval: Lval, condition: Expr, trueValue: Expr, falseValue: Expr)
     extends DefStmt[A](condition, trueValue, falseValue) {
   
@@ -88,9 +84,9 @@ case class SelStmt[A <: Arch](index: Long, host: MachEntry[A],
   
 }
   
-case class LdStmt[A <: Arch](index: Long, host: MachEntry[A],
+case class LdStmt[A <: Arch](index: Long, host: Entry[A],
     definedLval: Lval, loadFrom: Expr) extends DefStmt[A](loadFrom)
 
-case class NopStmt[A <: Arch](index: Long, host: MachEntry[A]) extends Stmt[A]()
+case class NopStmt[A <: Arch](index: Long, host: Entry[A]) extends Stmt[A]()
 
-case class UnsupportedStmt[A <: Arch](index: Long, host: MachEntry[A]) extends Stmt[A]()
+case class UnsupportedStmt[A <: Arch](index: Long, host: Entry[A]) extends Stmt[A]()

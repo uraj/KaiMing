@@ -4,7 +4,7 @@ package object aarch64 {
   
   sealed trait AArch64 extends Arch
   import scala.language.implicitConversions
-  implicit def toAArch64Inst(e: MachEntry[AArch64]) = e.asInstanceOf[Instruction]
+  implicit def toAArch64Inst(e: Entry[AArch64]) = e.asInstanceOf[Instruction]
   
   sealed abstract class Flag(val name: String, val index: Int) extends MachFlag[AArch64]
 
@@ -15,11 +15,13 @@ package object aarch64 {
     case object V extends Flag("V", 3)
   }
   
-  class Function(override val label: Label, insts: Vector[Instruction])
-      extends MachProcedure[AArch64](insts) {
+  class Function(val label: Label, val entries: Vector[Instruction])
+      extends Procedure[AArch64] {
   
-    val mach = AArch64Machine
-    
+    val cfg = MachCfg(this)
+
   }
+  
+  implicit val aarch64Machine: Machine[AArch64] = AArch64Machine
   
 }

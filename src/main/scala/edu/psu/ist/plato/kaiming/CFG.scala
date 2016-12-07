@@ -8,14 +8,16 @@ import scalax.collection.edge.LDiEdge
 import ir.{Context, IRBBlock, IRBuilder}
 import utils.Indexed
 
-abstract class Cfg[A <: Arch, B <: BBlock[A]] extends Iterable[B] {
+abstract class Cfg[A <: Arch] extends Iterable[BBlock[A]] {
+  
+  type BlockT <: BBlock[A]
   
   val parent : Procedure[A]
   
   val graph: Graph[Int, LDiEdge]
   
-  protected val blockIdMap: Map[B, Int]
-  def blocks: Vector[B]
+  protected val blockIdMap: Map[BlockT, Int]
+  def blocks: Vector[BlockT]
   
   def entryBlock = blocks(0)
   
@@ -24,9 +26,9 @@ abstract class Cfg[A <: Arch, B <: BBlock[A]] extends Iterable[B] {
   
   import scala.language.postfixOps
   
-  def predecessors(bb: B): Set[B] = 
+  def predecessors(bb: BlockT): Set[BlockT] = 
     (graph.get(blockIdMap(bb)) <~) map { x => blocks(x.from.value) }
-  def successors(bb: B): Set[B] = 
+  def successors(bb: BlockT): Set[BlockT] = 
     (graph.get(blockIdMap(bb)) ~>) map { x => blocks(x.to.value) }
   
   def predecessors(id: Int): Set[Int] = 
@@ -35,7 +37,7 @@ abstract class Cfg[A <: Arch, B <: BBlock[A]] extends Iterable[B] {
     (graph.get(id) ~>) map(_.to.value)
   
   def isConnected = graph.isConnected
-  def belongingComponent(bb: B) = {
+  def belongingComponent(bb: BlockT) = {
     blockIdMap.get(bb) match {
       case Some(id) =>    
         if (graph.contains(id)) {
@@ -48,9 +50,9 @@ abstract class Cfg[A <: Arch, B <: BBlock[A]] extends Iterable[B] {
 
   object LEdgeImplicit extends scalax.collection.edge.LBase.LEdgeImplicits[Boolean]
   import LEdgeImplicit._
-  def labeledPredecessors(bb: B): Set[(B, Boolean)] = 
+  def labeledPredecessors(bb: BlockT): Set[(BlockT, Boolean)] = 
     (graph.get(blockIdMap(bb)) <~) map { x => (blocks(x.from.value), x: Boolean) }
-  def labeledSuccessors(bb: B): Set[(B, Boolean)] = 
+  def labeledSuccessors(bb: BlockT): Set[(BlockT, Boolean)] = 
     (graph.get(blockIdMap(bb)) ~>) map { x => (blocks(x.to.value), x: Boolean) }
   
   def labeledPredecessors(id: Int): Set[(Int, Boolean)] = 
@@ -76,24 +78,24 @@ object MachCfg {
   import scalax.collection.edge.LDiEdge
   import scalax.collection.edge.Implicits._
   
-  private def split[A <: Arch](unit : MachProcedure[A],
-      entries : Vector[MachEntry[A]], pivots : Seq[Int]) = {
+  private def split[A <: Arch](unit : Procedure[A],
+      entries : Vector[Entry[A]], pivots : Seq[Int]) = {
     val sortedPivots = (TreeSet[Int]() ++ pivots + 0 + entries.length).toVector
     require(sortedPivots.head == 0 && sortedPivots.last <= entries.length)
-    (0 until (sortedPivots.length - 1)).foldRight(List[MachBBlock[A]]()) { 
+    (0 until (sortedPivots.length - 1)).foldRight(List[BBlock[A]]()) { 
       (i, blist) => {
         val index = entries(sortedPivots(i)).index
-        new MachBBlock[A](unit, entries.slice(sortedPivots(i), sortedPivots(i + 1)),
+        new BBlock[A](unit, entries.slice(sortedPivots(i), sortedPivots(i + 1)),
             unit.deriveLabelForIndex(index)) :: blist
       }
     }
   }
   
   private def containingBlock[A <: Arch](
-      bbs : Traversable[MachBBlock[A]], index : Long) =
+      bbs : Traversable[BBlock[A]], index : Long) =
     bbs.find { bb => bb.lastEntry.index >= index && bb.firstEntry.index <= index }
   
-  def apply[A <: Arch](parent : MachProcedure[A]) = {
+  def apply[A <: Arch](parent : Procedure[A]) = {
     val entries = parent.entries
     val sorted = entries.toVector.sorted[Indexed]
     val pivots =
@@ -116,7 +118,7 @@ object MachCfg {
             vec
           }
       }
-    val bbs = split(parent, entries, pivots).toVector
+    val bbs = split(parent, entries.asInstanceOf[Vector[Entry[A]]], pivots).toVector
     val blocksWithId = bbs.zipWithIndex
     val blockIdMap = blocksWithId.toMap
     val hasIndirectJump = bbs.foldLeft(false) {
@@ -159,17 +161,19 @@ object MachCfg {
   
 }
 
-class MachCfg[A <: Arch] protected (val parent: MachProcedure[A],
-    val graph: Graph[Int, LDiEdge], val blocks: Vector[MachBBlock[A]],
-    protected val blockIdMap: Map[MachBBlock[A], Int]) extends Cfg[A, MachBBlock[A]]
+class MachCfg[A <: Arch] protected (val parent: Procedure[A],
+    val graph: Graph[Int, LDiEdge], val blocks: Vector[BBlock[A]],
+    protected val blockIdMap: Map[BBlock[A], Int]) extends Cfg[A] {
+  type BlockT = BBlock[A]
+}
 
 object Cfg {
 
   import scalax.collection.Graph
   import scalax.collection.edge.LDiEdge
   
-  sealed abstract class Loop[A <: Arch, B <: BBlock[A]] private (val header: Int,
-      val body: Set[Int], val cfg: Cfg[A, B] ) {
+  sealed abstract class Loop[A <: Arch] private (val header: Int,
+      val body: Set[Int], val cfg: Cfg[A] ) {
     
     // We need this trait because Graph.Component is protected
     protected sealed trait Component {
@@ -181,7 +185,7 @@ object Cfg {
     
     override def toString = {
       val b = new StringBuilder
-      def bbToStr(bb: B) = {
+      def bbToStr(bb: cfg.BlockT) = {
         b.append(bb.label.name)
         b.append("[")
         b.append(bb.firstEntry.index.toHexString)
@@ -202,7 +206,7 @@ object Cfg {
   
   object Loop {
     
-    private def computeDominators[A <: Arch, B <: BBlock[A]](cfg: Cfg[A, B]) = {
+    private def computeDominators[A <: Arch](cfg: Cfg[A]) = {
       val allBBs = (0 until cfg.size).toSet
       val initDominators =
         allBBs.foldLeft(Map[Int, Set[Int]]()) {
@@ -227,9 +231,9 @@ object Cfg {
       computeDomImpl((false, initDominators))
     }
 
-    def detectLoops[A <: Arch, B <: BBlock[A]](cfg: Cfg[A, B], merge: Boolean = false): List[Loop[A, B]] = {
+    def detectLoops[A <: Arch, B <: BBlock[A]](cfg: Cfg[A], merge: Boolean = false): List[Loop[A]] = {
       val dominators = computeDominators(cfg)
-      cfg.graph.componentTraverser().foldLeft(List[Loop[A, B]]()) {
+      cfg.graph.componentTraverser().foldLeft(List[Loop[A]]()) {
         (l, subg) => {
           if (subg.nodes.size < 2) l else {
             val nodes = subg.nodes.map(_.value)

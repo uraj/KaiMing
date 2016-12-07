@@ -4,7 +4,7 @@ import java.io.PrintStream
 import java.io.OutputStream
 
 import edu.psu.ist.plato.kaiming.Label
-import edu.psu.ist.plato.kaiming.MachBBlock
+import edu.psu.ist.plato.kaiming.BBlock
 import edu.psu.ist.plato.kaiming.Cfg
 
 import edu.psu.ist.plato.kaiming.utils.Exception
@@ -141,12 +141,12 @@ final class ARMPrinter(ps: OutputStream) extends PrintStream(ps) {
     }
   }
   
-  def printBasicBlock(bb: MachBBlock[ARM]) {
+  def printBasicBlock(bb: BBlock[ARM]) {
     println(bb.label)
     bb.foreach { i => print('\t'); printInstruction(i); println() }
   }
   
-  def printCFG(cfg: Cfg[ARM, MachBBlock[ARM]]) {
+  def printCFG(cfg: Cfg[ARM]) {
     println(cfg.parent.label)
     for (bb <- cfg) { printBasicBlock(bb) }
   }

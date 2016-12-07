@@ -8,6 +8,15 @@ import scala.math.Ordering
 
 trait Arch
 
+case class Label(name: String) { override def toString = name + ':' }
+
+trait MachFlag[A <: Arch] extends enumeratum.EnumEntry {
+  
+  def name: String
+  def index: Int
+  
+}
+
 abstract class Entry[A <: Arch] extends Indexed {
   
   override final def hashCode = index.hashCode()
@@ -16,12 +25,6 @@ abstract class Entry[A <: Arch] extends Indexed {
     
   final def isTerminator: Boolean = this.isInstanceOf[Terminator[A]]
   final def asTerminator = this.asInstanceOf[Terminator[A]]
-  
-}
-
-abstract class MachEntry[A <: Arch] extends Entry[A] {
-  
-  def mach: Machine[A]
   
 }
 
@@ -42,7 +45,7 @@ trait Terminator[A <: Arch] {
   final def relocatedTarget: Option[BBlock[A]] = _target
 }
 
-class BBlock[A <: Arch](val parent: Procedure[A], val entries: Seq[Entry[A]],
+class BBlock[A <: Arch](val parent: Procedure[A], val entries: Vector[Entry[A]],
     val label: Label) extends Iterable[Entry[A]] with Indexed {
   
   require(entries.size > 0, parent.label)
@@ -65,13 +68,15 @@ class BBlock[A <: Arch](val parent: Procedure[A], val entries: Seq[Entry[A]],
 
 }
 
-class MachBBlock[A <: Arch](override val parent: MachProcedure[A],
-    override val entries: Vector[MachEntry[A]], override val label: Label)
-    extends BBlock[A](parent, entries, label) with Iterable[MachEntry[A]] {
-  
-  override def iterator = entries.iterator
-    
-  override def firstEntry: MachEntry[A] = entries.head
-  override def lastEntry: MachEntry[A] = entries.last
+import ir.{Context, IRCfg}
+
+abstract class Procedure[A <: Arch] {
+
+  def label: Label
+  def cfg: Cfg[A]
+  def name = label.name
+  def entries: Vector[Entry[A]]
+  def index = cfg.entryBlock.index
+  def deriveLabelForIndex(index: Long): Label = Label("_sub_" + index.toHexString)
 
 }

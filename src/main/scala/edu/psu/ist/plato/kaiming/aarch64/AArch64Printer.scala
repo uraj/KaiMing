@@ -4,7 +4,7 @@ import java.io.PrintStream
 import java.io.OutputStream
 
 import edu.psu.ist.plato.kaiming.Label
-import edu.psu.ist.plato.kaiming.MachBBlock
+import edu.psu.ist.plato.kaiming.BBlock
 import edu.psu.ist.plato.kaiming.Cfg
 
 import edu.psu.ist.plato.kaiming.utils.Exception
@@ -140,12 +140,12 @@ final class AArch64Printer(ps: OutputStream) extends PrintStream(ps) {
     }
   }
   
-  def printBasicBlock(bb: MachBBlock[AArch64]) {
+  def printBasicBlock(bb: BBlock[AArch64]) {
     println(bb.label)
     bb.foreach { i => print('\t'); printInstruction(i); println() }
   }
   
-  def printCFG(cfg: Cfg[AArch64, MachBBlock[AArch64]]) {
+  def printCFG(cfg: Cfg[AArch64]) {
     println(cfg.parent.label)
     for (bb <- cfg) { printBasicBlock(bb) }
   }

@@ -411,7 +411,7 @@ object AArch64Machine extends Machine[AArch64] {
     builder.assign(inst, Reg(inst.dest), Const(inst.ptr.value, wordSizeInBits))
   }
   
-  override def toIRStatements(inst: MachEntry[AArch64],
+  override def toIRStatements(inst: Entry[AArch64],
       builder: IRBuilder[AArch64]): IRBuilder[AArch64] = {
     inst.asInstanceOf[Instruction] match {
       case i: UnaryArithInst => toIR(i, builder)

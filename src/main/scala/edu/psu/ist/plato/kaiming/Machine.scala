@@ -9,15 +9,8 @@ abstract class Machine[A <: Arch] {
   val wordSizeInBits: Int
   val registers: Set[MachRegister[A]]
   
-  def toIRStatements(inst: MachEntry[A], builder: IRBuilder[A]): IRBuilder[A]
+  def toIRStatements(inst: Entry[A], builder: IRBuilder[A]): IRBuilder[A]
 
-}
-
-trait MachFlag[A <: Arch] extends enumeratum.EnumEntry {
-  
-  def name: String
-  def index: Int
-  
 }
 
 abstract class MachRegister[A <: Arch] {

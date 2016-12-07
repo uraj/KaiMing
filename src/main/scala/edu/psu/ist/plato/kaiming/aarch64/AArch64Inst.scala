@@ -150,9 +150,8 @@ object Instruction {
 }
 
 sealed abstract class Instruction(oplist: Operand*)
-  extends MachEntry[AArch64] with Iterable[Operand] {
+  extends Entry[AArch64] with Iterable[Operand] {
   
-  override def mach = AArch64Machine
   val addr: Long
   val operands: Seq[Operand] = oplist
   def mnem: String

@@ -287,7 +287,7 @@ object ARMMachine extends Machine[ARM] {
     builder.assign(inst, lv, (lv |> low) :+ (inst.src |> width) :+ (lv |< high))
   }
   
-  override def toIRStatements(inst: MachEntry[ARM],
+  override def toIRStatements(inst: Entry[ARM],
       builder: IRBuilder[ARM]) = {
     inst.asInstanceOf[Instruction] match {
       case i: BinaryArithInst => toIR(i, builder)
