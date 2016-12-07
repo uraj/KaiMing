@@ -15,7 +15,6 @@ class TestAArch64 extends FunSuite {
   
   test("Test large-scale parsing and IR lifting [OK]") {
     val name = "/test/aarch64/test-03.s"
-    //val file = new File("/home/pxw172/Downloads/decrypted/ERROR/ERROR/YKB.app/YKB.decrypted.s")
     val file = new File(getClass.getResource(name).toURI)
     var funCount = 0
     var flaCount = 0
