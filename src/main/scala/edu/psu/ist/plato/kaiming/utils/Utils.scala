@@ -71,28 +71,28 @@ trait ParserTrait {
   protected val ALDIGIT = CharIn('A' to 'Z', '0' to '9')
   protected val Aldigit = CharIn('a' to 'z', 'A' to 'Z', '0' to '9')
   
-  protected val newline: P[Unit] = P("\n".rep(1))
+  protected val newline: P[Unit] = "\n".rep(1)
   
-  protected val end: P[Unit] = P(newline | End)
+  protected val end: P[Unit] = newline | End
   
-  protected val dec: P[Long] = P(digit.repX(1).!).map(parseInteger(_, 10))
+  protected val dec: P[Long] = digit.repX(1).!.map(parseInteger(_, 10))
   
   protected val hex: P[Long] =
-    P("0" ~~ CharIn("xX") ~~ CharIn('0' to '9', 'a' to 'f', 'A' to 'F').repX(1).!).map(parseInteger(_, 16))
+    ("0" ~~ CharIn("xX") ~~ CharIn('0' to '9', 'a' to 'f', 'A' to 'F').repX(1).!).map(parseInteger(_, 16))
   
-  protected val positive: P[Long] = P(hex | dec)
+  protected val positive: P[Long] = hex | dec
   
-  protected val integer: P[Long] = P("-".?.! ~ positive) map { 
+  protected val integer: P[Long] = ("-".?.! ~ positive) map { 
     case ("", positive) => positive
     case (_, positive) => -positive
   }
   
-  protected val plainLabel: P[String] = P((Alpha ~~
-        CharIn("_-@.", 'a' to 'z', 'A' to 'Z', '0' to '9').repX).! ~~ ":")
+  protected val plainLabel: P[String] =
+    (Alpha ~~ CharIn("_-@.", 'a' to 'z', 'A' to 'Z', '0' to '9').repX).! ~~ ":"
   
-  protected val quotedLabel: P[String] = P("\"" ~~ (!"\"" ~~ AnyChar).repX(1).! ~~ "\":")
+  protected val quotedLabel: P[String] = "\"" ~~ (!"\"" ~~ AnyChar).repX(1).! ~~ "\":"
   
-  protected val label = P(plainLabel | quotedLabel)
+  protected val label = plainLabel | quotedLabel
   
   protected def enum(e: enumeratum.Enum[_ <: enumeratum.EnumEntry]) = 
     StringInIgnoreCase(e.values.map(_.entryName).sorted(Ordering[String].reverse):_*)

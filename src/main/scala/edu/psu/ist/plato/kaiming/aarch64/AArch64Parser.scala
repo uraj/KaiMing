@@ -13,18 +13,18 @@ object AArch64Parser extends ParserTrait {
   import fastparse.noApi._
   import White._
   
-  private val plainImm: P[Immediate] = P("#" ~~ integer).map(Immediate(_))
+  private val plainImm: P[Immediate] = ("#" ~~ integer).map(Immediate(_))
   
   private val shiftedImm: P[Immediate] =
-    P("#" ~ integer ~ "," ~ IgnoreCase("lsl") ~ "#" ~ integer) map {
+    ("#" ~ integer ~ "," ~ IgnoreCase("lsl") ~ "#" ~ integer) map {
       case (base, shift) =>
         if(shift % 16 == 0) Immediate(base, shift.toInt)
         else Immediate(base, shift.toInt)
     }
   
-  private val imm: P[Immediate] = P(shiftedImm | plainImm)
+  private val imm: P[Immediate] = shiftedImm | plainImm
   
-  private val reg: P[Register] = P(enum(Register.Id).!) map {
+  private val reg: P[Register] = enum(Register.Id).! map {
       x => Register.get(x.toUpperCase)
     }
   
@@ -56,7 +56,7 @@ object AArch64Parser extends ParserTrait {
   
   private val regMod: P[RegModifier] = {
     import RegExtension.Type._
-    P(((enum(RegExtension.Type) !) map {
+    ((enum(RegExtension.Type).! map {
       x => RegExtension.Type.withName(x.toUpperCase)
     }) ~ (("#" ~~ integer) ?)) map {
       case (ext, int) => ext match {
@@ -76,11 +76,11 @@ object AArch64Parser extends ParserTrait {
     }
   }
     
-  private val mreg: P[ModifiedRegister] = P(reg ~ "," ~ regMod) map {
+  private val mreg: P[ModifiedRegister] = (reg ~ "," ~ regMod) map {
     case (reg, st) => ModifiedRegister(reg, st)
   }
   
-  private val mem: P[Memory] = P(("[" ~ reg ~ (("," ~ (mreg | reg | plainImm)?) ~ "]")) | positive) map {
+  private val mem: P[Memory] = (("[" ~ reg ~ (("," ~ (mreg | reg | plainImm)?) ~ "]")) | positive) map {
     case (reg: Register, someInt) => someInt match {
       case None => Memory.get(reg)
       case Some(int: Immediate) => Memory.get(reg, int)
@@ -91,13 +91,13 @@ object AArch64Parser extends ParserTrait {
     case addr: Long => Memory.get(Immediate(addr))
   }
   
-  private val cond: P[Condition] = P(enum(Condition).!) map {
+  private val cond: P[Condition] = enum(Condition).! map {
       x => Condition.withName(x.toUpperCase)
     }
   
-  private val operand: P[Operand] = P(mreg | reg | mem | imm)
+  private val operand: P[Operand] = mreg | reg | mem | imm
   
-  private val mnemonic: P[String] = P((Alpha.repX(1) ~~ Aldigit.repX ~~ ("." ~~ enum(Condition)).?).!)
+  private val mnemonic: P[String] = (Alpha.repX(1) ~~ Aldigit.repX ~~ ("." ~~ enum(Condition)).?).!
   
   private val opcode: P[Opcode] = (mnemonic.map {
     case opcode => Opcode.get(opcode.toUpperCase)
@@ -106,7 +106,7 @@ object AArch64Parser extends ParserTrait {
     case Right(s) => (!(AnyChar ?)).map(_ => null).opaque(s"Unsupported opcode: $s}")
   }
   
-  val inst: P[Instruction] = P(hex ~ opcode ~ operand.rep(sep=",") ~ ("!".! | ("," ~ cond)).? ~ end) map {
+  val inst: P[Instruction] = (hex ~ opcode ~ operand.rep(sep=",") ~ ("!".! | ("," ~ cond)).? ~ end) map {
     case (addr, code, oplist, trail) => trail match {
       case Some("!") => Instruction.create(addr, code, oplist.toVector, Condition.AL, true)
       case Some(cond: Condition) => Instruction.create(addr, code, oplist.toVector, cond, false)
@@ -114,11 +114,11 @@ object AArch64Parser extends ParserTrait {
     }
   }
   
-  private val funlabel: P[Label] = P(hex ~ label ~ end) map {
+  private val funlabel: P[Label] = (hex ~ label ~ end) map {
     x => Label(x._2)
   }
   
-  private val function: P[Function] = P(funlabel ~ inst.rep) map {
+  private val function: P[Function] = (funlabel ~ inst.rep) map {
     case (label, insts) => new Function(label, insts.toVector)
   }
   
@@ -130,9 +130,9 @@ object AArch64Parser extends ParserTrait {
     case inst => Right(inst)
   }
   
-  val singleLine = P(funlabelLine | instLine | (hex map { case int => Right(new UnsupportedInst(int)) }))
+  val singleLine = funlabelLine | instLine | (hex map { case int => Right(new UnsupportedInst(int)) })
    
-  val binaryunit: P[Seq[Function]] = P(function.rep ~ End)
+  val binaryunit: P[Seq[Function]] = function.rep ~ End
   
   @throws(classOf[edu.psu.ist.plato.kaiming.utils.ParsingException])
   def parseBinaryUnit(input: String): Seq[Function] = 

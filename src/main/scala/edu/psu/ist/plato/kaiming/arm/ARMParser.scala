@@ -10,9 +10,9 @@ object ARMParser extends ParserTrait {
   import fastparse.noApi._
   import White._
   
-  private val imm: P[Immediate] = P("#" ~~ integer).map(Immediate.get(_))
+  private val imm: P[Immediate] = ("#" ~~ integer).map(Immediate.get(_))
   
-  private val reg: P[Register] = P(enum(Register.Id).!) map {
+  private val reg: P[Register] = enum(Register.Id).! map {
       x => Register.get(x.toUpperCase)
     } 
     
@@ -30,11 +30,11 @@ object ARMParser extends ParserTrait {
     
   }
 
-  private val shiftType: P[ShiftType] = P(enum(ShiftType).!) map { 
+  private val shiftType: P[ShiftType] = enum(ShiftType).! map { 
       x => ShiftType.withName(x.toUpperCase)
     }
     
-  private val shifted: P[Register] = P(reg ~ "," ~ shiftType ~ (imm ?)) map {
+  private val shifted: P[Register] = (reg ~ "," ~ shiftType ~ (imm ?)) map {
     case (reg, st, sh) => {
       val shiftv = (sh match {
         case Some(imm) => imm.value
@@ -53,7 +53,7 @@ object ARMParser extends ParserTrait {
     }
   }
   
-  private val mem: P[Memory] = P(("[" ~ reg ~ (("," ~ (((CharIn("-+").?.!) ~ (shifted | reg)) | imm)?) ~ "]")) | positive) map {
+  private val mem: P[Memory] = (("[" ~ reg ~ (("," ~ (((CharIn("-+").?.!) ~ (shifted | reg)) | imm)?) ~ "]")) | positive) map {
     case ((base: Register), someOff) =>
       someOff match {
         case None => Memory.get(base)
@@ -72,56 +72,56 @@ object ARMParser extends ParserTrait {
     case addr: Long => Memory.get(addr)
   }
   
-  private val cond: P[Condition] = P(enum(Condition).!) map {
+  private val cond: P[Condition] = enum(Condition).! map {
       x => Condition.withName(x.toUpperCase)
     }
   
-  private val operand: P[(Operand, Boolean)] = P(((shifted | reg | mem) ~ ("!".?.!)) | imm) map {
+  private val operand: P[(Operand, Boolean)] = (((shifted | reg | mem) ~ ("!".?.!)) | imm) map {
     case imm: Immediate => (imm, false)
     case ((op: Operand), preidx: String) => (op, preidx == "!")
   }
   
-  private val operands: P[(Vector[Operand], Boolean)] = P(operand ~ (("," ~ operand).rep)) map {
+  private val operands: P[(Vector[Operand], Boolean)] = (operand ~ (("," ~ operand).rep)) map {
     case (fop, fcomp, tail) => tail.foldLeft((Vector[Operand](fop), fcomp)) { 
       case ((l, preidx), x) => (l :+ x._1, x._2 || preidx) 
     }
   }
       
-  private val regRange: P[List[Register]] = P(("R" ~ dec ~ "-") ~ ("R" ~ dec)) map {
+  private val regRange: P[List[Register]] = ("R" ~ dec ~ "-" ~ "R" ~ dec) map {
     case (from, to) => (from to to).map {
       i => Register.get("R"+i)
     }.toList
   }
   
-  private val singleReg: P[List[Register]] = P(reg.map(List[Register](_)))
+  private val singleReg: P[List[Register]] = reg.map(List[Register](_))
   
   private val reglistItem = regRange | singleReg
   
-  private val reglist: P[List[Register]] = P("{" ~ reglistItem ~ ("," ~ reglistItem).rep ~ "}") map {
+  private val reglist: P[List[Register]] = ("{" ~ reglistItem ~ ("," ~ reglistItem).rep ~ "}") map {
     case (r, rl) => (r::rl.toList).flatten
   }
   
-  private val poppush: P[Instruction] = P(positive ~ StringInIgnoreCase("PUSH", "POP").! ~ reglist ~ newline) map {
+  private val poppush: P[Instruction] = (positive ~ StringInIgnoreCase("PUSH", "POP").! ~ reglist ~ newline) map {
     case (addr, rawcode, oplist) => Instruction.create(addr, Opcode(rawcode), oplist.toVector, false)
   }
   
   private val lsm: P[Instruction] =
-    P(positive ~ (StringInIgnoreCase("LDM", "STM").! ~~ enum(LSMultipleMode).!) ~
+    (positive ~ (StringInIgnoreCase("LDM", "STM").! ~~ enum(LSMultipleMode).!) ~
     (reg) ~ ("!".?.!) ~ ("," ~ reglist) ~ newline) map {
       case (addr, rawcode, base, preidx, rlist) => 
         Instruction.create(addr, Opcode(rawcode._1 + rawcode._2), (base::rlist).toVector, preidx == "!")
   }
   
-  private val ldrAsMove: P[Instruction] = P(positive ~ IgnoreCase("LDR").! ~ reg ~ "," ~ "=" ~ positive ~ newline) map {
+  private val ldrAsMove: P[Instruction] = (positive ~ IgnoreCase("LDR").! ~ reg ~ "," ~ "=" ~ positive ~ newline) map {
     case (addr, rawcode, dest, imm) =>
       Instruction.create(addr, Opcode(rawcode.toUpperCase), Vector(dest, Immediate.get(imm)), false)
   }
   
-  private val mnemonic: P[String] = P((Alpha.repX(1) ~~ Aldigit.repX ~~ ("." ~~ enum(Condition)).?).!)
+  private val mnemonic: P[String] = (Alpha.repX(1) ~~ Aldigit.repX ~~ ("." ~~ enum(Condition)).?).!
 
   private val opcode: P[Opcode] = mnemonic map { case opcode => Opcode(opcode.toUpperCase) }
 
-  private val inst: P[Instruction] = P(positive ~ opcode ~ (operands.?) ~ newline) map {
+  private val inst: P[Instruction] = (positive ~ opcode ~ (operands.?) ~ newline) map {
     case (addr, code, oplist) => oplist match {
       case None => Instruction.create(addr, code, Vector[Operand](), false)
       case Some(operands) => 
@@ -129,9 +129,9 @@ object ARMParser extends ParserTrait {
     }
   }
   
-  private val funlabel: P[Label] = P(positive ~ label ~ newline) map { x => Label(x._2) }
+  private val funlabel: P[Label] = (positive ~ label ~ newline) map { x => Label(x._2) }
   
-  private val function: P[Function] = P(funlabel ~ ((inst | poppush | lsm | ldrAsMove).rep(1))) map {
+  private val function: P[Function] = (funlabel ~ ((inst | poppush | lsm | ldrAsMove).rep(1))) map {
     case (label, insts) => new Function(label, insts.toVector)
   }
    
