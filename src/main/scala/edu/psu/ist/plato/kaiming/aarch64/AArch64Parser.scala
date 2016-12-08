@@ -167,7 +167,7 @@ object AArch64Parser extends ParserTrait {
           var insts = List[Instruction]()
           lines.find {
             x => singleLine.parse(x) match {
-              case Parsed.Success(value, input) if input == x.length => value match {
+              case Parsed.Success(value, input) => value match {
                 case Left(label) => _label = Some(label); true
                 case Right(inst) => insts = inst::insts; false
               }

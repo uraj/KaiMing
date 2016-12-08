@@ -206,41 +206,57 @@ object Cfg {
   
   object Loop {
     
-    private def computeDominators[A <: Arch](cfg: Cfg[A]) = {
-      val allBBs = (0 until cfg.size).toSet
+    private def computeDominators[A <: Arch](nodes: Set[Int], cfg: Cfg[A]): Map[Int, Set[Int]] = {
+      val allBBs = nodes
+      val starts = allBBs.filter { x => (cfg.predecessors(x) - x).size == 0 }
+      if (starts.size == 0) {
+        val empty = Set[Int]()
+        nodes.map(_ -> empty).toMap
+      } else {
+      val allExceptStarts = allBBs diff starts
+      val singletons = allExceptStarts map { x => (x, Set(x)) }
       val initDominators =
-        allBBs.foldLeft(Map[Int, Set[Int]]()) {
-          (map, bb) => map + (bb -> allBBs)
-        }
-      val singletons = allBBs.map { x => (x, Set(x)) }
+        starts.foldLeft(
+            allExceptStarts.foldLeft(Map[Int, Set[Int]]()) {
+              (map, bb) => map + (bb -> allBBs)
+            }
+        ) { case (map, x) => map + (x -> Set(x)) }
       
       @scala.annotation.tailrec
       def computeDomImpl(input: (Boolean, Map[Int, Set[Int]])): Map[Int, Set[Int]] =
         input match {
           case (stop, in) =>
-            if (stop) in
-            else
-            computeDomImpl(singletons.foldLeft((true, in)) {
-              case ((stop, map), (bb, singleton)) => {
-                val n = cfg.predecessors(bb).flatMap(map.get(_))
-                val newDomSet = if (n.size == 0) singleton else n.reduce(_&_) + bb
-                (stop && newDomSet == (in.get(bb).orNull), map + (bb -> newDomSet))
-              }
-            })
+            if (stop) {
+              val singularity = in.filter { case (k, v) => v.size == allBBs.size }
+              if (singularity.size > 1) {
+                in ++ (singularity.keys.map((_ -> Set[Int]())))
+              } else
+                in
+            } else {
+              computeDomImpl(singletons.foldLeft((true, in)) {
+                case ((stop, map), (bb, singleton)) => {
+                  val n = cfg.predecessors(bb).map(map(_))
+                  val newDomSet = if (n.size == 0) singleton else n.reduce(_&_) + bb
+                  (stop && newDomSet == (in.get(bb).get), map + (bb -> newDomSet))
+                }
+              })
+            }
         }
       computeDomImpl((false, initDominators))
+      
+      }
     }
 
     def detectLoops[A <: Arch, B <: BBlock[A]](cfg: Cfg[A], merge: Boolean = false): List[Loop[A]] = {
-      val dominators = computeDominators(cfg)
       cfg.graph.componentTraverser().foldLeft(List[Loop[A]]()) {
         (l, subg) => {
           if (subg.nodes.size < 2) l else {
             val nodes = subg.nodes.map(_.value)
-            val backEdges = dominators.filterKeys { nodes.contains(_) }.foldLeft(Set[(Int, Int)]()) {
+            val dominators = computeDominators(nodes, cfg)
+            val backEdges = dominators.foldLeft(Set[(Int, Int)]()) {
               case (s, (k, v)) =>
                 if (nodes.contains(k))
-                  s ++ (cfg.successors(k) & v).map { x => (k, x) }
+                  s ++ (cfg.successors(k) & v).map(k-> _)
                 else s
             }
             if (merge)
