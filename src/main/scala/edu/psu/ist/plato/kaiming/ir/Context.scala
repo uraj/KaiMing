@@ -18,6 +18,7 @@ class IRBBlock[A <: Arch](override val parent: Context[A], override val entries:
   
   override def iterator = entries.iterator
   override def firstEntry = entries.head
+  override def lastEntry = entries.last
   
 }
 
@@ -103,19 +104,14 @@ object Context {
   case class Def[A <: Arch](s: DefStmt[A]) extends Definition[A]
   case object Init extends Definition[Nothing]
 
-  sealed trait Definition[+A <: Arch] {
+  sealed trait Definition[+A <: Arch]
+  
+  object Definition {
     
-    final def flatMap[B](f: DefStmt[_ <: Arch] => Option[B]): Option[B] =
-      this match {
-        case Def(s) => f(s)
-        case Init => None
+    implicit def toOption[A <: Arch](d: Definition[A]) = d match {
+      case l: Def[A] => Some(l.s)
+      case Init => None
     }
-    
-    final def map[B](f: DefStmt[_ <: Arch] => B): Option[B] =
-      this match {
-        case Def(s) => Some(f(s))
-        case Init => None
-      }
     
   }
   

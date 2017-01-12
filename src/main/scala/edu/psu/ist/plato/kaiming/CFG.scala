@@ -213,37 +213,36 @@ object Cfg {
         val empty = Set[Int]()
         nodes.map(_ -> empty).toMap
       } else {
-      val allExceptStarts = allBBs diff starts
-      val singletons = allExceptStarts map { x => (x, Set(x)) }
-      val initDominators =
-        starts.foldLeft(
-            allExceptStarts.foldLeft(Map[Int, Set[Int]]()) {
-              (map, bb) => map + (bb -> allBBs)
-            }
-        ) { case (map, x) => map + (x -> Set(x)) }
+        val allExceptStarts = allBBs diff starts
+        val singletons = allExceptStarts map { x => (x, Set(x)) }
+        val initDominators =
+          starts.foldLeft(
+              allExceptStarts.foldLeft(Map[Int, Set[Int]]()) {
+                (map, bb) => map + (bb -> allBBs)
+              }
+          ) { case (map, x) => map + (x -> Set(x)) }
       
-      @scala.annotation.tailrec
-      def computeDomImpl(input: (Boolean, Map[Int, Set[Int]])): Map[Int, Set[Int]] =
-        input match {
-          case (stop, in) =>
-            if (stop) {
-              val singularity = in.filter { case (k, v) => v.size == allBBs.size }
-              if (singularity.size > 1) {
-                in ++ (singularity.keys.map((_ -> Set[Int]())))
-              } else
-                in
-            } else {
-              computeDomImpl(singletons.foldLeft((true, in)) {
-                case ((stop, map), (bb, singleton)) => {
-                  val n = cfg.predecessors(bb).map(map(_))
-                  val newDomSet = if (n.size == 0) singleton else n.reduce(_&_) + bb
-                  (stop && newDomSet == (in.get(bb).get), map + (bb -> newDomSet))
-                }
-              })
-            }
-        }
-      computeDomImpl((false, initDominators))
-      
+        @scala.annotation.tailrec
+        def computeDomImpl(input: (Boolean, Map[Int, Set[Int]])): Map[Int, Set[Int]] =
+          input match {
+            case (stop, in) =>
+              if (stop) {
+                val singularity = in.filter { case (k, v) => v.size == allBBs.size }
+                if (singularity.size > 1) {
+                  in ++ (singularity.keys.map((_ -> Set[Int]())))
+                } else
+                  in
+              } else {
+                computeDomImpl(singletons.foldLeft((true, in)) {
+                  case ((stop, map), (bb, singleton)) => {
+                    val n = cfg.predecessors(bb).map(map(_))
+                    val newDomSet = if (n.size == 0) singleton else n.reduce(_&_) + bb
+                    (stop && newDomSet == (in.get(bb).get), map + (bb -> newDomSet))
+                  }
+                })
+              }
+          }
+        computeDomImpl((false, initDominators))
       }
     }
 
@@ -263,7 +262,7 @@ object Cfg {
               backEdges.groupBy(_._2).foldLeft(l) { (s, group) =>
                 val candidates = subg.nodes.filter(dominators.get(_).get.contains(group._1))
                 (new Loop(group._1,
-                  candidates.filter(_.pathTo(cfg.graph get group._1).isDefined).map(_.value),
+                  candidates.filter(_.pathTo(cfg.graph.get(group._1)).isDefined).map(_.value),
                   cfg) {
                     val component = new Component {
                       def nodes = subg.nodes
