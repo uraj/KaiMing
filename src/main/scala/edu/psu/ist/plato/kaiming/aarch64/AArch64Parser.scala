@@ -130,7 +130,7 @@ object AArch64Parser extends ParserTrait {
     case inst => Right(inst)
   }
   
-  val singleLine = funlabelLine | instLine | (hex map { case int => Right(new UnsupportedInst(int)) })
+  val singleLine = funlabelLine | instLine
    
   val binaryunit: P[Seq[Function]] = function.rep ~ End
   

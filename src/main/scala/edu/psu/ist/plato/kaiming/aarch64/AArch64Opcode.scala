@@ -67,8 +67,10 @@ object Opcode {
     case object UnArith extends OpClass {
       override object Mnemonic extends Enum[Mnemonic] {
         val values = findValues
-        case object NEG extends Mnemonic("NEGS")
-        case object NGC extends Mnemonic("NGCS")
+        case object NEG extends Mnemonic
+        case object NEGS extends Mnemonic
+        case object NGC extends Mnemonic
+        case object NGCS extends Mnemonic
         case object MVN extends Mnemonic
       }
     }

@@ -218,8 +218,7 @@ sealed abstract class Expr {
   final def uext(right: Const) = UExt(this, right)
   final def |>(right: Const) = Low(this, right)
   final def |<(right: Const) = High(this, right)
-  final def bswap = BSwap(this)
-  final def rbit = RBit(this)
+  final def bswap(right: Const) = BSwap(this, right)
   final def clz = CLeadingZero(this)
   final def unary_~ = Not(this)
   final def unary_! = Neg(this)
@@ -497,6 +496,24 @@ case class High(override val leftSub: Expr, override val rightSub: Const)
       throw new IllegalArgumentException("Right operand of High can only be a Const")
   
 }
+
+case class BSwap(override val leftSub: Expr, override val rightSub: Const)
+  extends BExpr(leftSub, rightSub) {
+  
+  override val sizeInBits = leftSub.sizeInBits
+  
+  require(sizeInBits % rightSub.value == 0,
+      "Length of swaped bitvector is not divisible by granularity")
+  
+  override def gen(left: Expr, right: Expr) = {
+    if (right.isInstanceOf[Const])
+      BSwap(left, right.asInstanceOf[Const])
+    else
+      throw new IllegalArgumentException("Right operand of BSwap can only be a Const")
+  }
+  
+}
+
 // end of binary expressions
 
 // Unary expressions
@@ -513,23 +530,6 @@ case class Neg(override val sub: Expr) extends UExpr(sub) {
   override val sizeInBits = sub.sizeInBits
   
   override def gen(s: Expr) = Neg(s)
-  
-}
-
-case class BSwap(override val sub: Expr) extends UExpr(sub) {
-  
-  override val sizeInBits = sub.sizeInBits
-  
-  require(sizeInBits % 8 == 0, "Can only swap bytes")
-  
-  override def gen(s: Expr) = BSwap(s)
-  
-}
-
-case class RBit(override val sub: Expr) extends UExpr(sub) {
-  
-  override val sizeInBits = sub.sizeInBits
-  override def gen(s: Expr) = RBit(s)
   
 }
 

@@ -302,11 +302,15 @@ object AArch64Machine extends Machine[AArch64] {
     val src = operandToExpr(lv.sizeInBits, inst.src)
     import Opcode.OpClass.UnArith.Mnemonic._
     val rv = inst.subtype match {
-      case NEG => Const(0, inst.dest.sizeInBits) - src
-      case NGC => Const(0, inst.dest.sizeInBits) - src - 1 + Flag.C
+      case NEG | NEGS => Const(0, inst.dest.sizeInBits) - src
+      case NGC | NGCS => Const(0, inst.dest.sizeInBits) - src - 1 + Flag.C
       case MVN => ~src
     }
-    builder.assign(inst, lv, rv)
+    val nbuilder = builder.assign(inst, lv, rv)
+    if (inst.updateFlags)
+      updateFlags(inst, rv.asInstanceOf[BExpr], nbuilder)
+    else
+      nbuilder
   }
   
   private def toIR(inst: SelectInst, builder: IRBuilder[AArch64]) = {
@@ -365,14 +369,15 @@ object AArch64Machine extends Machine[AArch64] {
   private def toIR(inst: DataProcessInst, builder: IRBuilder[AArch64]) = {
     import Opcode.OpClass.DataProcess.Mnemonic._
     val lv = Reg(inst.dest)
-    inst.subtype match {
-      case REV => builder.assign(inst, lv, inst.src bswap)
-      case CLS => builder.assign(inst, lv, ((~inst.src) clz) uext inst.dest.sizeInBits)
-      case CLZ => builder.assign(inst, lv, (inst.src clz) uext inst.dest.sizeInBits)
-      case RBIT => Exception.unsupported()
-      case REV16 => Exception.unsupported()
-      case REV32 => Exception.unsupported()
+    val rv = inst.subtype match {
+      case CLS => ((~inst.src) clz) uext inst.dest.sizeInBits
+      case CLZ => (inst.src clz) uext inst.dest.sizeInBits
+      case RBIT => inst.src bswap 1
+      case REV => inst.src bswap 8
+      case REV16 => inst.src bswap 16
+      case REV32 => inst.src bswap 32
     }
+    builder.assign(inst, lv, rv)
   }
   
   private def toIR(inst: TrinaryArithInst, builder: IRBuilder[AArch64]) = {

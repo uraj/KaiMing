@@ -79,6 +79,7 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
       case _: UExt   => print("uext")
       case _: High   => print("|<")
       case _: Low    => print("|>")
+      case _: BSwap  => print("<>")
     }
     print(' ')
     e.rightSub match {
@@ -104,7 +105,6 @@ final class IRPrinter(ps: OutputStream) extends PrintStream(ps) {
       case _ => printExpr(e.sub)
     }
     e match {
-      case _: BSwap => print("<>")
       case _: Carry => print("@!")
       case _: Overflow => print("@^")
       case _: Zero => print("@*")

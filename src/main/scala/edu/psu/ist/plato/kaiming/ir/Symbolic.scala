@@ -85,6 +85,16 @@ object Symbolic {
   private class ASTBuilder(val ctx: Z3Context)
     extends Expr.NopVisitor[Z3BVExpr] {
     
+    private def reverse(size: Int, granularity: Int, value: Z3BVExpr,
+        pos: Int): Z3BVExpr = {
+      if (pos + granularity == size)
+        ctx.mkExtract(size - 1, pos, value)
+      else {
+        ctx.mkConcat(ctx.mkExtract(pos + granularity - 1, pos, value),
+            reverse(size, granularity, value, pos + granularity))
+      }
+    }
+    
     protected def merge(be: BExpr, left: Z3BVExpr, right: Z3BVExpr) =
       be match {
         case add: Add => ctx.mkBVAdd(left, right)
@@ -108,6 +118,9 @@ object Symbolic {
         case low: Low =>
           ctx.mkExtract(right.asInstanceOf[Z3BVNum].getInt - 1,
               0, left)
+        case bswap: BSwap =>
+          val granularity = right.asInstanceOf[Z3BVNum].getInt
+          reverse(be.sizeInBits, granularity, left, 0)
       }
     
     protected def lift(ue: UExpr, sub: Z3BVExpr) = {
@@ -118,29 +131,7 @@ object Symbolic {
       ue match {
         case not: Not => ctx.mkBVNot(sub)
         case neg: Neg => toBitNeg(ctx.mkEq(sub, ctx.mkBV(0, sub.getSortSize)))
-        case rbit: RBit => Exception.unsupported()
         case clz: CLeadingZero => Exception.unsupported()
-        case bswap: BSwap => 
-          ue.sizeInBits match {
-            case 8 => sub
-            case 16 =>
-              ctx.mkConcat(ctx.mkExtract(7, 0, sub), ctx.mkExtract(15, 8, sub))
-            case 32 =>
-              ctx.mkConcat(ctx.mkExtract(7, 0, sub), ctx.mkConcat(ctx.mkExtract(15, 8, sub),
-                  ctx.mkConcat(ctx.mkExtract(23, 16, sub), ctx.mkExtract(31, 24, sub))))
-            case 64 =>
-              ctx.mkConcat(ctx.mkExtract(7, 0, sub),
-                ctx.mkConcat(ctx.mkExtract(15, 8, sub),
-                  ctx.mkConcat(ctx.mkExtract(23, 16, sub),
-                    ctx.mkConcat(ctx.mkExtract(31, 24, sub),
-                      ctx.mkConcat(ctx.mkExtract(39, 32, sub),
-                        ctx.mkConcat(ctx.mkExtract(47, 40, sub),
-                          ctx.mkConcat(ctx.mkExtract(55, 48, sub),
-                            ctx.mkExtract(63, 56, sub))))))))
-            case _ => 
-              Exception.unreachable("bit size of expression to be byte swapped"
-                 + "is not a multiple of 8")
-          }
         case ee: ExtractorExpr => {
           val zero = ctx.mkBV(0, ue.sizeInBits)
           val args = sub.getArgs
