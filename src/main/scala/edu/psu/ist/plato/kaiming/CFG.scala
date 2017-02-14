@@ -63,7 +63,7 @@ abstract class Cfg[A <: Arch] extends Iterable[BBlock[A]] {
   def toDot = {
     val builder = new StringBuilder()
     builder.append("digraph {\n")
-    graph.edges.foldLeft(builder) {
+    graph.edges.toSeq.sortBy(x => (x._1.value , x._2.value)).foldLeft(builder) {
       (b, inner) =>
         builder.append(s"""\t"${blocks(inner._1.value)}"->"${blocks(inner._2.value)}";\n""")
     }.append("}").toString
@@ -175,18 +175,12 @@ object Cfg {
   
   sealed abstract class Loop[A <: Arch] private (val header: Int,
       val body: Set[Int], val cfg: Cfg[A] ) {
-    
-    // We need this trait because Graph.Component is protected
-    protected sealed trait Component {
-      def nodes: Set[_ <: g.NodeT forSome {val g: Graph[Int, LDiEdge]}]
-      def edges: Set[_ <: g.EdgeT forSome {val g: Graph[Int, LDiEdge]}]
-    }
 
-    val component: Component
+    protected def nodes: Set[_ <: g.NodeT forSome {val g: Graph[Int, LDiEdge]}]
     
     lazy val subgraph = {
-      val nodes = component.nodes.map(_.value)
-      cfg.graph filter cfg.graph.having(node=(x => nodes.contains(cfg.graph get x)))
+      val _nodes = nodes.map(_.value)
+      cfg.graph filter cfg.graph.having(node=(x => _nodes.contains(cfg.graph get x)))
     }
     
     def headerBlock = cfg.blocks(header)
@@ -196,7 +190,7 @@ object Cfg {
       builder.append("digraph {\n")
       builder.append(
           s"""\tlabelloc="t";\n\tlabel="${cfg.parent.label}-${cfg.blocks(header).index.toHexString}";\n""")
-      subgraph.edges.foldLeft(builder) {
+      subgraph.edges.toSeq.sortBy(x => (x._1.value, x._2.value)).foldLeft(builder) {
         (b, inner) => builder.append(
             s"""\t"${cfg.blocks(inner._1.value)}"->"${cfg.blocks(inner._2.value)}";\n""")
       }.append("}").toString
@@ -282,25 +276,17 @@ object Cfg {
               backEdges.groupBy(_._2).foldLeft(l) { (s, group) =>
                 val candidates = subg.nodes.filter(dominators.get(_).get.contains(group._1))
                 (new Loop(group._1,
-                  candidates.filter(_.pathTo(cfg.graph.get(group._1)).isDefined).map(_.value),
-                  cfg) {
-                    val component = new Component {
-                      def nodes = subg.nodes
-                      def edges = subg.edges
-                    }
-                  })::s
+                  candidates.filter(_.pathTo(cfg.graph.get(group._1)).isDefined).map(_.value), cfg) {
+                  def nodes = subg.nodes }
+                )::s
               }
             else
               backEdges.foldLeft(l) { (s, x) =>
                 val candidates = subg.nodes.filter(dominators.get(_).get.contains(x._2))
                 (new Loop(x._2,
-                  candidates.filter(_.pathTo(cfg.graph get x._2).isDefined).map(_.value),
-                  cfg) {
-                    val component = new Component {
-                      def nodes = subg.nodes
-                      def edges = subg.edges
-                    }
-                  })::s
+                  candidates.filter(_.pathTo(cfg.graph get x._2).isDefined).map(_.value), cfg) {
+                  def nodes = subg.nodes }
+                )::s
               }
           }
         }
