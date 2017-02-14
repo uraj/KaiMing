@@ -64,7 +64,8 @@ abstract class Cfg[A <: Arch] extends Iterable[BBlock[A]] {
     val builder = new StringBuilder()
     builder.append("digraph {\n")
     graph.edges.foldLeft(builder) {
-      (b, inner) => builder.append(s"""\t"${blocks(inner._1.value)}"->"${blocks(inner._2.value)}";\n""")
+      (b, inner) =>
+        builder.append(s"""\t"${blocks(inner._1.value)}"->"${blocks(inner._2.value)}";\n""")
     }.append("}").toString
   }
   
@@ -180,8 +181,27 @@ object Cfg {
       def nodes: Set[_ <: g.NodeT forSome {val g: Graph[Int, LDiEdge]}]
       def edges: Set[_ <: g.EdgeT forSome {val g: Graph[Int, LDiEdge]}]
     }
-    
+
     val component: Component
+    
+    lazy val subgraph = {
+      val nodes = component.nodes.map(_.value)
+      cfg.graph filter cfg.graph.having(node=(x => nodes.contains(cfg.graph get x)))
+    }
+    
+    def headerBlock = cfg.blocks(header)
+    
+    def toDot = {
+      val builder = new StringBuilder()
+      builder.append("digraph {\n")
+      builder.append(
+          s"""\tlabelloc="t";\n\tlabel="${cfg.parent.label}-${cfg.blocks(header).index.toHexString}";\n""")
+      subgraph.edges.foldLeft(builder) {
+        (b, inner) => builder.append(
+            s"""\t"${cfg.blocks(inner._1.value)}"->"${cfg.blocks(inner._2.value)}";\n""")
+      }.append("}").toString
+  }
+
     
     override def toString = {
       val b = new StringBuilder

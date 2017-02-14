@@ -112,9 +112,9 @@ object AArch64Machine extends Machine[AArch64] {
     
     val rval = inst.subtype match {
       case ADD | ADDS => inst.srcLeft + right
-      case ADC | ADCS => inst.srcLeft + right + Flag.C
+      case ADC | ADCS => inst.srcLeft + right + (Flag.C uext right.sizeInBits)
       case SUB | SUBS => inst.srcLeft - right
-      case SBC | SBCS => inst.srcLeft - right - Flag.C
+      case SBC | SBCS => inst.srcLeft - right - (Flag.C uext right.sizeInBits)
       case MUL => inst.srcLeft * right
       case UMULL => (inst.srcLeft uext 64) * (right uext 64)
       case SMULL => (inst.srcLeft sext 64) * (right sext 64)
@@ -300,10 +300,11 @@ object AArch64Machine extends Machine[AArch64] {
   private def toIR(inst: UnaryArithInst, builder: IRBuilder[AArch64]) = {
     val lv = Reg(inst.dest)
     val src = operandToExpr(lv.sizeInBits, inst.src)
+    val size = inst.dest.sizeInBits
     import Opcode.OpClass.UnArith.Mnemonic._
     val rv = inst.subtype match {
-      case NEG | NEGS => Const(0, inst.dest.sizeInBits) - src
-      case NGC | NGCS => Const(0, inst.dest.sizeInBits) - src - 1 + Flag.C
+      case NEG | NEGS => Const(0, size) - src
+      case NGC | NGCS => Const(0, size) - src - Const(1, size) + (Flag.C uext size)
       case MVN => ~src
     }
     val nbuilder = builder.assign(inst, lv, rv)

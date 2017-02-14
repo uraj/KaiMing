@@ -13,10 +13,10 @@ object AArch64Parser extends ParserTrait {
   import fastparse.noApi._
   import White._
   
-  private val plainImm: P[Immediate] = ("#" ~~ integer).map(Immediate(_))
+  private val plainImm: P[Immediate] = ("#" ~~ integer ~~ ("LU" ?)).map(Immediate(_))
   
   private val shiftedImm: P[Immediate] =
-    ("#" ~ integer ~ "," ~ IgnoreCase("lsl") ~ "#" ~ integer) map {
+    ("#" ~ integer ~ "," ~ IgnoreCase("lsl") ~ ("#" ~~ integer)) map {
       case (base, shift) =>
         if(shift % 16 == 0) Immediate(base, shift.toInt)
         else Immediate(base, shift.toInt)

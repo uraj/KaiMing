@@ -300,7 +300,7 @@ case class Add(override val leftSub: Expr, override val rightSub: Expr)
     extends BExpr(leftSub, rightSub) {
   
   require(leftSub.sizeInBits == rightSub.sizeInBits,
-      "Operands of Add have to be of the same size")
+      s"Operands of Add have to be of the same size: $leftSub:${leftSub.sizeInBits} + $rightSub:${rightSub.sizeInBits}")
   
   override val sizeInBits = leftSub.sizeInBits
   
@@ -312,12 +312,12 @@ case class Sub(override val leftSub: Expr, override val rightSub: Expr)
     extends BExpr(leftSub, rightSub) {
   
   require(leftSub.sizeInBits == rightSub.sizeInBits,
-      "Operands of Sub have to be of the same size")
+      s"Operands of Sub have to be of the same size: $leftSub:${leftSub.sizeInBits} - $rightSub:${rightSub.sizeInBits}")
   
   override val sizeInBits = leftSub.sizeInBits
   
   override def gen(left: Expr, right: Expr) = Sub(left, right)
-  
+
 }
 
 case class Or(override val leftSub: Expr, override val rightSub: Expr)
