@@ -63,7 +63,7 @@ abstract class Cfg[A <: Arch] extends Iterable[BBlock[A]] {
   def toDot = {
     val builder = new StringBuilder()
     builder.append("digraph {\n")
-    builder.append("""\tspline="ortho";\n""")
+    builder.append(s"""\tsplines="ortho";\n""")
     graph.edges.toSeq.sortBy(x => (x._1.value , x._2.value)).foldLeft(builder) {
       (b, inner) =>
         builder.append(s"""\t"${blocks(inner._1.value)}"->"${blocks(inner._2.value)}";\n""")
@@ -189,9 +189,9 @@ object Cfg {
     def toDot = {
       val builder = new StringBuilder()
       builder.append("digraph {\n")
-      builder.append("""\tlabelloc="t";\n""")
+      builder.append(s"""\tlabelloc="t";\n""")
       builder.append(s"""\tlabel="${cfg.parent.label}-${cfg.blocks(header).index.toHexString}";\n""")
-      builder.append("""\tspline="ortho";\n""")
+      builder.append(s"""\tsplines="ortho";\n""")
       subgraph.edges.toSeq.sortBy(x => (x._1.value, x._2.value)).foldLeft(builder) {
         (b, inner) => builder.append(
             s"""\t"${cfg.blocks(inner._1.value)}"->"${cfg.blocks(inner._2.value)}";\n""")
