@@ -175,7 +175,7 @@ object Cfg {
   import scalax.collection.edge.LDiEdge
   
   sealed abstract class Loop[A <: Arch] private (val header: Int,
-      val body: Set[Int], val cfg: Cfg[A] ) {
+       val backEdges: Set[(Int, Int)], val body: Set[Int], val cfg: Cfg[A]) {
 
     protected def nodes: Set[_ <: g.NodeT forSome {val g: Graph[Int, LDiEdge]}]
     
@@ -277,7 +277,7 @@ object Cfg {
             if (merge)
               backEdges.groupBy(_._2).foldLeft(l) { (s, group) =>
                 val candidates = subg.nodes.filter(dominators.get(_).get.contains(group._1))
-                (new Loop(group._1,
+                (new Loop(group._1, backEdges,
                   candidates.filter(_.pathTo(cfg.graph.get(group._1)).isDefined).map(_.value), cfg) {
                   def nodes = subg.nodes }
                 )::s
@@ -285,7 +285,7 @@ object Cfg {
             else
               backEdges.foldLeft(l) { (s, x) =>
                 val candidates = subg.nodes.filter(dominators.get(_).get.contains(x._2))
-                (new Loop(x._2,
+                (new Loop(x._2, backEdges,
                   candidates.filter(_.pathTo(cfg.graph get x._2).isDefined).map(_.value), cfg) {
                   def nodes = subg.nodes }
                 )::s
