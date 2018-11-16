@@ -1,11 +1,15 @@
 package io.github.uraj.kaiming.test.ir
 
+import scala.language.implicitConversions
+
 import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfter
+
 import com.microsoft.z3.{Context => Z3Context}
 import com.microsoft.z3.{BitVecExpr => Z3BVExpr}
 import com.microsoft.z3.{BitVecNum => Z3BVNum}
-import io.github.uraj.kaiming.ir.{IRPrinter, Symbolic}
+
+import io.github.uraj.kaiming.ir.{Context, Var, Const, Reg, IRPrinter, Symbolic}
 import io.github.uraj.kaiming.utils.Exception
 
 class TestZ3 extends FunSuite with BeforeAndAfter {

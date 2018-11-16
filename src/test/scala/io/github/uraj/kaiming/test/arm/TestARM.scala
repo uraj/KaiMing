@@ -12,6 +12,8 @@ import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.junit.JUnitRunner
 
 import io.github.uraj.kaiming.Cfg.Loop
+import io.github.uraj.kaiming.ir.Context
+import io.github.uraj.kaiming.ir.Var
 import io.github.uraj.kaiming.arm.ARM
 import io.github.uraj.kaiming.arm.Function
 import io.github.uraj.kaiming.arm.ARMParser
