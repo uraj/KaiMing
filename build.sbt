@@ -8,11 +8,13 @@ val libraries = Seq(
 lazy val root = (project in file(".")).
   settings(
     name := "KaiMing",
-    organization := "edu.psu.ist.plato",
+    organization := "io.github.uraj",
     version := "0.1",
     scalaVersion := "2.11.8",
     libraryDependencies ++= libraries
   )
+
+scalacOptions := Seq("-unchecked", "-deprecation", "-feature")
 
 assemblyExcludedJars in assembly := { 
   val cp = (fullClasspath in assembly).value
