@@ -1,4 +1,4 @@
-0x101D420E4 ollvm_fla:
+0x101D420E4 SomeCPPFunc:
 0x101D420E4	LDP             X0, X30, [SP,#-0x10]
 0x101D420E8	STP             X28, X27, [SP,#-0x20]!
 0x101D420EC	STP             X29, X30, [SP,#0x10]

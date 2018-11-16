@@ -1,4 +1,4 @@
-0x3BF4	towel_root:
+0x3BF4	SomeCFunc:
 0x3BF4  STMFD           SP!, {R4-R11,LR}
 0x3BF8  ADD             R11, SP, #0x1C
 0x3BFC  SUB             SP, SP, #0x1C

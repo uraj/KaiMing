@@ -1,4 +1,4 @@
-0x00444800	_ZN10predictors31ResourcePrefetchPredictorTables24CreateTableIfNonExistentEv:
+0x00444800	SomeCPPFunc:
 0x444800	push   %ebp
 0x444801	push   %edi
 0x444802	push   %esi
